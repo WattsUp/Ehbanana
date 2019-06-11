@@ -1,0 +1,13 @@
+# Precompiled headers
+.vscode/ipch
+
+# Build Executable
+debug
+release
+Ehbanana.res
+
+# Eagle Project
+*.epf
+
+# Log files
+logfile*
