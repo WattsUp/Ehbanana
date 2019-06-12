@@ -40,6 +40,17 @@ bool operator==(
 }
 
 /**
+ * @brief Not operator compares the result to success
+ * 
+ * @param result 
+ * @return true if result is not successful
+ * @return false if result is successful
+ */
+bool operator!(const Results::Result_t & result){
+  return result.value != Results::SUCCESS.value;
+}
+
+/**
  * @brief Add a message to an existing result
  *
  * @param left result

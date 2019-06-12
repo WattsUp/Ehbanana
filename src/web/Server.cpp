@@ -3,113 +3,77 @@
 
 namespace Web {
 
-Server::Server() {}
+Server::Server(const std::string & root, const std::string & addr,
+    const std::string & port) :
+  ioContext(1),
+  signals(ioContext), acceptor(ioContext), requestHandler(root) {
+  // Register to handle the signals that indicate when the server should exit.
+  // It is safe to register for the same signal multiple times in a program,
+  // provided all registration for the specified signal is made through Asio.
+  signals.add(SIGINT);
+  signals.add(SIGTERM);
 
-Server::~Server() {
-  WSACleanup();
+  stop();
+
+  // Open the acceptor with the option to reuse the address (i.e. SO_REUSEADDR).
+  asio::ip::tcp::resolver resolver(ioContext);
+  asio::ip::tcp::endpoint endpoint = *resolver.resolve(addr, port).begin();
+  acceptor.open(endpoint.protocol());
+  acceptor.set_option(asio::ip::tcp::acceptor::reuse_address(true));
+  acceptor.bind(endpoint);
+  acceptor.listen();
+
+  accept();
 }
 
-Results::Result_t Server::initialize(
-    const std::string & root, const std::string & port) {
-  this->root = root;
-  this->port = port;
+void Server::accept() {
+  acceptor.async_accept(
+      [this](std::error_code ec, asio::ip::tcp::socket socket) {
+        // Check whether the server was stopped by a signal before this
+        // completion handler had a chance to run.
+        if (!acceptor.is_open()) {
+          return;
+        }
 
-  WSADATA wsaData;
-  int     iResult;
+        if (!ec) {
+          startConnection(std::make_shared<Connection>(
+              std::move(socket), this, &requestHandler));
+        }
 
-  spdlog::debug("Initializing Winsock");
-  iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
-  if (iResult != 0) {
-    return Results::OPEN_FAILED + ("WSAStartup failed with error " + iResult);
-  }
+        accept();
+      });
+}
 
-  struct addrinfo * addr = nullptr;
-  struct addrinfo   hints;
+void Server::stopConnection(std::shared_ptr<Connection> connection) {
+  connections.erase(connection);
+  connection->stop();
+}
 
-  ZeroMemory(&hints, sizeof(hints));
-  hints.ai_family   = AF_INET;
-  hints.ai_socktype = SOCK_STREAM;
-  hints.ai_protocol = IPPROTO_TCP;
-  hints.ai_flags    = AI_PASSIVE;
+void Server::stopConnections() {
+  for (std::shared_ptr<Connection> connection : connections)
+    connection->stop();
+  connections.clear();
+}
 
-  spdlog::debug("Resolving server address and port");
-  iResult = getaddrinfo(NULL, port.c_str(), &hints, &addr);
-  if (iResult != 0) {
-    return Results::OPEN_FAILED + ("getaddrinfo failed with error " + iResult);
-  }
-
-  spdlog::debug("Creating socket to accept new connections");
-  listenSocket = socket(addr->ai_family, addr->ai_socktype, addr->ai_protocol);
-  if (listenSocket == INVALID_SOCKET) {
-    freeaddrinfo(addr);
-    return Results::OPEN_FAILED +
-           ("socket failed with error " + WSAGetLastError());
-  }
-
-  spdlog::debug("Binding socket to address");
-  iResult = bind(listenSocket, addr->ai_addr, (int)addr->ai_addrlen);
-  if (iResult == SOCKET_ERROR) {
-    freeaddrinfo(addr);
-    closesocket(listenSocket);
-    return Results::OPEN_FAILED +
-           ("socket bind failed with error " + WSAGetLastError());
-  }
-
-  freeaddrinfo(addr);
-
-  spdlog::debug("Placing socket in listening state");
-  iResult = listen(listenSocket, SOMAXCONN);
-  if (iResult == SOCKET_ERROR) {
-    closesocket(listenSocket);
-    return Results::OPEN_FAILED +
-           ("socket listen failed with error " + WSAGetLastError());
-  }
-
-  return Results::SUCCESS;
+void Server::startConnection(std::shared_ptr<Connection> connection) {
+  connections.insert(connection);
+  connection->start();
 }
 
 Results::Result_t Server::run() {
-  int iResult = 0;
-  while (true) {
-    SOCKET client = accept(listenSocket, NULL, NULL);
-    char   recvbuf[512];
-    int    recvbuflen = 512;
-    if (client == INVALID_SOCKET) {
-      closesocket(listenSocket);
-      return Results::OPEN_FAILED +
-             ("socket accept failed with error " + WSAGetLastError());
-    }
-    // Receive until the peer shuts down the connection
-    do {
-      iResult = recv(client, recvbuf, recvbuflen, 0);
-      if (iResult > 0) {
-        spdlog::debug("Bytes received: {}\n{}", iResult, recvbuf);
-      } else if (iResult == 0)
-        spdlog::debug("Connection closing...");
-      else {
-        closesocket(client);
-        return Results::OPEN_FAILED +
-               ("socket recv failed with error " + WSAGetLastError());
-      }
-
-    } while (iResult > 0);
-
-    // shutdown the connection since we're done
-    iResult = shutdown(client, SD_SEND);
-    if (iResult == SOCKET_ERROR) {
-      closesocket(client);
-      return Results::OPEN_FAILED +
-             ("socket shutdown failed with error " + WSAGetLastError());
-    }
-
-    // cleanup
-    closesocket(client);
-  }
-  return Results::NOT_SUPPORTED + "Server run";
+  ioContext.run();
+  return Results::SUCCESS;
 }
 
 Results::Result_t Server::stop() {
-  return Results::NOT_SUPPORTED + "Server stop";
+  signals.async_wait([this](std::error_code /*ec*/, int /*signo*/) {
+    // The server is stopped by cancelling all outstanding asynchronous
+    // operations. Once all operations have finished the io_context::run()
+    // call will exit.
+    acceptor.close();
+    stopConnections();
+  });
+  return Results::SUCCESS;
 }
 
 } // namespace Web

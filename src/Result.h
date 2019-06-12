@@ -45,6 +45,7 @@ static const Result_t UNDEFINED_PARENT      = {0x0017, "The parent of the object
 std::ostream & operator<<(std::ostream & stream, const Results::Result_t & result);
 bool operator!=(const Results::Result_t & left, const Results::Result_t & right);
 bool operator==(const Results::Result_t & left, const Results::Result_t & right);
+bool operator!(const Results::Result_t & result);
 Results::Result_t operator+(const Results::Result_t & left, std::string right);
 
 #endif /* _RESULT_H_ */

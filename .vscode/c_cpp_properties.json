@@ -3,7 +3,10 @@
         {
             "name": "Win32",
             "includePath": [
-                "${workspaceFolder}/**"
+                "${workspaceFolder}/src/**",
+                "${workspaceFolder}/lib/asio/asio/include/**",
+                "${workspaceFolder}/lib/spdlog/include/**",
+                "${workspaceFolder}/lib/MemoryMapping/**"
             ],
             "defines": [
                 "_DEBUG",

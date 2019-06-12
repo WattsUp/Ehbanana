@@ -19,20 +19,14 @@ int main(int argc, char * argv[]) {
   Web::Server server;
   Results::Result_t result = Results::SUCCESS;
 
-  result = server.initialize("http");
-  if(result != Results::SUCCESS){
-    spdlog::error(result);
-    return result.value;
-  }
-
   result = server.run();
-  if(result != Results::SUCCESS){
+  if(!result){
     spdlog::error(result);
     return result.value;
   }
   
   result = server.stop();
-  if(result != Results::SUCCESS){
+  if(!result){
     spdlog::error(result);
     return result.value;
   }

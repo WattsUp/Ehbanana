@@ -18,14 +18,14 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(SolutionDir)\lib\spdlog\include;$(SolutionDir)\lib\MemoryMapping;$(SolutionDir)\src</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>DEBUG;_WINSOCKAPI_;%(PreprocessorDefinitions);</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(SolutionDir)\lib\spdlog\include;$(SolutionDir)\lib\asio\asio\include;$(SolutionDir)\lib\MemoryMapping;$(SolutionDir)\src</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>DEBUG;WIN32_LEAN_AND_MEAN;%(PreprocessorDefinitions);</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(SolutionDir)\lib\spdlog\include;$(SolutionDir)\lib\MemoryMapping;$(SolutionDir)\src</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_WINSOCKAPI_;%(PreprocessorDefinitions);</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(SolutionDir)\lib\spdlog\include;$(SolutionDir)\lib\asio\asio\include;$(SolutionDir)\lib\MemoryMapping;$(SolutionDir)\src</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32_LEAN_AND_MEAN;%(PreprocessorDefinitions);</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -37,6 +37,7 @@
     <ClInclude Include="src\**\*.h" />
     <ClInclude Include="lib\MemoryMapping\*.h" />
     <ClInclude Include="lib\spdlog\include\**\*.h" />
+    <ClInclude Include="lib\asio\asio\include\**\*.*pp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Targets" />
 </Project>

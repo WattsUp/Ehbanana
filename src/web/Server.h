@@ -1,39 +1,49 @@
 #ifndef _WEB_SERVER_H_
 #define _WEB_SERVER_H_
 
+#include "Connection.h"
+#include "RequestHandler.h"
 #include "Result.h"
 
-#include <windows.h>
-#include <winsock2.h>
-#include <ws2tcpip.h>
+#include <asio.hpp>
 
+#include <memory>
+#include <set>
 #include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <string>
-
-// Need to link with Ws2_32.lib
-#pragma comment(lib, "Ws2_32.lib")
 
 namespace Web {
 
+static const char * DEFAULT_ROOT      = "http";
+static const char * DEFAULT_ADDR      = "127.0.0.1";
 static const char * DEFAULT_PORT_HTTP = "8080";
 
 class Server {
 public:
-  Server();
-  ~Server();
+  Server(const Server &) = delete;
+  Server & operator=(const Server &) = delete;
 
-  Results::Result_t initialize(
-      const std::string & root, const std::string & port = DEFAULT_PORT_HTTP);
+  Server(const std::string & root = DEFAULT_ROOT,
+      const std::string &    addr = DEFAULT_ADDR,
+      const std::string &    port = DEFAULT_PORT_HTTP);
+
   Results::Result_t run();
   Results::Result_t stop();
 
-private:
-  std::string root;
-  std::string port;
+  void stopConnection(std::shared_ptr<Connection> connection);
+  void stopConnections();
 
-  SOCKET listenSocket = INVALID_SOCKET;
+private:
+  void accept();
+  void startConnection(std::shared_ptr<Connection> connection);
+
+  asio::io_context        ioContext;
+  asio::signal_set        signals;
+  asio::ip::tcp::acceptor acceptor;
+
+  RequestHandler requestHandler;
+
+  std::set<std::shared_ptr<Connection> > connections;
 };
 
 } // namespace Web
