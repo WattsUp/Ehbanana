@@ -4,22 +4,40 @@
 #include <memory>
 #include <string>
 
-// #include <windows.h>
-
 #include "spdlog/sinks/rotating_file_sink.h"
 #include "spdlog/sinks/stdout_sinks.h"
 #include "spdlog/spdlog.h"
 
 #include "Hash.h"
 #include "Result.h"
+#include "web/Server.h"
 
-// int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdArgs, int
-// cmdShow) {
 int main(int argc, char * argv[]) {
   setupLogging(argc, argv);
   spdlog::info("Ehbanana Version {}.{}.{}", VERSION[0], VERSION[1], VERSION[2]);
 
-  return 0;
+  Web::Server server;
+  Results::Result_t result = Results::SUCCESS;
+
+  result = server.initialize("http");
+  if(result != Results::SUCCESS){
+    spdlog::error(result);
+    return result.value;
+  }
+
+  result = server.run();
+  if(result != Results::SUCCESS){
+    spdlog::error(result);
+    return result.value;
+  }
+  
+  result = server.stop();
+  if(result != Results::SUCCESS){
+    spdlog::error(result);
+    return result.value;
+  }
+
+  return result.value;
 }
 
 /**

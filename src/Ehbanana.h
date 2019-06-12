@@ -2,6 +2,7 @@
 #define _EHBANANA_H_
 
 #define WIN32_LEAN_AND_MEAN
+
 #ifndef UNICODE
 #define UNICODE
 #endif
