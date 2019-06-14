@@ -3,9 +3,12 @@
 
 #include <asio.hpp>
 
+#include <atomic>
+#include <chrono>
 #include <list>
 #include <stdint.h>
 #include <string>
+#include <thread>
 
 #include "Connection.h"
 #include "RequestHandler.h"
@@ -27,14 +30,14 @@ public:
       const std::string &    port = DEFAULT_PORT_HTTP);
   ~Server();
 
-  Results::Result_t run();
-  Results::Result_t stop();
-
-  void stopConnection(Connection * connection);
-  void stopConnections();
+  void start();
+  void stop();
 
 private:
-  void startConnection(Connection * connection);
+  void run();
+
+  std::thread *     thread;
+  std::atomic<bool> running = false;
 
   asio::io_context        ioContext;
   asio::ip::tcp::acceptor acceptor;

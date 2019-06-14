@@ -19,18 +19,9 @@ int main(int argc, char * argv[]) {
   Web::Server       server;
   Results::Result_t result = Results::SUCCESS;
 
-  result = server.run();
-  if (!result) {
-    spdlog::error(result);
-    server.stop();
-    return result.value;
-  }
-
-  result = server.stop();
-  if (!result) {
-    spdlog::error(result);
-    return result.value;
-  }
+  server.start();
+  std::this_thread::sleep_for(std::chrono::seconds(10));
+  server.stop();
 
   return result.value;
 }

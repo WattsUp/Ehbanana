@@ -13,47 +13,66 @@ Server::Server(const std::string & root, const std::string & addr,
   acceptor.open(endpoint.protocol());
   acceptor.set_option(asio::ip::tcp::acceptor::reuse_address(true));
   acceptor.bind(endpoint);
+  acceptor.non_blocking(true);
   acceptor.listen();
 }
 
 Server::~Server() {
-  stopConnections();
+  stop();
 }
 
-
-void Server::stopConnection(Connection * connection) {
-  connection->stop();
-  delete connection;
-  connections.remove(connection);
+void Server::start() {
+  stop();
+  running = true;
+  thread  = new std::thread(&Server::run, this);
 }
 
-void Server::stopConnections() {
-  while (!connections.empty()) {
-    connections.front()->stop();
-    delete connections.front();
-    connections.pop_front();
+void Server::run() {
+  asio::ip::tcp::socket * socket = nullptr;
+  asio::error_code        errorCode;
+  while (running) {
+    // Check for new connections
+    if (socket == nullptr)
+      socket = new asio::ip::tcp::socket(ioContext);
+    acceptor.accept(*socket, errorCode);
+    if (!errorCode) {
+      spdlog::debug("Accepted a socket");
+      connections.push_back(new Connection(socket, &requestHandler));
+      socket = nullptr;
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(250));
+    spdlog::debug("loop");
+
+    // Process current connections
+    std::list<Connection *>::iterator i   = connections.begin();
+    std::list<Connection *>::iterator end = connections.end();
+    while (i != end) {
+      Connection * connection = *i;
+      // Remove the connection if update returns the connection is complete
+      if (connection->update()) {
+        connection->stop();
+        i = connections.erase(i);
+      } else {
+        ++i;
+      }
+    }
+  }
+  // Free socket if not already
+  if (socket != nullptr) {
+    socket->close();
+    delete socket;
+    socket = nullptr;
   }
 }
 
-void Server::startConnection(Connection * connection) {
-  connections.push_back(connection);
-  connection->start();
-}
-
-Results::Result_t Server::run() {
-  ioContext.run();
-  return Results::SUCCESS;
-}
-
-Results::Result_t Server::stop() {
-  signals.async_wait([this](std::error_code /*ec*/, int /*signo*/) {
-    // The server is stopped by cancelling all outstanding asynchronous
-    // operations. Once all operations have finished the io_context::run()
-    // call will exit.
-    acceptor.close();
-    stopConnections();
-  });
-  return Results::SUCCESS;
+void Server::stop() {
+  running = false;
+  if (thread == nullptr)
+    return;
+  if (thread->joinable())
+    thread->join();
+  delete thread;
+  thread = nullptr;
 }
 
 } // namespace Web
