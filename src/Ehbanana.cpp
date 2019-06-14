@@ -16,17 +16,18 @@ int main(int argc, char * argv[]) {
   setupLogging(argc, argv);
   spdlog::info("Ehbanana Version {}.{}.{}", VERSION[0], VERSION[1], VERSION[2]);
 
-  Web::Server server;
+  Web::Server       server;
   Results::Result_t result = Results::SUCCESS;
 
   result = server.run();
-  if(!result){
+  if (!result) {
     spdlog::error(result);
+    server.stop();
     return result.value;
   }
-  
+
   result = server.stop();
-  if(!result){
+  if (!result) {
     spdlog::error(result);
     return result.value;
   }

@@ -38,7 +38,8 @@ static const Result_t INVALID_UTF8          = {0x0014, "The character does not f
 static const Result_t UNKNOWN_HASH          = {0x0015, "The hash is not recognized in the list of known hashes"};
 static const Result_t UNKNOWN_REFERENCE     = {0x0016, "The reference is to an undefined object"};
 static const Result_t EXCEPTION_OCCURED     = {0x0017, "The command encountered an exception"};
-static const Result_t UNDEFINED_PARENT      = {0x0017, "The parent of the object is undefined"};
+static const Result_t UNDEFINED_PARENT      = {0x0018, "The parent of the object is undefined"};
+static const Result_t INCOMPLETE_OPERATION  = {0x0019, "The operation has not completed yet"};
 
 } // namespace Results
 

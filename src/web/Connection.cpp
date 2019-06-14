@@ -24,47 +24,50 @@ void Connection::read() {
   socket.async_read_some(asio::buffer(buffer),
       [this, self](std::error_code ec, std::size_t bytes_transferred) {
         if (!ec) {
-          // request_parser::result_type result;
-          // std::tie(result, std::ignore) = request_parser_.parse(
-          //     request_, buffer_.data(), buffer_.data() + bytes_transferred);
+          Results::Result_t result =
+              request.parse(buffer.data(), buffer.data() + bytes_transferred);
+          if (result == Results::SUCCESS) {
+            // Handle request
+            write();
+          } else if (result == Results::INCOMPLETE_OPERATION) {
+            read();
+          } else {
+            // Reply with bad request
 
-          // if (result == request_parser::good)
-          // {
-          //   request_handler_.handle_request(request_, reply_);
-          //   do_write();
-          // }
-          // else if (result == request_parser::bad)
-          // {
-          //   reply_ = reply::stock_reply(reply::bad_request);
-            // do_write();
-          // }
-          // else
-          // {
-          //   read();
-          // }
-          spdlog::debug("Connection recieved: |{}|", buffer.data());
-          write();
+            reply.setStatus(HTTPStatus::OK);
+            reply.appendContent("<html>Hello World</html>");
+            reply.addHeader(
+                "Content-Length", std::to_string(reply.content.size()));
+            reply.addHeader("Content-Type", "text/html");
+#ifdef DEBUG
+            spdlog::error(result + "Encountered a bad HTTP request");
+#endif
+            write();
+          }
         } else if (ec != asio::error::operation_aborted) {
-          server->stopConnection(shared_from_this());
+          server->stopConnection(this);
         }
       });
 }
 
 void Connection::write() {
-  std::shared_ptr<Connection>     self(shared_from_this());
+  std::shared_ptr<Connection> self(shared_from_this());
+
   std::vector<asio::const_buffer> buffers;
-  buffers.push_back(asio::buffer("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nHello World\r\n"));
+  buffers.push_back(asio::buffer(
+      "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\nHello World\r\n"));
 
   asio::async_write(
       socket, buffers, [this, self](std::error_code ec, std::size_t) {
         if (!ec) {
           // Initiate graceful connection closure.
-          asio::error_code ignored_ec;
-          socket.shutdown(asio::ip::tcp::socket::shutdown_both, ignored_ec);
+          asio::error_code ignoredErrorCode;
+          socket.shutdown(
+              asio::ip::tcp::socket::shutdown_both, ignoredErrorCode);
         }
 
         if (ec != asio::error::operation_aborted) {
-          server->stopConnection(shared_from_this());
+          server->stopConnection(this);
         }
       });
 }

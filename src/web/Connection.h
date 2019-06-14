@@ -1,6 +1,8 @@
 #ifndef _WEB_CONNECTION_H_
 #define _WEB_CONNECTION_H_
 
+#include "Reply.h"
+#include "Request.h"
 #include "RequestHandler.h"
 #include "Result.h"
 
@@ -15,8 +17,7 @@ namespace Web {
 
 class Server;
 
-class Connection
-  : public std::enable_shared_from_this<Connection> {
+class Connection : public std::enable_shared_from_this<Connection> {
 public:
   Connection(const Connection &) = delete;
   Connection & operator=(const Connection &) = delete;
@@ -32,10 +33,11 @@ private:
   void write();
 
   asio::ip::tcp::socket socket;
+  Server *              server;
+  RequestHandler *      requestHandler;
 
-  Server *         server;
-  RequestHandler * requestHandler;
-
+  Reply                  reply;
+  Request                request;
   std::array<char, 8192> buffer;
 };
 

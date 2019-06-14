@@ -1,16 +1,15 @@
 #ifndef _WEB_SERVER_H_
 #define _WEB_SERVER_H_
 
+#include <asio.hpp>
+
+#include <list>
+#include <stdint.h>
+#include <string>
+
 #include "Connection.h"
 #include "RequestHandler.h"
 #include "Result.h"
-
-#include <asio.hpp>
-
-#include <memory>
-#include <set>
-#include <stdint.h>
-#include <string>
 
 namespace Web {
 
@@ -26,24 +25,23 @@ public:
   Server(const std::string & root = DEFAULT_ROOT,
       const std::string &    addr = DEFAULT_ADDR,
       const std::string &    port = DEFAULT_PORT_HTTP);
+  ~Server();
 
   Results::Result_t run();
   Results::Result_t stop();
 
-  void stopConnection(std::shared_ptr<Connection> connection);
+  void stopConnection(Connection * connection);
   void stopConnections();
 
 private:
-  void accept();
-  void startConnection(std::shared_ptr<Connection> connection);
+  void startConnection(Connection * connection);
 
   asio::io_context        ioContext;
-  asio::signal_set        signals;
   asio::ip::tcp::acceptor acceptor;
 
   RequestHandler requestHandler;
 
-  std::set<std::shared_ptr<Connection> > connections;
+  std::list<Connection *> connections;
 };
 
 } // namespace Web

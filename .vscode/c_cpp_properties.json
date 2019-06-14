@@ -9,9 +9,9 @@
                 "${workspaceFolder}/lib/MemoryMapping/**"
             ],
             "defines": [
-                "_DEBUG",
-                "UNICODE",
-                "_UNICODE"
+                "DEBUG",
+                "WIN32_LEAN_AND_MEAN",
+                "LOG_BAD_HTTP_REQUESTS"
             ],
             "windowsSdkVersion": "10.0.18362.0",
             "compilerPath": "C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Tools/MSVC/14.21.27702/bin/Hostx64/x64/cl.exe",
