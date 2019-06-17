@@ -12,6 +12,13 @@
 #include "Result.h"
 #include "web/Server.h"
 
+/**
+ * @brief Entry point for the program
+ * 
+ * @param argc command line argument count
+ * @param argv command line arguments
+ * @return int error code
+ */
 int main(int argc, char * argv[]) {
   setupLogging(argc, argv);
   spdlog::info("Ehbanana Version {}.{}.{}", VERSION[0], VERSION[1], VERSION[2]);
@@ -19,8 +26,17 @@ int main(int argc, char * argv[]) {
   Web::Server       server;
   Results::Result_t result = Results::SUCCESS;
 
+  result = server.initialize();
+  if(!result){
+    spdlog::error(result);
+    return result.value;
+  }
+
   server.start();
-  std::this_thread::sleep_for(std::chrono::seconds(10));
+  for (int i = 30; i > 0; i--) {
+    spdlog::info("Server is shutting down in {} s", i);
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+  }
   server.stop();
 
   return result.value;

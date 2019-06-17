@@ -19,23 +19,36 @@ public:
   Connection(const Connection &) = delete;
   Connection & operator=(const Connection &) = delete;
 
-  Connection(asio::ip::tcp::socket * socket, RequestHandler * requestHandler);
+  Connection(asio::ip::tcp::socket * socket, asio::ip::tcp::endpoint endpoint,
+      RequestHandler * requestHandler);
   ~Connection();
 
-  void start();
-  bool update();
-  void stop();
+  Results::Result_t update();
+  void              stop();
+
+  asio::ip::tcp::endpoint getEndpoint();
 
 private:
-  void read();
-  void write();
+  Results::Result_t read();
+  Results::Result_t write();
+
+  typedef enum State {
+    IDLE,
+    READING,
+    READING_DONE,
+    WRITING,
+    WRITING_DONE,
+    COMPLETE
+  } State_t;
 
   asio::ip::tcp::socket * socket;
+  asio::ip::tcp::endpoint endpoint;
   RequestHandler *        requestHandler;
 
   Reply                  reply;
   Request                request;
   std::array<char, 8192> buffer;
+  State_t                state = IDLE;
 };
 
 } // namespace Web
