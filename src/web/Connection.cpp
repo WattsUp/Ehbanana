@@ -37,6 +37,7 @@ Results::Result_t Connection::update() {
   Results::Result_t result = Results::SUCCESS;
   switch (state) {
     case IDLE:
+      reply.stockReply(HTTPStatus::OK);
       state = READING;
       // Fall through
     case READING:
@@ -118,7 +119,20 @@ Results::Result_t Connection::read() {
  * @return Results::Result_t error code
  */
 Results::Result_t Connection::write() {
-  return Results::NOT_SUPPORTED;
+  asio::error_code errorCode;
+  size_t           length = socket->write_some(reply.getBuffers(), errorCode);
+  if (reply.updateBuffers(length)) {
+    if (!errorCode || errorCode == asio::error::would_block) {
+      // spdlog::debug("Wrote {} bytes to {}", length, endpoint);
+      return Results::INCOMPLETE_OPERATION;
+    }
+  } else if (!errorCode) {
+    // spdlog::debug("Wrote {} bytes to {}", length, endpoint);
+    return Results::SUCCESS;
+  }
+
+  return Results::READ_FAULT +
+         ("Writing socket failed with ASIO error: " + errorCode.message());
 }
 
 } // namespace Web

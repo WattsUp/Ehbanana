@@ -33,10 +33,8 @@ int main(int argc, char * argv[]) {
   }
 
   server.start();
-  for (int i = 30; i > 0; i--) {
-    spdlog::info("Server is shutting down in {} s", i);
-    std::this_thread::sleep_for(std::chrono::seconds(1));
-  }
+  spdlog::info("Press [ENTER] to shutdown");
+  std::cin.ignore();
   server.stop();
 
   return result.value;

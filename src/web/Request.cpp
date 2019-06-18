@@ -1,5 +1,7 @@
 #include "Request.h"
 
+#include "spdlog/spdlog.h"
+
 namespace Web {
 
 /**
@@ -18,7 +20,8 @@ Request::Request(){}
  * @return Results::Result_t error code
  */
 Results::Result_t Request::parse(char * begin, char * end){
-  return Results::NOT_SUPPORTED;
+  // spdlog::debug("Recieved: {}", begin);
+  return Results::SUCCESS;
 }
 
 }

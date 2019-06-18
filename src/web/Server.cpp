@@ -41,11 +41,11 @@ Results::Result_t Server::initialize(const std::string & addr, uint16_t port) {
   if (errorCode)
     return Results::OPEN_FAILED + "Opening acceptor" + errorCode.message();
 
-  // spdlog::debug("Setting option resuse address");
-  // acceptor.set_option(asio::ip::tcp::acceptor::reuse_address(true),
-  // errorCode); if (errorCode)
-  //   return Results::INVALID_PARAMETER + "Setting option resuse address" +
-  //          errorCode.message();
+  acceptor.set_option(asio::ip::tcp::acceptor::reuse_address(true), errorCode);
+  if (errorCode)
+    return Results::INVALID_PARAMETER + "Setting option resuse address" +
+           errorCode.message();
+
   // Attempt to bind until an available port is found
   bool attemptComplete = true;
   if (port == 0) {
@@ -58,7 +58,7 @@ Results::Result_t Server::initialize(const std::string & addr, uint16_t port) {
     acceptor.bind(endpoint, errorCode);
     if (!errorCode)
       attemptComplete = true;
-    else if (errorCode.value() != WSAEADDRINUSE)
+    else if (errorCode.value() != asio::error::address_in_use)
       return Results::OPEN_FAILED + std::to_string(errorCode.value()) +
              errorCode.message();
     // else address already in use, try the next one
@@ -98,8 +98,10 @@ void Server::run() {
   asio::ip::tcp::socket * socket = nullptr;
   asio::ip::tcp::endpoint endpoint;
   asio::error_code        errorCode;
-  Results::Result_t       result = Results::SUCCESS;
+  Results::Result_t       result       = Results::SUCCESS;
+  bool                    didSomething = false;
   while (running) {
+    didSomething = false;
     // Check for new connections
     if (socket == nullptr)
       socket = new asio::ip::tcp::socket(ioContext);
@@ -107,8 +109,14 @@ void Server::run() {
     if (!errorCode) {
       spdlog::debug("Accepted a connection from {}", endpoint);
       connections.push_back(new Connection(socket, endpoint, &requestHandler));
-      socket = nullptr;
+      socket       = nullptr;
+      didSomething = true;
+    } else if (errorCode != asio::error::would_block) {
+      spdlog::error("Acceptor encountered an error: {}", errorCode);
+      running      = false;
+      didSomething = true;
     }
+    // else no waiting connections
 
     // Process current connections
     std::list<Connection *>::iterator i   = connections.begin();
@@ -119,17 +127,21 @@ void Server::run() {
       result = connection->update();
       if (result == Results::INCOMPLETE_OPERATION) {
         ++i;
-      } else if (!result) {
-        spdlog::error(result);
-        spdlog::debug("Closing connection to {}", connection->getEndpoint());
-        connection->stop();
-        i = connections.erase(i);
+        didSomething = true;
       } else {
+        if (!result)
+          spdlog::error(result);
+
         spdlog::debug("Closing connection to {}", connection->getEndpoint());
         connection->stop();
         i = connections.erase(i);
       }
     }
+
+    // If nothing was processed this loop, sleep until the next to save CPU
+    // usage
+    if (!didSomething)
+      std::this_thread::sleep_for(std::chrono::microseconds(100));
   }
   // Free socket
   if (socket != nullptr) {

@@ -1,9 +1,9 @@
 #ifndef _RESULT_H_
 #define _RESULT_H_
 
+#include <iostream>
 #include <stdint.h>
 #include <string>
-#include <iostream>
 
 #include "spdlog/fmt/ostr.h"
 
@@ -14,6 +14,7 @@ typedef struct Result {
   std::string message;
 } Result_t;
 
+// clang-format off
 static const Result_t SUCCESS               = {0x0000, "No error encountered"};
 static const Result_t INVALID_FUNCTION      = {0x0001, "Incorrect function called"};
 static const Result_t ACCESS_DENIED         = {0x0002, "Access is denied"};
@@ -40,13 +41,16 @@ static const Result_t UNKNOWN_REFERENCE     = {0x0016, "The reference is to an u
 static const Result_t EXCEPTION_OCCURED     = {0x0017, "The command encountered an exception"};
 static const Result_t UNDEFINED_PARENT      = {0x0018, "The parent of the object is undefined"};
 static const Result_t INCOMPLETE_OPERATION  = {0x0019, "The operation has not completed yet"};
-
+// clang-format on
 } // namespace Results
 
-std::ostream & operator<<(std::ostream & stream, const Results::Result_t & result);
-bool operator!=(const Results::Result_t & left, const Results::Result_t & right);
-bool operator==(const Results::Result_t & left, const Results::Result_t & right);
-bool operator!(const Results::Result_t & result);
+std::ostream & operator<<(
+    std::ostream & stream, const Results::Result_t & result);
+bool operator!=(
+    const Results::Result_t & left, const Results::Result_t & right);
+bool operator==(
+    const Results::Result_t & left, const Results::Result_t & right);
+bool              operator!(const Results::Result_t & result);
 Results::Result_t operator+(const Results::Result_t & left, std::string right);
 
 #endif /* _RESULT_H_ */
