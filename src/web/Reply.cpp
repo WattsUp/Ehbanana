@@ -11,12 +11,36 @@ namespace Web {
 Reply::Reply() {}
 
 /**
+ * @brief Reset all fields to their default state
+ *
+ */
+void Reply::reset() {
+  content.clear();
+  buffers.clear();
+  headers.clear();
+  bytesRemaining = 0;
+  status         = HTTPStatus::OK;
+}
+
+/**
  * @brief Set the HTTP status of the reply
  *
  * @param status to set
  */
 void Reply::setStatus(HTTPStatus::Status_t status) {
   this->status = status;
+}
+
+/**
+ * @brief Add the Connection header based on keepAlive
+ *
+ * @param keepAlive adds "keep-alive" if true, "close" otherwise
+ */
+void Reply::setKeepAlive(bool keepAlive) {
+  if (keepAlive)
+    addHeader("Connection", "keep-alive");
+  else
+    addHeader("Connection", "close");
 }
 
 /**
@@ -149,6 +173,23 @@ void Reply::stockReply(HTTPStatus::Status_t status) {
   }
   addHeader("Content-Length", std::to_string(content.size()));
   addHeader("Content-Type", "text/html");
+}
+
+/**
+ * @brief Generate a stock reply from the result
+ *
+ * @param status
+ */
+void Reply::stockReply(Results::Result_t result) {
+  if (result == Results::SUCCESS)
+    stockReply(HTTPStatus::OK);
+  else if (result == Results::BAD_COMMAND || result == Results::BUFFER_OVERFLOW)
+    stockReply(HTTPStatus::BAD_REQUEST);
+  else if (result == Results::NOT_SUPPORTED ||
+           result == Results::VERSION_NOT_SUPPORTED)
+    stockReply(HTTPStatus::NOT_IMPLEMENTED);
+  else
+    stockReply(HTTPStatus::INTERNAL_SERVER_ERROR);
 }
 
 /**

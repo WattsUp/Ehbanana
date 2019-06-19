@@ -145,7 +145,8 @@ void Server::run() {
   }
   // Free socket
   if (socket != nullptr) {
-    socket->close();
+    socket->shutdown(asio::ip::tcp::socket::shutdown_both, errorCode);
+    socket->close(errorCode);
     delete socket;
     socket = nullptr;
   }

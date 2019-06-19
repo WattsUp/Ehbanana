@@ -3,6 +3,7 @@
 
 #include "Header.h"
 #include "Result.h"
+#include "Hash.h"
 
 #include <asio.hpp>
 
@@ -19,16 +20,38 @@ public:
 
   Request();
 
+  void reset();
+
   Results::Result_t parse(char * begin, char * end);
 
+  bool isKeepAlive();
+
 private:
-  std::string method;
-  std::string uri;
+  Results::Result_t validateMethod();
+  Results::Result_t validateHTTPVersion();
 
-  int httpVersionMajor;
-  int httpVersionMinor;
+  typedef enum ParsingState {
+    METHOD,
+    URI,
+    HTTP_VERSION,
+    HEADER_NAME,
+    HEADER_VALUE,
+    BODY_NEWLINE,
+    BODY
+  }ParsingState_t;
 
-  std::vector<Header_t> headers;
+  ParsingState_t state = METHOD;
+
+  HashSet_t method;
+  HashSet_t uri;
+  HashSet_t httpVersion;
+
+  uint64_t contentLength = 0;
+  bool keepAlive = false;
+
+  std::string body;
+
+  std::vector<HeaderHash_t> headers;
 };
 
 } // namespace Web

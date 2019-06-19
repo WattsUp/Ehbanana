@@ -2,6 +2,7 @@
 #define _WEB_REPLY_H_
 
 #include "Header.h"
+#include "Result.h"
 
 #include <asio.hpp>
 
@@ -148,7 +149,10 @@ public:
 
   Reply();
 
+  void reset();
+
   void setStatus(HTTPStatus::Status_t status);
+  void setKeepAlive(bool keepAlive);
   void addHeader(const std::string & name, const std::string & value);
   void appendContent(std::string content);
 
@@ -157,6 +161,7 @@ public:
   bool updateBuffers(size_t bytesWritten = 0);
 
   void stockReply(HTTPStatus::Status_t status);
+  void stockReply(Results::Result_t result);
 
 private:
   asio::const_buffer statusToBuffer(HTTPStatus::Status_t status);

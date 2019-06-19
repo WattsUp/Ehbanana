@@ -3,6 +3,7 @@
 
 #include "MemoryMapped.h"
 #include "Result.h"
+#include <stdint.h>
 #include <string>
 
 typedef uint32_t Hash_t;
@@ -25,10 +26,24 @@ public:
    * @brief Calculate the hash from a string
    *
    * @param string to hash
+   * @return Hash_t hash
+   */
+  static Hash_t calculateHash(const std::string & string) {
+    Hash_t hash = 0xFFFFFFFF;
+    for (char c : string) {
+      hash = calculateHash(hash, c);
+    }
+    return finishHash(hash);
+  }
+
+  /**
+   * @brief Calculate the hash from a string
+   *
+   * @param string to hash
    * @return constexpr Hash_t hash
    */
   static constexpr Hash_t calculateHash(char * string) {
-    uint32_t hash = 0xFFFFFFFF;
+    Hash_t hash = 0xFFFFFFFF;
     while (*string != '\0') {
       hash = calculateHash(hash, *string);
       ++string;
@@ -37,6 +52,8 @@ public:
   }
 
 private:
+  Hash() = delete;
+
   /**
    * @brief Calculate the hash through its algorithm on the seed hash and char
    * Jenkin's hash function
@@ -52,12 +69,12 @@ private:
     return hash;
   }
 
-/**
- * @brief Applies final operations to finish creating a hash
- * 
- * @param hash to process
- * @return constexpr Hash_t final hash
- */
+  /**
+   * @brief Applies final operations to finish creating a hash
+   *
+   * @param hash to process
+   * @return constexpr Hash_t final hash
+   */
   static constexpr Hash_t finishHash(Hash_t hash) {
     hash += hash << 3;
     hash ^= hash >> 11;

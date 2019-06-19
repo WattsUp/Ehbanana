@@ -42,34 +42,47 @@ Results::Result_t Connection::update() {
       // Fall through
     case READING:
       result = read();
-      if (result == Results::INCOMPLETE_OPERATION)
-        return Results::INCOMPLETE_OPERATION;
-      else if (!result)
-        return result;
-      else
+      if (result == Results::SUCCESS)
         state = READING_DONE;
-      // Fall through
-    case READING_DONE:
+      else if (result == Results::INCOMPLETE_OPERATION)
+        return result;
+      else {
+        // An error occurred while reading the request, generate the appropriate
+        // stock reply
+        spdlog::warn(result);
+        reply.stockReply(result);
+        state = WRITING;
+      }
+      break;
+    case READING_DONE: {
+      // TODO handle request
+
+      asio::socket_base::keep_alive option(request.isKeepAlive());
+      socket->set_option(option);
+      reply.setKeepAlive(request.isKeepAlive());
       state = WRITING;
-      // Fall through
+    } break;
     case WRITING:
       result = write();
-      if (result == Results::INCOMPLETE_OPERATION)
-        return Results::INCOMPLETE_OPERATION;
-      else if (!result)
-        return result;
-      else
+      if (result == Results::SUCCESS)
         state = WRITING_DONE;
-      // Fall through
+      else
+        return result;
+      break;
     case WRITING_DONE:
-      state = COMPLETE;
-      // Fall through
+      if (request.isKeepAlive()) {
+        reply.reset();
+        request.reset();
+        state = IDLE;
+      } else
+        state = COMPLETE;
+      break;
     case COMPLETE:
       return Results::SUCCESS;
     default:
-      return Results::BAD_COMMAND;
+      return Results::BAD_COMMAND + "Connection update in unknown state";
   }
-  return Results::BAD_COMMAND;
+  return Results::INCOMPLETE_OPERATION;
 }
 
 /**
@@ -77,8 +90,11 @@ Results::Result_t Connection::update() {
  *
  */
 void Connection::stop() {
-  if (socket != nullptr)
-    socket->close();
+  if (socket != nullptr && socket->is_open()) {
+    asio::error_code errorCode;
+    socket->shutdown(asio::ip::tcp::socket::shutdown_both, errorCode);
+    socket->close(errorCode);
+  }
   delete socket;
   socket = nullptr;
 }
@@ -121,13 +137,12 @@ Results::Result_t Connection::read() {
 Results::Result_t Connection::write() {
   asio::error_code errorCode;
   size_t           length = socket->write_some(reply.getBuffers(), errorCode);
+  spdlog::debug("Wrote {} bytes to {}", length, endpoint);
   if (reply.updateBuffers(length)) {
     if (!errorCode || errorCode == asio::error::would_block) {
-      // spdlog::debug("Wrote {} bytes to {}", length, endpoint);
       return Results::INCOMPLETE_OPERATION;
     }
   } else if (!errorCode) {
-    // spdlog::debug("Wrote {} bytes to {}", length, endpoint);
     return Results::SUCCESS;
   }
 
