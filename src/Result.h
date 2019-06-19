@@ -41,6 +41,8 @@ static const Result_t UNKNOWN_REFERENCE     = {0x0016, "The reference is to an u
 static const Result_t EXCEPTION_OCCURED     = {0x0017, "The command encountered an exception"};
 static const Result_t UNDEFINED_PARENT      = {0x0018, "The parent of the object is undefined"};
 static const Result_t INCOMPLETE_OPERATION  = {0x0019, "The operation has not completed yet"};
+static const Result_t NO_OPERATION          = {0x001A, "The operation did not execute"};
+static const Result_t TIMEOUT               = {0x001B, "The operation did not finish before the timeout"};
 // clang-format on
 } // namespace Results
 

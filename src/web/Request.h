@@ -25,12 +25,14 @@ public:
   Results::Result_t parse(char * begin, char * end);
 
   bool isKeepAlive();
+  bool isParsing();
 
 private:
   Results::Result_t validateMethod();
   Results::Result_t validateHTTPVersion();
 
   typedef enum ParsingState {
+    IDLE,
     METHOD,
     URI,
     HTTP_VERSION,
@@ -40,7 +42,7 @@ private:
     BODY
   }ParsingState_t;
 
-  ParsingState_t state = METHOD;
+  ParsingState_t state = IDLE;
 
   HashSet_t method;
   HashSet_t uri;

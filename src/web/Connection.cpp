@@ -30,15 +30,20 @@ Connection::~Connection() {
  * @brief Update the current operation, read or write
  *
  * Returns Results::INCOMPLETE_OPERATION if more operations are required
+ * Returns Results::NO_OPERATION if nothing happenend this update
+ * Returns Results::TIMEOUT if the connection was idle for too long
  *
+ * @param now current timestamp
  * @return Results::Result_t error code
  */
-Results::Result_t Connection::update() {
+Results::Result_t Connection::update(
+    const std::chrono::time_point<std::chrono::system_clock> & now) {
   Results::Result_t result = Results::SUCCESS;
   switch (state) {
     case IDLE:
       reply.stockReply(HTTPStatus::OK);
       state = READING;
+      timeoutTime = now + TIMEOUT;
       // Fall through
     case READING:
       result = read();
@@ -46,6 +51,8 @@ Results::Result_t Connection::update() {
         state = READING_DONE;
       else if (result == Results::INCOMPLETE_OPERATION)
         return result;
+      else if (result == Results::NO_OPERATION)
+        return (now > timeoutTime)? Results::TIMEOUT : result;
       else {
         // An error occurred while reading the request, generate the appropriate
         // stock reply
@@ -82,7 +89,7 @@ Results::Result_t Connection::update() {
     default:
       return Results::BAD_COMMAND + "Connection update in unknown state";
   }
-  return Results::INCOMPLETE_OPERATION;
+  return Results::NO_OPERATION;
 }
 
 /**
@@ -113,6 +120,7 @@ asio::ip::tcp::endpoint Connection::getEndpoint() {
  * complete
  *
  * Returns Results::INCOMPLETE_OPERATION if more reading is required
+ * Returns Results::NO_OPERATION if nothing was read and nothing was expected
  *
  * @return Results::Result_t error code
  */
@@ -122,7 +130,8 @@ Results::Result_t Connection::read() {
   if (!errorCode) {
     return request.parse(buffer.data(), buffer.data() + length);
   } else if (errorCode == asio::error::would_block)
-    return Results::INCOMPLETE_OPERATION;
+    return request.isParsing() ? Results::INCOMPLETE_OPERATION
+                               : Results::NO_OPERATION;
   return Results::READ_FAULT +
          ("Reading socket failed with ASIO error: " + errorCode.message());
 }

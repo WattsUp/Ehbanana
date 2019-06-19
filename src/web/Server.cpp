@@ -95,13 +95,16 @@ void Server::start() {
  *
  */
 void Server::run() {
-  asio::ip::tcp::socket * socket = nullptr;
-  asio::ip::tcp::endpoint endpoint;
-  asio::error_code        errorCode;
-  Results::Result_t       result       = Results::SUCCESS;
-  bool                    didSomething = false;
+  asio::ip::tcp::socket *                            socket = nullptr;
+  asio::ip::tcp::endpoint                            endpoint;
+  asio::error_code                                   errorCode;
+  Results::Result_t                                  result = Results::SUCCESS;
+  bool                                               didSomething = false;
+  std::chrono::time_point<std::chrono::system_clock> now =
+      std::chrono::system_clock::now();
   while (running) {
     didSomething = false;
+    now          = std::chrono::system_clock::now();
     // Check for new connections
     if (socket == nullptr)
       socket = new asio::ip::tcp::socket(ioContext);
@@ -124,12 +127,16 @@ void Server::run() {
     while (i != end) {
       Connection * connection = *i;
       // Remove the connection if update returns the connection is complete
-      result = connection->update();
+      result = connection->update(now);
       if (result == Results::INCOMPLETE_OPERATION) {
         ++i;
         didSomething = true;
-      } else {
-        if (!result)
+      } else if (result == Results::NO_OPERATION)
+        ++i;
+      else {
+        if (result == Results::TIMEOUT)
+          spdlog::warn(result);
+        else if (!result)
           spdlog::error(result);
 
         spdlog::debug("Closing connection to {}", connection->getEndpoint());

@@ -15,7 +15,7 @@ Request::Request() {}
  *
  */
 void Request::reset() {
-  state         = METHOD;
+  state         = IDLE;
   method        = {0, ""};
   uri           = {0, ""};
   httpVersion   = {0, ""};
@@ -40,7 +40,10 @@ Results::Result_t Request::parse(char * begin, char * end) {
   // the current parsing state
   while (begin != end) {
     switch (state) {
-      case ParsingState::METHOD:
+      case IDLE:
+        state = METHOD;
+        // Fall through
+      case METHOD:
         while (begin != end && state == METHOD) {
           if (*begin == ' ') {
             state       = URI;
@@ -130,10 +133,11 @@ Results::Result_t Request::parse(char * begin, char * end) {
                  "HTTP request unknown during BODY_NEWLINE";
         break;
       case BODY:
-        if (contentLength == 0){
+        if (contentLength == 0) {
           spdlog::debug("Tried to add '{}' (0x{:02X}) to body", *begin, *begin);
           return Results::BAD_COMMAND +
-                 "HTTP request zero content length but has a body";}
+                 "HTTP request zero content length but has a body";
+        }
         while (begin != end) {
           body += *begin;
           ++begin;
@@ -203,6 +207,16 @@ Results::Result_t Request::validateHTTPVersion() {
  */
 bool Request::isKeepAlive() {
   return keepAlive;
+}
+
+/**
+ * @brief Get the state of parsing
+ *
+ * @return true if a request is partially parsed
+ * @return false otherwise
+ */
+bool Request::isParsing() {
+  return state != IDLE && (state != BODY || contentLength != body.size());
 }
 
 } // namespace Web

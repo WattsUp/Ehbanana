@@ -9,6 +9,7 @@
 #include <asio.hpp>
 
 #include <array>
+#include <chrono>
 #include <stdint.h>
 #include <string>
 
@@ -23,8 +24,9 @@ public:
       RequestHandler * requestHandler);
   ~Connection();
 
-  Results::Result_t update();
-  void              stop();
+  Results::Result_t update(
+      const std::chrono::time_point<std::chrono::system_clock> & now);
+  void stop();
 
   asio::ip::tcp::endpoint getEndpoint();
 
@@ -49,6 +51,10 @@ private:
   Request                request;
   std::array<char, 8192> buffer;
   State_t                state = IDLE;
+
+  std::chrono::time_point<std::chrono::system_clock> timeoutTime;
+
+  const std::chrono::seconds TIMEOUT {60};
 };
 
 } // namespace Web
