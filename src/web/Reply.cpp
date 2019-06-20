@@ -183,7 +183,9 @@ void Reply::stockReply(HTTPStatus::Status_t status) {
 void Reply::stockReply(Results::Result_t result) {
   if (result == Results::SUCCESS)
     stockReply(HTTPStatus::OK);
-  else if (result == Results::BAD_COMMAND || result == Results::BUFFER_OVERFLOW)
+  else if (result == Results::BAD_COMMAND ||
+           result == Results::BUFFER_OVERFLOW ||
+           result == Results::INVALID_DATA)
     stockReply(HTTPStatus::BAD_REQUEST);
   else if (result == Results::NOT_SUPPORTED ||
            result == Results::VERSION_NOT_SUPPORTED)

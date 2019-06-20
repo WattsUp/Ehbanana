@@ -2,6 +2,8 @@
 #define _WEB_REQUEST_HANDLER_H_
 
 #include "Result.h"
+#include "Request.h"
+#include "Reply.h"
 
 #include <asio.hpp>
 
@@ -17,7 +19,12 @@ public:
 
   RequestHandler(const std::string & root);
 
+  Results::Result_t handle(const Request & request, Reply & reply);
+
 private:
+  Results::Result_t handleGET(const Request & request, Reply & reply);
+  Results::Result_t handlePOST(const Request & request, Reply & reply);
+
   std::string root;
 };
 

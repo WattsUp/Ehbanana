@@ -16,6 +16,9 @@ Connection::Connection(asio::ip::tcp::socket * socket,
   this->endpoint       = endpoint;
   this->requestHandler = requestHandler;
   socket->non_blocking(true);
+
+  asio::socket_base::keep_alive option(true);
+  socket->set_option(option);
 }
 
 /**
@@ -42,7 +45,7 @@ Results::Result_t Connection::update(
   switch (state) {
     case IDLE:
       reply.stockReply(HTTPStatus::OK);
-      state = READING;
+      state       = READING;
       timeoutTime = now + TIMEOUT;
       // Fall through
     case READING:
@@ -52,7 +55,9 @@ Results::Result_t Connection::update(
       else if (result == Results::INCOMPLETE_OPERATION)
         return result;
       else if (result == Results::NO_OPERATION)
-        return (now > timeoutTime)? Results::TIMEOUT : result;
+        return (now < timeoutTime)
+                   ? result
+                   : Results::TIMEOUT + "Connection was idle for 60s";
       else {
         // An error occurred while reading the request, generate the appropriate
         // stock reply
@@ -61,14 +66,18 @@ Results::Result_t Connection::update(
         state = WRITING;
       }
       break;
-    case READING_DONE: {
-      // TODO handle request
+    case READING_DONE:
+      result = requestHandler->handle(request, reply);
+      if (!result) {
+        // An error occurred while reading the request, generate the appropriate
+        // stock reply
+        spdlog::warn(result);
+        reply.stockReply(result);
+      }
 
-      asio::socket_base::keep_alive option(request.isKeepAlive());
-      socket->set_option(option);
       reply.setKeepAlive(request.isKeepAlive());
       state = WRITING;
-    } break;
+      break;
     case WRITING:
       result = write();
       if (result == Results::SUCCESS)
@@ -146,7 +155,6 @@ Results::Result_t Connection::read() {
 Results::Result_t Connection::write() {
   asio::error_code errorCode;
   size_t           length = socket->write_some(reply.getBuffers(), errorCode);
-  spdlog::debug("Wrote {} bytes to {}", length, endpoint);
   if (reply.updateBuffers(length)) {
     if (!errorCode || errorCode == asio::error::would_block) {
       return Results::INCOMPLETE_OPERATION;
