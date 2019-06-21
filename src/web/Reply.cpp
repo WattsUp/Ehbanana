@@ -11,6 +11,19 @@ namespace Web {
 Reply::Reply() {}
 
 /**
+ * @brief Destroy the Reply:: Reply object
+ * Delete attached file if present
+ *
+ */
+Reply::~Reply() {
+  if (file != nullptr) {
+    file->close();
+    delete file;
+    file = nullptr;
+  }
+}
+
+/**
  * @brief Reset all fields to their default state
  *
  */
@@ -20,6 +33,11 @@ void Reply::reset() {
   headers.clear();
   bytesRemaining = 0;
   status         = HTTPStatus::OK;
+  if (file != nullptr) {
+    file->close();
+    delete file;
+    file = nullptr;
+  }
 }
 
 /**
@@ -63,6 +81,16 @@ void Reply::appendContent(std::string content) {
 }
 
 /**
+ * @brief Set the content to a file
+ * file will be closed after it is written or connection closes
+ *
+ * @param file to set
+ */
+void Reply::setContent(MemoryMapped * file) {
+  this->file = file;
+}
+
+/**
  * @brief Get the next set of buffers ready to send
  *
  * @return std::vector<asio::const_buffer> buffers
@@ -81,7 +109,10 @@ const std::vector<asio::const_buffer> & Reply::getBuffers() {
       buffers.push_back(asio::buffer(STRING_CRLF));
     }
     buffers.push_back(asio::buffer(STRING_CRLF));
-    buffers.push_back(asio::buffer(content));
+    if (!content.empty())
+      buffers.push_back(asio::buffer(content));
+    else if (file != nullptr)
+      buffers.push_back(asio::buffer(file->getData(), file->size()));
   }
   return buffers;
 }
@@ -107,8 +138,13 @@ bool Reply::updateBuffers(size_t bytesWritten) {
     } else {
       // This buffer has not been fully written, increment its pointer
       buffer += bytesWritten;
-      return false;
+      return true;
     }
+  }
+  if (buffers.empty() && file != nullptr) {
+    file->close();
+    delete file;
+    file = nullptr;
   }
   return false;
 }
@@ -119,6 +155,7 @@ bool Reply::updateBuffers(size_t bytesWritten) {
  * @param status
  */
 void Reply::stockReply(HTTPStatus::Status_t status) {
+  reset();
   setStatus(status);
   switch (status) {
     case HTTPStatus::OK:
@@ -190,6 +227,8 @@ void Reply::stockReply(Results::Result_t result) {
   else if (result == Results::NOT_SUPPORTED ||
            result == Results::VERSION_NOT_SUPPORTED)
     stockReply(HTTPStatus::NOT_IMPLEMENTED);
+  else if (result == Results::OPEN_FAILED)
+    stockReply(HTTPStatus::NOT_FOUND);
   else
     stockReply(HTTPStatus::INTERNAL_SERVER_ERROR);
 }

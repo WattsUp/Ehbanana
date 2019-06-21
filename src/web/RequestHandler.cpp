@@ -9,7 +9,8 @@ namespace Web {
  *
  * @param root directory to serve http pages
  */
-RequestHandler::RequestHandler(const std::string & root) {
+RequestHandler::RequestHandler(const std::string & root) :
+  mimeTypes("config/mime.types") {
   this->root = root;
 }
 
@@ -42,18 +43,40 @@ Results::Result_t RequestHandler::handle(
  */
 Results::Result_t RequestHandler::handleGET(
     const Request & request, Reply & reply) {
+  std::string uri = request.getURI().string;
   if (request.getQueries().empty())
-    spdlog::info("GET URI: \"{}\"", request.getURI().string);
+    spdlog::info("{} GET URI: \"{}\"", request.getEndpoint(), uri);
   else {
     std::string buffer = "";
     for (HeaderHash_t query : request.getQueries()) {
       buffer +=
           "\n    \"" + query.name.string + "\"=\"" + query.value.string + "\"";
     }
-    spdlog::info("GET URI: \"{}\" Queries:{}", request.getURI().string, buffer);
+    spdlog::info(
+        "{} GET URI: \"{}\" Queries:{}", request.getEndpoint(), uri, buffer);
   }
 
-  return Results::NOT_SUPPORTED;
+  // URI must be absolute
+  if (uri.empty() || uri[0] != '/' || uri.find("..") != std::string::npos)
+    return Results::INVALID_DATA + ("URI is invalid: " + uri);
+
+  // Add index.html to folders
+  if (uri[uri.size() - 1] == '/')
+    uri += "index.html";
+
+  // Determine the file extension.
+  reply.addHeader("Content-Type", fileToType(uri));
+  MemoryMapped * file =
+      new MemoryMapped(root + uri, 0, MemoryMapped::SequentialScan);
+  if (!file->isValid()) {
+    file->close();
+    delete file;
+    return Results::OPEN_FAILED + uri;
+  }
+  reply.addHeader("Content-Length", std::to_string(file->size()));
+  reply.setContent(file);
+
+  return Results::SUCCESS;
 }
 
 /**
@@ -78,6 +101,28 @@ Results::Result_t RequestHandler::handlePOST(
   }
 
   return Results::NOT_SUPPORTED;
+}
+
+/**
+ * @brief Returns the MIME type of the file based on its extension
+ *
+ * @param file name to parse
+ * @return std::string MIME type
+ */
+std::string RequestHandler::fileToType(const std::string & file) {
+  std::string fileExtension;
+  bool        dotPresent = false;
+  for (char c : file) {
+    if (c == '/') {
+      fileExtension.erase();
+      dotPresent = false;
+    } else if (c == '.') {
+      fileExtension = ".";
+      dotPresent    = true;
+    } else if (dotPresent)
+      fileExtension += c;
+  }
+  return mimeTypes.getType(fileExtension);
 }
 
 } // namespace Web

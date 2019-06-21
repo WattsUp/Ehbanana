@@ -4,6 +4,7 @@
 #include "Result.h"
 #include "Request.h"
 #include "Reply.h"
+#include "MIMETypes.h"
 
 #include <asio.hpp>
 
@@ -25,7 +26,10 @@ private:
   Results::Result_t handleGET(const Request & request, Reply & reply);
   Results::Result_t handlePOST(const Request & request, Reply & reply);
 
+  std::string fileToType(const std::string & file);
+
   std::string root;
+  MIMETypes mimeTypes;
 };
 
 } // namespace Web

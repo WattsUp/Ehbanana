@@ -11,7 +11,8 @@ namespace Web {
  * @param requestHandler to use to process requests
  */
 Connection::Connection(asio::ip::tcp::socket * socket,
-    asio::ip::tcp::endpoint endpoint, RequestHandler * requestHandler) {
+    asio::ip::tcp::endpoint endpoint, RequestHandler * requestHandler) :
+  request(endpoint) {
   this->socket         = socket;
   this->endpoint       = endpoint;
   this->requestHandler = requestHandler;

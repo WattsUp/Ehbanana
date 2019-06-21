@@ -4,7 +4,9 @@
 #include "Header.h"
 #include "Result.h"
 
+#include "MemoryMapped.h"
 #include <asio.hpp>
+
 
 #include <stdint.h>
 #include <string>
@@ -148,6 +150,7 @@ public:
   Reply & operator=(const Reply &) = delete;
 
   Reply();
+  ~Reply();
 
   void reset();
 
@@ -155,6 +158,7 @@ public:
   void setKeepAlive(bool keepAlive);
   void addHeader(const std::string & name, const std::string & value);
   void appendContent(std::string content);
+  void setContent(MemoryMapped * file);
 
   const std::vector<asio::const_buffer> & getBuffers();
 
@@ -166,6 +170,7 @@ public:
 private:
   asio::const_buffer statusToBuffer(HTTPStatus::Status_t status);
 
+  MemoryMapped *                  file;
   std::string                     content;
   std::vector<asio::const_buffer> buffers;
   std::vector<Header_t>           headers;

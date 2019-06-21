@@ -7,8 +7,11 @@ namespace Web {
 /**
  * @brief Construct a new Request:: Request object
  *
+ * @param endpoint that sourced this request
  */
-Request::Request() {}
+Request::Request(asio::ip::tcp::endpoint endpoint) {
+  this->endpoint = endpoint;
+}
 
 /**
  * @brief Reset all fields to their default state
@@ -300,6 +303,15 @@ const HashSet_t & Request::getURI() const {
  */
 const std::vector<HeaderHash_t> & Request::getQueries() const {
   return queries;
+}
+
+/**
+ * @brief Get the endpoint of the request
+ *
+ * @return asio::ip::tcp::endpoint endpoint
+ */
+asio::ip::tcp::endpoint Request::getEndpoint() const {
+  return endpoint;
 }
 
 /**

@@ -3,7 +3,9 @@
 #include <sstream>
 
 /**
- * @brief Get the hash of the next string until the termination characters
+ * @brief Get the hash of the next string until the termination characters or
+ * EOF
+ *
  * start: index points to first character to hash
  * end:   index points to the end character (didn't hash)
  *
@@ -23,13 +25,17 @@ HashSet_t Hash::getNextHash(const MemoryMapped & file, uint64_t & index,
     hash = calculateHash(hash, buf);
     string += buf;
     index++;
+    if(index >= file.size())
+      break;
     buf = file.at(index);
   }
   return {finishHash(hash), string};
 }
 
 /**
- * @brief Get the hash of the next string until the termination characters
+ * @brief Get the hash of the next string until the termination characters or
+ * EOF
+ *
  * start: index points to first character to hash
  * end:   index points to the end character (didn't hash)
  *
@@ -47,6 +53,8 @@ HashSet_t Hash::getNextHash(
     hash = calculateHash(hash, buf);
     string += buf;
     index++;
+    if(index >= file.size())
+      break;
     buf = file.at(index);
   }
   return {finishHash(hash), string};

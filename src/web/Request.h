@@ -18,7 +18,7 @@ public:
   Request(const Request &) = delete;
   Request & operator=(const Request &) = delete;
 
-  Request();
+  Request(asio::ip::tcp::endpoint endpoint);
 
   void reset();
 
@@ -27,6 +27,7 @@ public:
   const HashSet_t &                 getMethod() const;
   const HashSet_t &                 getURI() const;
   const std::vector<HeaderHash_t> & getQueries() const;
+  asio::ip::tcp::endpoint           getEndpoint() const;
 
   bool isKeepAlive();
   bool isParsing();
@@ -60,7 +61,8 @@ private:
   uint64_t contentLength = 0;
   bool     keepAlive     = false;
 
-  std::string body;
+  std::string             body;
+  asio::ip::tcp::endpoint endpoint;
 
   std::vector<HeaderHash_t> queries;
   std::vector<HeaderHash_t> headers;
