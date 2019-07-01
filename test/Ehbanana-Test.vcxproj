@@ -12,21 +12,27 @@
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.default.props" />
   <PropertyGroup>
-    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <ConfigurationType>Application</ConfigurationType>
     <PlatformToolset>v142</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(SolutionDir)\include;$(SolutionDir)\source</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>DEBUG;COMPILING_DLL;%(PreprocessorDefinitions);</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(SolutionDir)\..\include;$(SolutionDir)\source\</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>DEBUG;%(PreprocessorDefinitions);</PreprocessorDefinitions>
     </ClCompile>
+    <Link>
+      <AdditionalDependencies>$(SolutionDir)\..\include\Ehbanana.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(SolutionDir)\lib\spdlog\include;$(SolutionDir)\lib\asio\asio\include;$(SolutionDir)\lib\MemoryMapping;$(SolutionDir)\src</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>COMPILING_DLL;%(PreprocessorDefinitions);</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(SolutionDir)\..\include;$(SolutionDir)\source\</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);</PreprocessorDefinitions>
     </ClCompile>
+    <Link>
+      <AdditionalDependencies>$(SolutionDir)\..\include\Ehbanana.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="source\**\*.cpp" />
@@ -36,8 +42,7 @@
     <ClInclude Include="include\**\*.h" />
   </ItemGroup>
   <Target Name="CopyFiles">
-    <Copy SourceFiles="$(OutDir)\Ehbanana.lib" DestinationFiles="$(SolutionDir)\include\Ehbanana.lib"/>
-    <Copy SourceFiles="$(OutDir)\Ehbanana.dll" DestinationFiles="$(SolutionDir)\bin\Ehbanana.dll"/>
+    <Copy SourceFiles="$(OutDir)\Ehbanana-Test.exe" DestinationFiles="$(SolutionDir)\..\bin\Ehbanana-Test.exe"/>
   </Target>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Targets" />
 </Project>
