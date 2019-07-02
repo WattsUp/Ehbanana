@@ -6,6 +6,7 @@
 typedef uint16_t EBResult_t;
 
 // clang-format off
+
 #define EBRESULT_SUCCESS                0x0000
 #define EBRESULT_INVALID_FUNCTION       0x0001
 #define EBRESULT_ACCESS_DENIED          0x0002
@@ -34,6 +35,7 @@ typedef uint16_t EBResult_t;
 #define EBRESULT_INCOMPLETE_OPERATION   0x0019
 #define EBRESULT_NO_OPERATION           0x001A
 #define EBRESULT_TIMEOUT                0x001B
+
 // clang-format on
 
 /**

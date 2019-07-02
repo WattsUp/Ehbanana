@@ -1,8 +1,6 @@
 #ifndef _EHBANANA_H_
 #define _EHBANANA_H_
 
-#include <Windows.h>
-
 #include "Result.h"
 
 #ifdef COMPILING_DLL
@@ -11,8 +9,15 @@
 #define EHBANANA_API __declspec(dllimport)
 #endif
 
+struct EBGUI;
+typedef EBGUI * EBGUI_t;
+
 enum class EBMSGType_t : uint16_t {
-  INPUT_FORM // input from a form element has changed
+  NONE,       // There is no message
+  STARTUP,    // The web server has started up
+  SHUTDOWN,   // The web server is about to shutdown
+  QUIT,       // The web server has quit
+  INPUT_FORM, // input from a form element has changed
 };
 
 /**
@@ -22,6 +27,7 @@ enum class EBMSGType_t : uint16_t {
  * @param htmlID string tag of the sender or recipient html element
  */
 struct EBMessage_t {
+  EBGUI_t     gui;
   EBMSGType_t type;
   char *      htmlID;
 };
@@ -32,7 +38,7 @@ struct EBMessage_t {
  * @param msg to process
  * @return EBResult_t error code
  */
-typedef EBResult_t(__stdcall * EBGUIProcess_t)(EBMessage_t);
+typedef EBResult_t(__stdcall * EBGUIProcess_t)(const EBMessage_t &);
 
 /**
  * @brief GUI settings
@@ -56,7 +62,6 @@ struct EBGUI {
   EBGUISettings_t settings;
 };
 
-typedef EBGUI * EBGUI_t;
 
 /**
  * @brief Create a GUI using the settings
@@ -79,7 +84,7 @@ extern "C" EHBANANA_API EBResult_t EBShowGUI(EBGUI_t gui);
  *
  * @return EBResult_t error code
  */
-extern "C" EHBANANA_API EBResult_t EBGetLastResult();
+extern "C" EHBANANA_API inline EBResult_t EBGetLastResult();
 
 /**
  * @brief Set the last error produced by Ehbanana
@@ -87,6 +92,48 @@ extern "C" EHBANANA_API EBResult_t EBGetLastResult();
  * @param result to set
  * @return last result
  */
-EBResult_t EBSetLastResult(EBResult_t result);
+inline EBResult_t EBSetLastResult(EBResult_t result);
+
+/**
+ * @brief Get the next message in the queue
+ *
+ * Returns EBRESULT_SUCCESS when the message type is QUIT
+ * Returns EBRESULT_INCOMPLETE_OPERATION when the message type is not quit and
+ * no other errors occured
+ *
+ * @param msg to write into
+ * @return error code
+ */
+extern "C" EHBANANA_API EBResult_t EBGetMessage(EBMessage_t & msg);
+
+/**
+ * @brief Send the message to the appropriate consumers
+ *
+ * @param msg to dispatch
+ * @return error code
+ */
+extern "C" EHBANANA_API EBResult_t EBDispatchMessage(const EBMessage_t & msg);
+
+/**
+ * @brief Add a message to the queue
+ *
+ * @param msg to add
+ * @param error code
+ */
+extern "C" EHBANANA_API EBResult_t EBEnqueueMessage(const EBMessage_t & msg);
+
+/**
+ * @brief Process incoming message from the GUI in the default method
+ *
+ * @param msg to process
+ * @return EBResult_t error code
+ */
+extern "C" EHBANANA_API EBResult_t EBDefaultGUIProcess(const EBMessage_t & msg);
+
+/**
+ * @brief Add a quit message to the queue
+ * 
+ */
+#define EBEnqueueQuitMessage(gui) (EBEnqueueMessage({gui, EBMSGType_t::QUIT}))
 
 #endif /* _EHBANANA_H_ */
