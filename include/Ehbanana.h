@@ -3,11 +3,17 @@
 
 #include "Result.h"
 
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+
 #ifdef COMPILING_DLL
 #define EHBANANA_API __declspec(dllexport)
 #else
 #define EHBANANA_API __declspec(dllimport)
 #endif
+
+const uint16_t EBPORT_AUTO    = 0;
+const uint16_t EBPORT_DEFAULT = 8080;
 
 struct EBGUI;
 typedef EBGUI * EBGUI_t;
@@ -46,11 +52,13 @@ typedef EBResult_t(__stdcall * EBGUIProcess_t)(const EBMessage_t &);
  * @param guiProcess callback for incoming messages
  * @param configRoot directory containing configuration files
  * @param httpRoot directory containing HTTP top level
+ * @param port http server will attempt to open to
  */
 struct EBGUISettings_t {
   EBGUIProcess_t guiProcess;
   const char *   configRoot;
   const char *   httpRoot;
+  uint16_t       port = EBPORT_AUTO;
 };
 
 /**
@@ -61,7 +69,6 @@ struct EBGUISettings_t {
 struct EBGUI {
   EBGUISettings_t settings;
 };
-
 
 /**
  * @brief Create a GUI using the settings
@@ -84,7 +91,7 @@ extern "C" EHBANANA_API EBResult_t EBShowGUI(EBGUI_t gui);
  *
  * @return EBResult_t error code
  */
-extern "C" EHBANANA_API inline EBResult_t EBGetLastResult();
+extern "C" EHBANANA_API EBResult_t EBGetLastResult();
 
 /**
  * @brief Set the last error produced by Ehbanana
@@ -92,7 +99,7 @@ extern "C" EHBANANA_API inline EBResult_t EBGetLastResult();
  * @param result to set
  * @return last result
  */
-inline EBResult_t EBSetLastResult(EBResult_t result);
+EBResult_t EBSetLastResult(EBResult_t result);
 
 /**
  * @brief Get the next message in the queue
@@ -132,8 +139,16 @@ extern "C" EHBANANA_API EBResult_t EBDefaultGUIProcess(const EBMessage_t & msg);
 
 /**
  * @brief Add a quit message to the queue
- * 
+ *
  */
 #define EBEnqueueQuitMessage(gui) (EBEnqueueMessage({gui, EBMSGType_t::QUIT}))
+
+/**
+ * @brief Create a process from the command string
+ *
+ * @param command string to execute
+ * @return EBResult_t error code
+ */
+EBResult_t EBCreateProcess(char * command, PROCESS_INFORMATION * process);
 
 #endif /* _EHBANANA_H_ */
