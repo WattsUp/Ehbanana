@@ -1,7 +1,7 @@
 #include <Ehbanana.h>
 
-#include <iostream>
 #include <chrono>
+#include <iostream>
 #include <thread>
 
 /**
@@ -47,21 +47,32 @@ int main() {
   if (EBRESULT_ERROR(EBShowGUI(gui)))
     return EBGetLastResult();
 
-  if (EBRESULT_ERROR(EBEnqueueMessage({gui, EBMSGType_t::INPUT_FORM, "Exit"})))
-    return EBGetLastResult();
-
-  EBMessage_t msg = {};
-  EBResult_t result = EBRESULT_SUCCESS;
+  EBMessage_t                           msg    = {};
+  EBResult_t                            result = EBRESULT_SUCCESS;
+  std::chrono::system_clock::time_point timeout =
+      std::chrono::system_clock::now() + std::chrono::seconds(10);
   while (EBGetMessage(msg) == EBRESULT_INCOMPLETE_OPERATION) {
     result = EBDispatchMessage(msg);
+
     // If no messages were processed, wait a bit to save CPU
-    if(result == EBRESULT_NO_OPERATION)
-      std::this_thread::sleep_for(std::chrono::microseconds(100));
-    else if (EBRESULT_ERROR(result))
+    if (result == EBRESULT_NO_OPERATION) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(1));
+
+      // If no operations have occured for 10 seconds, stop
+      if (std::chrono::system_clock::now() >= timeout) {
+        if (EBRESULT_ERROR(EBEnqueueQuitMessage(gui)))
+          return EBGetLastResult();
+      }
+    } else if (EBRESULT_ERROR(result))
       return result;
+    else
+      timeout = std::chrono::system_clock::now() + std::chrono::seconds(10);
   }
 
   if (EBRESULT_ERROR(EBGetLastResult()))
+    return EBGetLastResult();
+
+  if (EBRESULT_ERROR(EBDestroyGUI(gui)))
     return EBGetLastResult();
 
   return EBRESULT_SUCCESS;

@@ -53,6 +53,11 @@ EBResult_t EBShowGUI(EBGUI_t gui) {
   return EBSetLastResult(EBRESULT_SUCCESS);
 }
 
+EBResult_t EBDestroyGUI(EBGUI_t gui) {
+  delete gui;
+  return EBSetLastResult(EBRESULT_SUCCESS);
+}
+
 EBResult_t EBGetLastResult() {
   return EBLastError;
 }

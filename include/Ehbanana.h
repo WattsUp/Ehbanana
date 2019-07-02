@@ -87,6 +87,14 @@ extern "C" EHBANANA_API EBGUI_t EBCreateGUI(EBGUISettings_t guiSettings);
 extern "C" EHBANANA_API EBResult_t EBShowGUI(EBGUI_t gui);
 
 /**
+ * @brief Destroy a GUI
+ *
+ * @param gui to destroy
+ * @return EBResult_t error code
+ */
+extern "C" EHBANANA_API EBResult_t EBDestroyGUI(EBGUI_t gui);
+
+/**
  * @brief Get the last error produced by Ehbanana
  *
  * @return EBResult_t error code
