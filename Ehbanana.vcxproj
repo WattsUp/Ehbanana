@@ -18,12 +18,14 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
     <ClCompile>
+      <WarningLevel>Level4</WarningLevel>
       <AdditionalIncludeDirectories>$(SolutionDir)\include;$(SolutionDir)\source</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>DEBUG;COMPILING_DLL;%(PreprocessorDefinitions);</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
     <ClCompile>
+      <WarningLevel>Level4</WarningLevel>
       <AdditionalIncludeDirectories>$(SolutionDir)\lib\spdlog\include;$(SolutionDir)\lib\asio\asio\include;$(SolutionDir)\lib\MemoryMapping;$(SolutionDir)\src</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>COMPILING_DLL;%(PreprocessorDefinitions);</PreprocessorDefinitions>
     </ClCompile>

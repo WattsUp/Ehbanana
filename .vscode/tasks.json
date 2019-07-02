@@ -40,6 +40,7 @@
         "/t:build,copyfiles",
         "-m"
       ],
+      "dependsOn":["build"],
       "problemMatcher": []
     },
     {
@@ -52,7 +53,7 @@
         "kind": "test",
         "isDefault": true
       },
-      "dependsOn":["build", "test build"],
+      "dependsOn":["test build"],
       "problemMatcher": []
     },
     {
