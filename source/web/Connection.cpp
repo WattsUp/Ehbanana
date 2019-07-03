@@ -1,5 +1,4 @@
 #include "Connection.h"
-#include "spdlog/spdlog.h"
 
 namespace Web {
 
@@ -33,73 +32,69 @@ Connection::~Connection() {
 /**
  * @brief Update the current operation, read or write
  *
- * Returns Results::INCOMPLETE_OPERATION if more operations are required
- * Returns Results::NO_OPERATION if nothing happenend this update
- * Returns Results::TIMEOUT if the connection was idle for too long
+ * Returns EBRESULT_INCOMPLETE_OPERATION if more operations are required
+ * Returns EBRESULT_NO_OPERATION if nothing happenend this update
+ * Returns EBRESULT_TIMEOUT if the connection was idle for too long
  *
  * @param now current timestamp
- * @return Results::Result_t error code
+ * @return EBResult_t error code
  */
-Results::Result_t Connection::update(
+EBResult_t Connection::update(
     const std::chrono::time_point<std::chrono::system_clock> & now) {
-  Results::Result_t result = Results::SUCCESS;
+  EBResult_t result = EBRESULT_SUCCESS;
   switch (state) {
-    case IDLE:
-      reply.stockReply(HTTPStatus::OK);
-      state       = READING;
+    case State_t::IDLE:
+      reply.stockReply(HTTPStatus_t::OK);
+      state       = State_t::READING;
       timeoutTime = now + TIMEOUT;
       // Fall through
-    case READING:
+    case State_t::READING:
       result = read();
-      if (result == Results::SUCCESS)
-        state = READING_DONE;
-      else if (result == Results::INCOMPLETE_OPERATION)
+      if (result == EBRESULT_SUCCESS)
+        state = State_t::READING_DONE;
+      else if (result == EBRESULT_INCOMPLETE_OPERATION)
         return result;
-      else if (result == Results::NO_OPERATION)
-        return (now < timeoutTime)
-                   ? result
-                   : Results::TIMEOUT + "Connection was idle for 60s";
+      else if (result == EBRESULT_NO_OPERATION)
+        return (now < timeoutTime) ? result : EBRESULT_TIMEOUT;
       else {
         // An error occurred while reading the request, generate the appropriate
         // stock reply
-        spdlog::warn(result);
         reply.stockReply(result);
-        state = WRITING;
+        state = State_t::WRITING;
       }
       break;
-    case READING_DONE:
+    case State_t::READING_DONE:
       result = requestHandler->handle(request, reply);
-      if (!result) {
+      if (EBRESULT_ERROR(result)) {
         // An error occurred while reading the request, generate the appropriate
         // stock reply
-        spdlog::warn(result);
         reply.stockReply(result);
       }
 
       reply.setKeepAlive(request.isKeepAlive());
-      state = WRITING;
+      state = State_t::WRITING;
       break;
-    case WRITING:
+    case State_t::WRITING:
       result = write();
-      if (result == Results::SUCCESS)
-        state = WRITING_DONE;
+      if (result == EBRESULT_SUCCESS)
+        state = State_t::WRITING_DONE;
       else
         return result;
       break;
-    case WRITING_DONE:
+    case State_t::WRITING_DONE:
       if (request.isKeepAlive()) {
         reply.reset();
         request.reset();
-        state = IDLE;
+        state = State_t::IDLE;
       } else
-        state = COMPLETE;
+        state = State_t::COMPLETE;
       break;
-    case COMPLETE:
-      return Results::SUCCESS;
+    case State_t::COMPLETE:
+      return EBRESULT_SUCCESS;
     default:
-      return Results::BAD_COMMAND + "Connection update in unknown state";
+      return EBRESULT_INVALID_STATE;
   }
-  return Results::NO_OPERATION;
+  return EBRESULT_NO_OPERATION;
 }
 
 /**
@@ -129,43 +124,41 @@ asio::ip::tcp::endpoint Connection::getEndpoint() {
  * @brief Read data from the socket into a request and process if reading is
  * complete
  *
- * Returns Results::INCOMPLETE_OPERATION if more reading is required
- * Returns Results::NO_OPERATION if nothing was read and nothing was expected
+ * Returns EBRESULT_INCOMPLETE_OPERATION if more reading is required
+ * Returns EBRESULT_NO_OPERATION if nothing was read and nothing was expected
  *
- * @return Results::Result_t error code
+ * @return EBResult_t error code
  */
-Results::Result_t Connection::read() {
+EBResult_t Connection::read() {
   asio::error_code errorCode;
   size_t           length = socket->read_some(asio::buffer(buffer), errorCode);
   if (!errorCode) {
     return request.parse(buffer.data(), buffer.data() + length);
   } else if (errorCode == asio::error::would_block)
-    return request.isParsing() ? Results::INCOMPLETE_OPERATION
-                               : Results::NO_OPERATION;
-  return Results::READ_FAULT +
-         ("Reading socket failed with ASIO error: " + errorCode.message());
+    return request.isParsing() ? EBRESULT_INCOMPLETE_OPERATION
+                               : EBRESULT_NO_OPERATION;
+  return EBRESULT_READ_FAULT;
 }
 
 /**
  * @brief Write data to the socket from a reply
  *
- * Returns Results::INCOMPLETE_OPERATION if more writing is required
+ * Returns EBRESULT_INCOMPLETE_OPERATION if more writing is required
  *
- * @return Results::Result_t error code
+ * @return EBResult_t error code
  */
-Results::Result_t Connection::write() {
+EBResult_t Connection::write() {
   asio::error_code errorCode;
   size_t           length = socket->write_some(reply.getBuffers(), errorCode);
   if (reply.updateBuffers(length)) {
     if (!errorCode || errorCode == asio::error::would_block) {
-      return Results::INCOMPLETE_OPERATION;
+      return EBRESULT_INCOMPLETE_OPERATION;
     }
   } else if (!errorCode) {
-    return Results::SUCCESS;
+    return EBRESULT_SUCCESS;
   }
 
-  return Results::READ_FAULT +
-         ("Writing socket failed with ASIO error: " + errorCode.message());
+  return EBRESULT_WRITE_FAULT;
 }
 
 } // namespace Web

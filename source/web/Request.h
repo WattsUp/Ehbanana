@@ -22,7 +22,7 @@ public:
 
   void reset();
 
-  Results::Result_t parse(char * begin, char * end);
+  EBResult_t parse(char * begin, char * end);
 
   const HashSet_t &                 getMethod() const;
   const HashSet_t &                 getURI() const;
@@ -33,13 +33,15 @@ public:
   bool isParsing();
 
 private:
-  Results::Result_t validateMethod();
-  Results::Result_t validateHTTPVersion();
+  EBResult_t parse(char c);
 
-  Results::Result_t decodeURI(std::string & uri);
-  Results::Result_t decodeHex(const std::string & hex, uint32_t & value);
+  EBResult_t validateMethod();
+  EBResult_t validateHTTPVersion();
 
-  typedef enum ParsingState {
+  EBResult_t decodeURI(std::string & uri);
+  EBResult_t decodeHex(const std::string & hex, uint32_t & value);
+
+  enum class ParsingState_t : uint8_t {
     IDLE,
     METHOD,
     URI,
@@ -50,9 +52,9 @@ private:
     HEADER_VALUE,
     BODY_NEWLINE,
     BODY
-  } ParsingState_t;
+  };
 
-  ParsingState_t state = IDLE;
+  ParsingState_t state = ParsingState_t::IDLE;
 
   HashSet_t method;
   HashSet_t uri;

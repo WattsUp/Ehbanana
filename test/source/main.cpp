@@ -19,9 +19,9 @@ EBResult_t __stdcall guiProcess(const EBMessage_t & msg) {
       std::cout << "Server shutting down\n";
       break;
     case EBMSGType_t::INPUT_FORM:
-      if (msg.htmlID == nullptr)
+      if (msg.htmlID.empty())
         return EBRESULT_INVALID_DATA;
-      if (strcmp(msg.htmlID, "Exit") == 0) {
+      if (msg.htmlID.compare("Exit")) {
         if (EBRESULT_ERROR(EBEnqueueQuitMessage(msg.gui)))
           return EBGetLastResult();
       }
@@ -50,7 +50,7 @@ int main() {
   EBMessage_t                           msg    = {};
   EBResult_t                            result = EBRESULT_SUCCESS;
   std::chrono::system_clock::time_point timeout =
-      std::chrono::system_clock::now() + std::chrono::seconds(10);
+      std::chrono::system_clock::now() + std::chrono::seconds(60);
   while (EBGetMessage(msg) == EBRESULT_INCOMPLETE_OPERATION) {
     result = EBDispatchMessage(msg);
 
@@ -66,7 +66,7 @@ int main() {
     } else if (EBRESULT_ERROR(result))
       return result;
     else
-      timeout = std::chrono::system_clock::now() + std::chrono::seconds(10);
+      timeout = std::chrono::system_clock::now() + std::chrono::seconds(60);
   }
 
   if (EBRESULT_ERROR(EBGetLastResult()))

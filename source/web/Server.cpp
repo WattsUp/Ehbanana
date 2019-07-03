@@ -1,15 +1,17 @@
 #include "Server.h"
-#include "spdlog/spdlog.h"
+
+#include <string>
 
 namespace Web {
 
 /**
  * @brief Construct a new Server:: Server object
  *
- * @param root directory to serve http pages
+ * @param httpRoot directory to serve http pages
+ * @param configRoot containing the configuration files
  */
-Server::Server(const std::string & root) :
-  ioContext(1), acceptor(ioContext), requestHandler(root) {}
+Server::Server(const std::string & httpRoot, const std::string & configRoot) :
+  ioContext(1), acceptor(ioContext), requestHandler(httpRoot, configRoot) {}
 
 /**
  * @brief Destroy the Server:: Server object
@@ -22,71 +24,69 @@ Server::~Server() {
 /**
  * @brief Initialize the server's acceptor
  * Opens the acceptor at the desired address and places it into listening mode
- * Passing in 0 for port will attempt to use the default port then increment
- * until an available port is open
+ * Passing in PORT_AUTO for port will attempt to use the default port then
+ * increment until an available port is open
  *
  * @param addr ip address to bind to
  * @param port to bind to
- * @return Results::Result_t
+ * @return EBResult_t error code
  */
-Results::Result_t Server::initialize(const std::string & addr, uint16_t port) {
+EBResult_t Server::initialize(const std::string & addr, uint16_t port) {
   asio::error_code  errorCode;
   asio::ip::address address = asio::ip::make_address(addr, errorCode);
   if (errorCode)
-    return Results::INVALID_PARAMETER + ("Making address from " + addr) +
-           errorCode.message();
-  asio::ip::tcp::endpoint endpoint(address, port);
+    return EBRESULT_ASIO_MAKE_ADDRESS;
 
+  asio::ip::tcp::endpoint endpoint(address, port);
   acceptor.open(endpoint.protocol(), errorCode);
   if (errorCode)
-    return Results::OPEN_FAILED + "Opening acceptor" + errorCode.message();
+    return EBRESULT_ASIO_OPEN_ACCEPTOR;
 
   acceptor.set_option(asio::ip::tcp::acceptor::reuse_address(true), errorCode);
   if (errorCode)
-    return Results::INVALID_PARAMETER + "Setting option resuse address" +
-           errorCode.message();
+    return EBRESULT_ASIO_SET_OPTION;
 
   // Attempt to bind until an available port is found
   bool attemptComplete = true;
-  if (port == 0) {
-    port            = DEFAULT_PORT;
+  if (port == PORT_AUTO) {
+    port            = PORT_DEFAULT;
     attemptComplete = false;
   }
   do {
     endpoint.port(port);
-    spdlog::debug("Binding acceptor to {}", endpoint);
     acceptor.bind(endpoint, errorCode);
     if (!errorCode)
       attemptComplete = true;
     else if (errorCode.value() != asio::error::address_in_use)
-      return Results::OPEN_FAILED + std::to_string(errorCode.value()) +
-             errorCode.message();
+      return EBRESULT_ASIO_BIND;
     // else address already in use, try the next one
     ++port;
   } while (!attemptComplete && port < 65535);
-  spdlog::info("Server bound to {}", endpoint);
 
   acceptor.non_blocking(true, errorCode);
   if (errorCode)
-    return Results::INVALID_PARAMETER + "Setting acceptor non-blocking" +
-           errorCode.message();
+    return EBRESULT_ASIO_SET_OPTION;
 
   acceptor.listen(asio::ip::tcp::socket::max_listen_connections, errorCode);
   if (errorCode)
-    return Results::OPEN_FAILED + "Setting acceptor in listening mode" +
-           errorCode.message();
-  return Results::SUCCESS;
+    return EBRESULT_ASIO_LISTEN;
+
+  domainName =
+      endpoint.address().to_string() + ":" + std::to_string(endpoint.port());
+
+  return EBRESULT_SUCCESS;
 }
 
 /**
  * @brief Start the run thread
  *
+ * @return EBResult_t error code
  */
-void Server::start() {
+EBResult_t Server::start() {
   stop();
-  spdlog::info("Server starting");
   running = true;
   thread  = new std::thread(&Server::run, this);
+  return EBRESULT_SUCCESS;
 }
 
 /**
@@ -95,27 +95,25 @@ void Server::start() {
  *
  */
 void Server::run() {
-  asio::ip::tcp::socket *                            socket = nullptr;
-  asio::ip::tcp::endpoint                            endpoint;
-  asio::error_code                                   errorCode;
-  Results::Result_t                                  result = Results::SUCCESS;
-  bool                                               didSomething = false;
-  std::chrono::time_point<std::chrono::system_clock> now =
-      std::chrono::system_clock::now();
+  asio::ip::tcp::socket * socket = nullptr;
+  asio::ip::tcp::endpoint endpoint;
+  asio::error_code        errorCode;
+  EBResult_t              result       = EBRESULT_SUCCESS;
+  bool                    didSomething = false;
+  auto                    now          = std::chrono::system_clock::now();
   while (running) {
     didSomething = false;
     now          = std::chrono::system_clock::now();
+
     // Check for new connections
     if (socket == nullptr)
       socket = new asio::ip::tcp::socket(ioContext);
     acceptor.accept(*socket, endpoint, errorCode);
     if (!errorCode) {
-      spdlog::debug("Accepted a connection from {}", endpoint);
       connections.push_back(new Connection(socket, endpoint, &requestHandler));
       socket       = nullptr;
       didSomething = true;
     } else if (errorCode != asio::error::would_block) {
-      spdlog::error("Acceptor encountered an error: {}", errorCode);
       running      = false;
       didSomething = true;
     }
@@ -128,18 +126,18 @@ void Server::run() {
       Connection * connection = *i;
       // Remove the connection if update returns the connection is complete
       result = connection->update(now);
-      if (result == Results::INCOMPLETE_OPERATION) {
+      if (result == EBRESULT_INCOMPLETE_OPERATION) {
         ++i;
         didSomething = true;
-      } else if (result == Results::NO_OPERATION)
+      } else if (result == EBRESULT_NO_OPERATION)
         ++i;
       else {
-        if (result == Results::TIMEOUT)
-          spdlog::warn(result);
-        else if (!result)
-          spdlog::error(result);
+        // if (result == EBRESULT_TIMEOUT)
+        //   spdlog::warn(result);
+        // else if (EBRESULT_ERROR(result))
+        //   spdlog::error(result);
 
-        spdlog::debug("Closing connection to {}", connection->getEndpoint());
+        // spdlog::debug("Closing connection to {}", connection->getEndpoint());
         connection->stop();
         i = connections.erase(i);
       }
@@ -148,7 +146,7 @@ void Server::run() {
     // If nothing was processed this loop, sleep until the next to save CPU
     // usage
     if (!didSomething)
-      std::this_thread::sleep_for(std::chrono::microseconds(100));
+      std::this_thread::sleep_for(std::chrono::milliseconds(1));
   }
   // Free socket
   if (socket != nullptr) {
@@ -162,17 +160,26 @@ void Server::run() {
 /**
  * @brief Stop the run thread
  *
+ * @param EBResult_t error code
  */
-void Server::stop() {
-  if (running)
-    spdlog::info("Server stopping");
+EBResult_t Server::stop() {
   running = false;
   if (thread == nullptr)
-    return;
+    return EBRESULT_SUCCESS;
   if (thread->joinable())
     thread->join();
   delete thread;
   thread = nullptr;
+  return EBRESULT_SUCCESS;
+}
+
+/**
+ * @brief Get the domain name the server is listening to
+ *
+ * @return std::string& domain name: '127.0.0.1:8080'
+ */
+const std::string & Server::getDomainName() const {
+  return domainName;
 }
 
 } // namespace Web

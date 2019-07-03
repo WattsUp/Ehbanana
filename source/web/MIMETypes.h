@@ -11,13 +11,13 @@
 #include <string>
 
 namespace Web {
-typedef struct MIMEType {
+struct MIMEType_t {
   const Hash_t      fileExtension;
   const std::string type;
   uint32_t          usage = 0;
-} MIMEType_t;
+};
 
-bool operator>(const MIMEType & left, const MIMEType & right);
+bool operator>(const MIMEType_t & left, const MIMEType_t & right);
 
 class MIMETypes {
 public:
@@ -29,7 +29,7 @@ public:
   std::string getType(const std::string & extension);
 
 private:
-  Results::Result_t populateList(const std::string & fileName);
+  EBResult_t populateList(const std::string & fileName);
 
   void sortList();
 

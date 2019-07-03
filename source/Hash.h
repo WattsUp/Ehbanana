@@ -2,25 +2,22 @@
 #define _HASH_H_
 
 #include "MemoryMapped.h"
-#include "Result.h"
 #include <stdint.h>
 #include <string>
 
 typedef uint32_t Hash_t;
-typedef struct HashSet {
+
+struct HashSet_t {
   Hash_t      hash;
   std::string string;
-} HashSet_t;
+};
 
 class Hash {
 public:
-  static HashSet_t getNextHash(const MemoryMapped & file, uint64_t & index,
+  static HashSet_t getNextHash(const MemoryMapped & file, size_t & index,
       const char end1, const char end2, const char end3);
   static HashSet_t getNextHash(
-      const MemoryMapped & file, uint64_t & index, const char end);
-
-  static Results::Result_t unknownHash(
-      const char * type, const HashSet_t & hashSet);
+      const MemoryMapped & file, size_t & index, const char end);
 
   /**
    * @brief Calculate the hash from a string

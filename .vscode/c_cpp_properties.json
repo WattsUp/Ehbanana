@@ -4,11 +4,16 @@
       "name": "Win32",
       "includePath": [
         "${workspaceFolder}/include/**",
-        "${workspaceFolder}/source/**"
+        "${workspaceFolder}/source/**",
+        "${workspaceFolder}/lib/MemoryMapping/**",
+        "${workspaceFolder}/lib/asio/asio/include/**"
       ],
       "defines": [
         "DEBUG",
-        "COMPILING_DLL"
+        "COMPILING_DLL",
+        "WIN32_LEAN_AND_MEAN",
+        "_WIN32_WINNT=_WIN32_WINNT_WIN10",
+        "ASIO_DISABLE_IOCP"
       ],
       "windowsSdkVersion": "10.0.18362.0",
       "compilerPath": "C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Tools/MSVC/14.21.27702/bin/Hostx64/x64/cl.exe",

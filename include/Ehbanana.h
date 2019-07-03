@@ -3,17 +3,14 @@
 
 #include "Result.h"
 
-#define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
+#include <string>
 
 #ifdef COMPILING_DLL
 #define EHBANANA_API __declspec(dllexport)
 #else
 #define EHBANANA_API __declspec(dllimport)
 #endif
-
-const uint16_t EBPORT_AUTO    = 0;
-const uint16_t EBPORT_DEFAULT = 8080;
 
 struct EBGUI;
 typedef EBGUI * EBGUI_t;
@@ -35,7 +32,7 @@ enum class EBMSGType_t : uint16_t {
 struct EBMessage_t {
   EBGUI_t     gui;
   EBMSGType_t type;
-  char *      htmlID;
+  std::string htmlID;
 };
 
 /**
@@ -56,18 +53,24 @@ typedef EBResult_t(__stdcall * EBGUIProcess_t)(const EBMessage_t &);
  */
 struct EBGUISettings_t {
   EBGUIProcess_t guiProcess;
-  const char *   configRoot;
-  const char *   httpRoot;
-  uint16_t       port = EBPORT_AUTO;
+  std::string    configRoot;
+  std::string    httpRoot;
+  uint16_t       port;
 };
+
+namespace Web {
+class Server;
+}
 
 /**
  * @brief GUI object
  *
  * @param settings
+ * @param server that executes the GUI
  */
 struct EBGUI {
   EBGUISettings_t settings;
+  Web::Server *   server;
 };
 
 /**
@@ -157,6 +160,7 @@ extern "C" EHBANANA_API EBResult_t EBDefaultGUIProcess(const EBMessage_t & msg);
  * @param command string to execute
  * @return EBResult_t error code
  */
-EBResult_t EBCreateProcess(char * command, PROCESS_INFORMATION * process);
+EBResult_t EBCreateProcess(
+    const std::string & command, PROCESS_INFORMATION * process);
 
 #endif /* _EHBANANA_H_ */

@@ -6,15 +6,15 @@
 
 namespace Web {
 
-typedef struct Header {
+struct Header_t {
   std::string name;
   std::string value;
-} Header_t;
+};
 
-typedef struct HeaderHash {
+struct HeaderHash_t {
   HashSet_t name;
   HashSet_t value;
-} HeaderHash_t;
+};
 
 } // namespace Web
 

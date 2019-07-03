@@ -16,31 +16,33 @@
 
 namespace Web {
 
-static const char *   DEFAULT_ROOT = "http";
-static const char *   DEFAULT_ADDR = "127.0.0.1";
-static const uint16_t DEFAULT_PORT = 8080;
-
 class Server {
 public:
   Server(const Server &) = delete;
   Server & operator=(const Server &) = delete;
 
-  Server(const std::string & root = DEFAULT_ROOT);
+  Server(const std::string & httpRoot, const std::string & configRoot);
   ~Server();
 
-  Results::Result_t initialize(
-      const std::string & addr = DEFAULT_ADDR, uint16_t port = 0);
-  void start();
-  void stop();
+  EBResult_t initialize(const std::string & addr, uint16_t port = PORT_AUTO);
+  EBResult_t start();
+  EBResult_t stop();
+
+  const std::string & getDomainName() const;
+
+  static const uint16_t PORT_AUTO    = 0;
+  static const uint16_t PORT_DEFAULT = 8080;
 
 private:
   void run();
 
-  std::thread *     thread = nullptr;
+  std::thread *     thread  = nullptr;
   std::atomic<bool> running = false;
 
   asio::io_context        ioContext;
   asio::ip::tcp::acceptor acceptor;
+
+  std::string domainName;
 
   RequestHandler requestHandler;
 

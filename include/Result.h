@@ -35,6 +35,14 @@ typedef uint16_t EBResult_t;
 #define EBRESULT_INCOMPLETE_OPERATION   0x0019
 #define EBRESULT_NO_OPERATION           0x001A
 #define EBRESULT_TIMEOUT                0x001B
+#define EBRESULT_NO_SYSTEM_CALL         0x001C
+#define EBRESULT_INVALID_STATE          0x001D
+
+#define EBRESULT_ASIO_MAKE_ADDRESS      0x1000
+#define EBRESULT_ASIO_OPEN_ACCEPTOR     0x1001
+#define EBRESULT_ASIO_SET_OPTION        0x1002
+#define EBRESULT_ASIO_BIND              0x1003
+#define EBRESULT_ASIO_LISTEN            0x1004
 
 // clang-format on
 

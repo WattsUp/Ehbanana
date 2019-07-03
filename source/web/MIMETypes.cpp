@@ -1,5 +1,4 @@
 #include "MIMETypes.h"
-#include "spdlog/spdlog.h"
 
 namespace Web {
 
@@ -9,10 +8,10 @@ namespace Web {
  * @param fileName to read types from
  */
 MIMETypes::MIMETypes(const std::string & fileName) {
-  Results::Result_t result = populateList(fileName);
-  if (!result) {
-    spdlog::error(result);
-    throw std::exception(result.message.c_str());
+  EBResult_t result = populateList(fileName);
+  if (EBRESULT_ERROR(result)) {
+    // spdlog::error(result);
+    // throw std::exception(result.message.c_str());
   }
 }
 
@@ -22,15 +21,15 @@ MIMETypes::MIMETypes(const std::string & fileName) {
  * Each line contains one type: .htm text/html
  *
  * @param fileName to parse
- * @return Results::Result_t error code
+ * @return EBResult_t error code
  */
-Results::Result_t MIMETypes::populateList(const std::string & fileName) {
+EBResult_t MIMETypes::populateList(const std::string & fileName) {
   MemoryMapped file(fileName, 0, MemoryMapped::SequentialScan);
   if (!file.isValid())
-    return Results::OPEN_FAILED + fileName;
-  spdlog::info("Loading MIME types from \"{}\"", fileName);
+    return EBRESULT_OPEN_FAILED;
+  // spdlog::info("Loading MIME types from \"{}\"", fileName);
 
-  uint64_t index    = 0;
+  size_t index    = 0;
   uint64_t fileSize = file.size();
 
   while (index < fileSize) {
@@ -45,7 +44,7 @@ Results::Result_t MIMETypes::populateList(const std::string & fileName) {
   }
   file.close();
   sortList();
-  return Results::SUCCESS;
+  return EBRESULT_SUCCESS;
 }
 
 /**
@@ -72,7 +71,7 @@ std::string MIMETypes::getType(const std::string & extension) {
       return type.type;
     }
   }
-  spdlog::warn("Could not find MIME type for \"{}\"", extension);
+  // spdlog::warn("Could not find MIME type for \"{}\"", extension);
   return UNKNOWN_MIME_TYPE;
 }
 
@@ -88,13 +87,13 @@ void MIMETypes::sortList() {
 }
 
 /**
- * @brief Greater than operator for MIMEType comparing their usage rate
+ * @brief Greater than operator for MIMEType_t comparing their usage rate
  *
  * @param left type
  * @param right type
  * @return left.usage > right.usage
  */
-bool operator>(const MIMEType & left, const MIMEType & right) {
+bool operator>(const MIMEType_t & left, const MIMEType_t & right) {
   return left.usage > right.usage;
 }
 

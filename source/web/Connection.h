@@ -24,24 +24,24 @@ public:
       RequestHandler * requestHandler);
   ~Connection();
 
-  Results::Result_t update(
+  EBResult_t update(
       const std::chrono::time_point<std::chrono::system_clock> & now);
   void stop();
 
   asio::ip::tcp::endpoint getEndpoint();
 
 private:
-  Results::Result_t read();
-  Results::Result_t write();
+  EBResult_t read();
+  EBResult_t write();
 
-  typedef enum State {
+  enum class State_t : uint8_t {
     IDLE,
     READING,
     READING_DONE,
     WRITING,
     WRITING_DONE,
     COMPLETE
-  } State_t;
+  };
 
   asio::ip::tcp::socket * socket;
   asio::ip::tcp::endpoint endpoint;
@@ -50,7 +50,7 @@ private:
   Reply                  reply;
   Request                request;
   std::array<char, 8192> buffer;
-  State_t                state = IDLE;
+  State_t                state = State_t::IDLE;
 
   std::chrono::time_point<std::chrono::system_clock> timeoutTime;
 
