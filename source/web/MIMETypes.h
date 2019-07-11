@@ -2,7 +2,7 @@
 #define _WEB_MIME_TYPES_H_
 
 #include "Hash.h"
-#include "Result.h"
+#include "ResultMsg.h"
 
 #include "MemoryMapped.h"
 
@@ -29,7 +29,7 @@ public:
   std::string getType(const std::string & extension);
 
 private:
-  EBResult_t populateList(const std::string & fileName);
+  EBResultMsg_t populateList(const std::string & fileName);
 
   void sortList();
 

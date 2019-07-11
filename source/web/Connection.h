@@ -4,7 +4,7 @@
 #include "Reply.h"
 #include "Request.h"
 #include "RequestHandler.h"
-#include "Result.h"
+#include "ResultMsg.h"
 
 #include <asio.hpp>
 
@@ -24,15 +24,15 @@ public:
       RequestHandler * requestHandler);
   ~Connection();
 
-  EBResult_t update(
+  EBResultMsg_t update(
       const std::chrono::time_point<std::chrono::system_clock> & now);
   void stop();
 
   asio::ip::tcp::endpoint getEndpoint();
 
 private:
-  EBResult_t read();
-  EBResult_t write();
+  EBResultMsg_t read();
+  EBResultMsg_t write();
 
   enum class State_t : uint8_t {
     IDLE,

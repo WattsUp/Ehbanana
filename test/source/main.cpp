@@ -1,7 +1,6 @@
 #include <Ehbanana.h>
 
 #include <chrono>
-#include <iostream>
 #include <thread>
 
 /**
@@ -13,19 +12,18 @@
 EBResult_t __stdcall guiProcess(const EBMessage_t & msg) {
   switch (msg.type) {
     case EBMSGType_t::STARTUP:
-      std::cout << "Server starting up\n";
+      EBLogInfo("Server starting up");
       break;
     case EBMSGType_t::SHUTDOWN:
-      std::cout << "Server shutting down\n";
+      EBLogInfo("Server shutting down");
       break;
     case EBMSGType_t::INPUT_FORM:
       if (msg.htmlID.empty())
         return EBRESULT_INVALID_DATA;
+      EBLogInfo(("Received input from #" + msg.htmlID).c_str());
       if (msg.htmlID.compare("Exit")) {
-        if (EBRESULT_ERROR(EBEnqueueQuitMessage(msg.gui)))
-          return EBGetLastResult();
+        return EBEnqueueQuitMessage(msg.gui);
       }
-      std::cout << "Received input from #" << msg.htmlID << "\n";
       break;
     default:
       return EBDefaultGUIProcess(msg);
@@ -33,8 +31,14 @@ EBResult_t __stdcall guiProcess(const EBMessage_t & msg) {
   return EBRESULT_SUCCESS;
 }
 
-int main() {
-  std::cout << "Ehbanana test\n";
+int WINAPI WinMain(
+    HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdArgs, int cmdShow) {
+  if (EBRESULT_ERROR(
+          EBConfigureLogging("ehbanana.log", true, true, EB_LOG_LEVEL_DEBUG)))
+    return EBGetLastResult();
+
+  EBLogInfo("Ehbanana test starting");
+
   EBGUISettings_t settings;
   settings.guiProcess = guiProcess;
   settings.configRoot = "test/config";
@@ -50,7 +54,7 @@ int main() {
   EBMessage_t                           msg    = {};
   EBResult_t                            result = EBRESULT_SUCCESS;
   std::chrono::system_clock::time_point timeout =
-      std::chrono::system_clock::now() + std::chrono::seconds(60);
+      std::chrono::system_clock::now() + std::chrono::seconds(10);
   while (EBGetMessage(msg) == EBRESULT_INCOMPLETE_OPERATION) {
     result = EBDispatchMessage(msg);
 
@@ -66,7 +70,7 @@ int main() {
     } else if (EBRESULT_ERROR(result))
       return result;
     else
-      timeout = std::chrono::system_clock::now() + std::chrono::seconds(60);
+      timeout = std::chrono::system_clock::now() + std::chrono::seconds(10);
   }
 
   if (EBRESULT_ERROR(EBGetLastResult()))
@@ -75,5 +79,6 @@ int main() {
   if (EBRESULT_ERROR(EBDestroyGUI(gui)))
     return EBGetLastResult();
 
+  EBLogInfo("Ehbanana test complete");
   return EBRESULT_SUCCESS;
 }

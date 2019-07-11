@@ -3,7 +3,7 @@
 
 #include "Hash.h"
 #include "Header.h"
-#include "Result.h"
+#include "ResultMsg.h"
 
 #include <asio.hpp>
 
@@ -22,24 +22,24 @@ public:
 
   void reset();
 
-  EBResult_t parse(char * begin, char * end);
+  EBResultMsg_t parse(char * begin, char * end);
 
   const HashSet_t &                 getMethod() const;
   const HashSet_t &                 getURI() const;
   const std::vector<HeaderHash_t> & getQueries() const;
-  asio::ip::tcp::endpoint           getEndpoint() const;
+  std::string                       getEndpointString() const;
 
   bool isKeepAlive();
   bool isParsing();
 
 private:
-  EBResult_t parse(char c);
+  EBResultMsg_t parse(char c);
 
-  EBResult_t validateMethod();
-  EBResult_t validateHTTPVersion();
+  EBResultMsg_t validateMethod();
+  EBResultMsg_t validateHTTPVersion();
 
-  EBResult_t decodeURI(std::string & uri);
-  EBResult_t decodeHex(const std::string & hex, uint32_t & value);
+  EBResultMsg_t decodeURI(std::string & uri);
+  EBResultMsg_t decodeHex(const std::string & hex, uint32_t & value);
 
   enum class ParsingState_t : uint8_t {
     IDLE,
@@ -60,8 +60,8 @@ private:
   HashSet_t uri;
   HashSet_t httpVersion;
 
-  uint64_t contentLength = 0;
-  bool     keepAlive     = false;
+  size_t contentLength = 0;
+  bool   keepAlive     = false;
 
   std::string             body;
   asio::ip::tcp::endpoint endpoint;

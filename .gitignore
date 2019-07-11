@@ -11,4 +11,4 @@ bin
 include/Ehbanana.lib
 
 # Log files
-logfile*
+*.log

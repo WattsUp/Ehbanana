@@ -1,5 +1,6 @@
 #include "Server.h"
 
+#include <spdlog/spdlog.h>
 #include <string>
 
 namespace Web {
@@ -29,22 +30,22 @@ Server::~Server() {
  *
  * @param addr ip address to bind to
  * @param port to bind to
- * @return EBResult_t error code
+ * @return EBResultMsg_t error code
  */
-EBResult_t Server::initialize(const std::string & addr, uint16_t port) {
+EBResultMsg_t Server::initialize(const std::string & addr, uint16_t port) {
   asio::error_code  errorCode;
   asio::ip::address address = asio::ip::make_address(addr, errorCode);
   if (errorCode)
-    return EBRESULT_ASIO_MAKE_ADDRESS;
+    return EBResult::ASIO_MAKE_ADDRESS + ("From: " + addr);
 
   asio::ip::tcp::endpoint endpoint(address, port);
   acceptor.open(endpoint.protocol(), errorCode);
   if (errorCode)
-    return EBRESULT_ASIO_OPEN_ACCEPTOR;
+    return EBResult::ASIO_OPEN_ACCEPTOR + "Server acceptor open";
 
   acceptor.set_option(asio::ip::tcp::acceptor::reuse_address(true), errorCode);
   if (errorCode)
-    return EBRESULT_ASIO_SET_OPTION;
+    return EBResult::ASIO_SET_OPTION + "Server acceptor reuse address";
 
   // Attempt to bind until an available port is found
   bool attemptComplete = true;
@@ -58,35 +59,37 @@ EBResult_t Server::initialize(const std::string & addr, uint16_t port) {
     if (!errorCode)
       attemptComplete = true;
     else if (errorCode.value() != asio::error::address_in_use)
-      return EBRESULT_ASIO_BIND;
+      return EBResult::ASIO_BIND +
+             ("Server acceptor bind to " + endpoint.address().to_string() +
+                 ":" + std::to_string(port));
     // else address already in use, try the next one
     ++port;
   } while (!attemptComplete && port < 65535);
 
   acceptor.non_blocking(true, errorCode);
   if (errorCode)
-    return EBRESULT_ASIO_SET_OPTION;
+    return EBResult::ASIO_SET_OPTION + "Server acceptor non-blocking";
 
   acceptor.listen(asio::ip::tcp::socket::max_listen_connections, errorCode);
   if (errorCode)
-    return EBRESULT_ASIO_LISTEN;
+    return EBResult::ASIO_LISTEN + "Server acceptor listen";
 
   domainName =
       endpoint.address().to_string() + ":" + std::to_string(endpoint.port());
 
-  return EBRESULT_SUCCESS;
+  return EBResult::SUCCESS;
 }
 
 /**
  * @brief Start the run thread
  *
- * @return EBResult_t error code
+ * @return EBResultMsg_t error code
  */
-EBResult_t Server::start() {
+EBResultMsg_t Server::start() {
   stop();
   running = true;
   thread  = new std::thread(&Server::run, this);
-  return EBRESULT_SUCCESS;
+  return EBResult::SUCCESS;
 }
 
 /**
@@ -98,7 +101,7 @@ void Server::run() {
   asio::ip::tcp::socket * socket = nullptr;
   asio::ip::tcp::endpoint endpoint;
   asio::error_code        errorCode;
-  EBResult_t              result       = EBRESULT_SUCCESS;
+  EBResultMsg_t           result       = EBResult::SUCCESS;
   bool                    didSomething = false;
   auto                    now          = std::chrono::system_clock::now();
   while (running) {
@@ -126,16 +129,16 @@ void Server::run() {
       Connection * connection = *i;
       // Remove the connection if update returns the connection is complete
       result = connection->update(now);
-      if (result == EBRESULT_INCOMPLETE_OPERATION) {
+      if (result == EBResult::INCOMPLETE_OPERATION) {
         ++i;
         didSomething = true;
-      } else if (result == EBRESULT_NO_OPERATION)
+      } else if (result == EBResult::NO_OPERATION)
         ++i;
       else {
-        // if (result == EBRESULT_TIMEOUT)
-        //   spdlog::warn(result);
-        // else if (EBRESULT_ERROR(result))
-        //   spdlog::error(result);
+        if (result == EBResult::TIMEOUT)
+          spdlog::warn(result);
+        else if (!result)
+          spdlog::error(result);
 
         // spdlog::debug("Closing connection to {}", connection->getEndpoint());
         connection->stop();
@@ -160,17 +163,17 @@ void Server::run() {
 /**
  * @brief Stop the run thread
  *
- * @param EBResult_t error code
+ * @param EBResultMsg_t error code
  */
-EBResult_t Server::stop() {
+EBResultMsg_t Server::stop() {
   running = false;
   if (thread == nullptr)
-    return EBRESULT_SUCCESS;
+    return EBResult::SUCCESS;
   if (thread->joinable())
     thread->join();
   delete thread;
   thread = nullptr;
-  return EBRESULT_SUCCESS;
+  return EBResult::SUCCESS;
 }
 
 /**

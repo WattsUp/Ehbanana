@@ -1,5 +1,7 @@
 #include "RequestHandler.h"
 
+#include <spdlog/spdlog.h>
+
 namespace Web {
 
 /**
@@ -19,10 +21,9 @@ RequestHandler::RequestHandler(
  *
  * @param request to handle
  * @param reply to populate
- * @return EBRESULT_Result_t error code
+ * @return EBResultMsg_t error code
  */
-EBResult_t RequestHandler::handle(
-    const Request & request, Reply & reply) {
+EBResultMsg_t RequestHandler::handle(const Request & request, Reply & reply) {
   reply.reset();
   switch (request.getMethod().hash) {
     case Hash::calculateHash("GET"):
@@ -30,7 +31,8 @@ EBResult_t RequestHandler::handle(
     case Hash::calculateHash("POST"):
       return handlePOST(request, reply);
     default:
-      return EBRESULT_UNKNOWN_HASH;
+      return EBResult::UNKNOWN_HASH +
+             ("Request method: " + request.getMethod().string);
   }
 }
 
@@ -39,26 +41,26 @@ EBResult_t RequestHandler::handle(
  *
  * @param request to handle
  * @param reply to populate
- * @return EBRESULT_Result_t error code
+ * @return EBResultMsg_t error code
  */
-EBResult_t RequestHandler::handleGET(
+EBResultMsg_t RequestHandler::handleGET(
     const Request & request, Reply & reply) {
   std::string uri = request.getURI().string;
-  // if (request.getQueries().empty())
-  //   spdlog::info("{} GET URI: \"{}\"", request.getEndpoint(), uri);
-  // else {
-  //   std::string buffer = "";
-  //   for (HeaderHash_t query : request.getQueries()) {
-  //     buffer +=
-  //         "\n    \"" + query.name.string + "\"=\"" + query.value.string + "\"";
-  //   }
-  //   spdlog::info(
-  //       "{} GET URI: \"{}\" Queries:{}", request.getEndpoint(), uri, buffer);
-  // }
+  if (request.getQueries().empty())
+    spdlog::info("{} GET URI: \"{}\"", request.getEndpointString(), uri);
+  else {
+    std::string buffer = "";
+    for (HeaderHash_t query : request.getQueries()) {
+      buffer +=
+          "\n    \"" + query.name.string + "\"=\"" + query.value.string + "\"";
+    }
+    spdlog::info("{} GET URI: \"{}\" Queries:{}", request.getEndpointString(),
+        uri, buffer);
+  }
 
   // URI must be absolute
   if (uri.empty() || uri[0] != '/' || uri.find("..") != std::string::npos)
-    return EBRESULT_INVALID_DATA;
+    return EBResult::INVALID_DATA + ("URI is not absolute: " + uri);
 
   // Add index.html to folders
   if (uri[uri.size() - 1] == '/')
@@ -71,12 +73,12 @@ EBResult_t RequestHandler::handleGET(
   if (!file->isValid()) {
     file->close();
     delete file;
-    return EBRESULT_OPEN_FAILED;
+    return EBResult::OPEN_FAILED + (root + uri);
   }
   reply.addHeader("Content-Length", std::to_string(file->size()));
   reply.setContent(file);
 
-  return EBRESULT_SUCCESS;
+  return EBResult::SUCCESS;
 }
 
 /**
@@ -84,23 +86,25 @@ EBResult_t RequestHandler::handleGET(
  *
  * @param request to handle
  * @param reply to populate
- * @return EBResult_t error code
+ * @return EBResultMsg_t error code
  */
-EBResult_t RequestHandler::handlePOST(
+EBResultMsg_t RequestHandler::handlePOST(
     const Request & request, Reply & reply) {
-  // if (request.getQueries().empty())
-  //   spdlog::info("POST URI: \"{}\"", request.getURI().string);
-  // else {
-  //   std::string buffer = "";
-  //   for (HeaderHash_t query : request.getQueries()) {
-  //     buffer +=
-  //         "\n    \"" + query.name.string + "\"=\"" + query.value.string + "\"";
-  //   }
-  //   spdlog::info(
-  //       "POST URI: \"{}\" Queries:{}", request.getURI().string, buffer);
-  // }
+  if (request.getQueries().empty())
+    spdlog::info("POST URI: \"{}\"", request.getURI().string);
+  else {
+    std::string buffer = "";
+    for (HeaderHash_t query : request.getQueries()) {
+      buffer +=
+          "\n    \"" + query.name.string + "\"=\"" + query.value.string + "\"";
+    }
+    spdlog::info(
+        "POST URI: \"{}\" Queries:{}", request.getURI().string, buffer);
+  }
 
-  return EBRESULT_NOT_SUPPORTED;
+  reply.setStatus(HTTPStatus_t::NOT_IMPLEMENTED);
+
+  return EBResult::NOT_SUPPORTED + "handlePOST";
 }
 
 /**

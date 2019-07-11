@@ -105,14 +105,6 @@ extern "C" EHBANANA_API EBResult_t EBDestroyGUI(EBGUI_t gui);
 extern "C" EHBANANA_API EBResult_t EBGetLastResult();
 
 /**
- * @brief Set the last error produced by Ehbanana
- *
- * @param result to set
- * @return last result
- */
-EBResult_t EBSetLastResult(EBResult_t result);
-
-/**
  * @brief Get the next message in the queue
  *
  * Returns EBRESULT_SUCCESS when the message type is QUIT
@@ -120,7 +112,7 @@ EBResult_t EBSetLastResult(EBResult_t result);
  * no other errors occured
  *
  * @param msg to write into
- * @return error code
+ * @return EBResult_t error code
  */
 extern "C" EHBANANA_API EBResult_t EBGetMessage(EBMessage_t & msg);
 
@@ -128,7 +120,7 @@ extern "C" EHBANANA_API EBResult_t EBGetMessage(EBMessage_t & msg);
  * @brief Send the message to the appropriate consumers
  *
  * @param msg to dispatch
- * @return error code
+ * @return EBResult_t error code
  */
 extern "C" EHBANANA_API EBResult_t EBDispatchMessage(const EBMessage_t & msg);
 
@@ -136,7 +128,7 @@ extern "C" EHBANANA_API EBResult_t EBDispatchMessage(const EBMessage_t & msg);
  * @brief Add a message to the queue
  *
  * @param msg to add
- * @param error code
+ * @param EBResult_t error code
  */
 extern "C" EHBANANA_API EBResult_t EBEnqueueMessage(const EBMessage_t & msg);
 
@@ -154,13 +146,58 @@ extern "C" EHBANANA_API EBResult_t EBDefaultGUIProcess(const EBMessage_t & msg);
  */
 #define EBEnqueueQuitMessage(gui) (EBEnqueueMessage({gui, EBMSGType_t::QUIT}))
 
+#define EB_LOG_LEVEL_DEBUG 0
+#define EB_LOG_LEVEL_INFO 1
+#define EB_LOG_LEVEL_WARN 2
+#define EB_LOG_LEVEL_ERROR 3
+#define EB_LOG_LEVEL_CRITICAL 4
+
 /**
- * @brief Create a process from the command string
+ * @brief Configure logging of the library
  *
- * @param command string to execute
+ * @param fileName of the log file, nullptr for no logging to file
+ * @param rotatingLogs will rotate between 3 files and overwrite the oldest if
+ * true, or overwrite the single file if false
+ * @param showConsole will open a console output window if true
+ * @param logLevel sets the minimum level to log
  * @return EBResult_t error code
  */
-EBResult_t EBCreateProcess(
-    const std::string & command, PROCESS_INFORMATION * process);
+extern "C" EHBANANA_API EBResult_t EBConfigureLogging(const char * fileName,
+    bool rotatingLogs, bool showConsole, uint8_t logLevel);
+
+/**
+ * @brief Log a message with debug level
+ * 
+ * @param string to log
+ */
+extern "C" EHBANANA_API void EBLogDebug(const char * string);
+
+/**
+ * @brief Log a message with info level
+ * 
+ * @param string to log
+ */
+extern "C" EHBANANA_API void EBLogInfo(const char * string);
+
+/**
+ * @brief Log a message with warning level
+ * 
+ * @param string to log
+ */
+extern "C" EHBANANA_API void EBLogWarning(const char * string);
+
+/**
+ * @brief Log a message with error level
+ * 
+ * @param string to log
+ */
+extern "C" EHBANANA_API void EBLogError(const char * string);
+
+/**
+ * @brief Log a message with critical level
+ * 
+ * @param string to log
+ */
+extern "C" EHBANANA_API void EBLogCritical(const char * string);
 
 #endif /* _EHBANANA_H_ */

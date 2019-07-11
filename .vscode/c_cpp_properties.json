@@ -6,7 +6,8 @@
         "${workspaceFolder}/include/**",
         "${workspaceFolder}/source/**",
         "${workspaceFolder}/lib/MemoryMapping/**",
-        "${workspaceFolder}/lib/asio/asio/include/**"
+        "${workspaceFolder}/lib/asio/asio/include/**",
+        "${workspaceFolder}/lib/spdlog/include/**"
       ],
       "defines": [
         "DEBUG",

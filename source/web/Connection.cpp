@@ -1,5 +1,7 @@
 #include "Connection.h"
 
+#include <spdlog/spdlog.h>
+
 namespace Web {
 
 /**
@@ -37,11 +39,11 @@ Connection::~Connection() {
  * Returns EBRESULT_TIMEOUT if the connection was idle for too long
  *
  * @param now current timestamp
- * @return EBResult_t error code
+ * @return EBResultMsg_t error code
  */
-EBResult_t Connection::update(
+EBResultMsg_t Connection::update(
     const std::chrono::time_point<std::chrono::system_clock> & now) {
-  EBResult_t result = EBRESULT_SUCCESS;
+  EBResultMsg_t result = EBResult::SUCCESS;
   switch (state) {
     case State_t::IDLE:
       reply.stockReply(HTTPStatus_t::OK);
@@ -50,24 +52,26 @@ EBResult_t Connection::update(
       // Fall through
     case State_t::READING:
       result = read();
-      if (result == EBRESULT_SUCCESS)
+      if (result == EBResult::SUCCESS)
         state = State_t::READING_DONE;
-      else if (result == EBRESULT_INCOMPLETE_OPERATION)
+      else if (result == EBResult::INCOMPLETE_OPERATION)
         return result;
-      else if (result == EBRESULT_NO_OPERATION)
-        return (now < timeoutTime) ? result : EBRESULT_TIMEOUT;
+      else if (result == EBResult::NO_OPERATION)
+        return (now < timeoutTime) ? result : EBResult::TIMEOUT;
       else {
         // An error occurred while reading the request, generate the appropriate
         // stock reply
+        spdlog::warn(result);
         reply.stockReply(result);
         state = State_t::WRITING;
       }
       break;
     case State_t::READING_DONE:
       result = requestHandler->handle(request, reply);
-      if (EBRESULT_ERROR(result)) {
+      if (!result) {
         // An error occurred while reading the request, generate the appropriate
         // stock reply
+        spdlog::warn(result);
         reply.stockReply(result);
       }
 
@@ -76,10 +80,9 @@ EBResult_t Connection::update(
       break;
     case State_t::WRITING:
       result = write();
-      if (result == EBRESULT_SUCCESS)
-        state = State_t::WRITING_DONE;
-      else
+      if (!result)
         return result;
+      state = State_t::WRITING_DONE;
       break;
     case State_t::WRITING_DONE:
       if (request.isKeepAlive()) {
@@ -90,11 +93,11 @@ EBResult_t Connection::update(
         state = State_t::COMPLETE;
       break;
     case State_t::COMPLETE:
-      return EBRESULT_SUCCESS;
+      return EBResult::SUCCESS;
     default:
-      return EBRESULT_INVALID_STATE;
+      return EBResult::INVALID_STATE + "During connection update";
   }
-  return EBRESULT_NO_OPERATION;
+  return EBResult::NO_OPERATION;
 }
 
 /**
@@ -127,17 +130,17 @@ asio::ip::tcp::endpoint Connection::getEndpoint() {
  * Returns EBRESULT_INCOMPLETE_OPERATION if more reading is required
  * Returns EBRESULT_NO_OPERATION if nothing was read and nothing was expected
  *
- * @return EBResult_t error code
+ * @return EBResultMsg_t error code
  */
-EBResult_t Connection::read() {
+EBResultMsg_t Connection::read() {
   asio::error_code errorCode;
   size_t           length = socket->read_some(asio::buffer(buffer), errorCode);
   if (!errorCode) {
     return request.parse(buffer.data(), buffer.data() + length);
   } else if (errorCode == asio::error::would_block)
-    return request.isParsing() ? EBRESULT_INCOMPLETE_OPERATION
-                               : EBRESULT_NO_OPERATION;
-  return EBRESULT_READ_FAULT;
+    return request.isParsing() ? EBResult::INCOMPLETE_OPERATION
+                               : EBResult::NO_OPERATION;
+  return EBResult::ASIO_READ_FAULT;
 }
 
 /**
@@ -147,18 +150,15 @@ EBResult_t Connection::read() {
  *
  * @return EBResult_t error code
  */
-EBResult_t Connection::write() {
+EBResultMsg_t Connection::write() {
   asio::error_code errorCode;
   size_t           length = socket->write_some(reply.getBuffers(), errorCode);
   if (reply.updateBuffers(length)) {
-    if (!errorCode || errorCode == asio::error::would_block) {
-      return EBRESULT_INCOMPLETE_OPERATION;
-    }
-  } else if (!errorCode) {
-    return EBRESULT_SUCCESS;
-  }
-
-  return EBRESULT_WRITE_FAULT;
+    if (!errorCode || errorCode == asio::error::would_block)
+      return EBResult::INCOMPLETE_OPERATION;
+  } else if (!errorCode)
+    return EBResult::SUCCESS;
+  return EBResult::ASIO_WRITE_FAULT;
 }
 
 } // namespace Web

@@ -102,7 +102,7 @@ const std::vector<asio::const_buffer> & Reply::getBuffers() {
     buffers.clear();
     buffers.push_back(statusToBuffer(status));
     buffers.push_back(asio::buffer(STRING_CRLF));
-    for (int i = 0; i < headers.size(); ++i) {
+    for (size_t i = 0; i < headers.size(); ++i) {
       Header_t & header = headers[i];
       buffers.push_back(asio::buffer(header.name));
       buffers.push_back(asio::buffer(STRING_NAME_VALUE_SEPARATOR));
@@ -216,19 +216,19 @@ void Reply::stockReply(HTTPStatus_t status) {
 /**
  * @brief Generate a stock reply from the result
  *
- * @param status
+ * @param result
  */
-void Reply::stockReply(EBResult_t result) {
-  if (result == EBRESULT_SUCCESS)
+void Reply::stockReply(EBResultMsg_t result) {
+  if (result == EBResult::SUCCESS)
     stockReply(HTTPStatus_t::OK);
-  else if (result == EBRESULT_BAD_COMMAND ||
-           result == EBRESULT_BUFFER_OVERFLOW ||
-           result == EBRESULT_INVALID_DATA)
+  else if (result == EBResult::BAD_COMMAND ||
+           result == EBResult::BUFFER_OVERFLOW ||
+           result == EBResult::INVALID_DATA)
     stockReply(HTTPStatus_t::BAD_REQUEST);
-  else if (result == EBRESULT_NOT_SUPPORTED ||
-           result == EBRESULT_VERSION_NOT_SUPPORTED)
+  else if (result == EBResult::NOT_SUPPORTED ||
+           result == EBResult::VERSION_NOT_SUPPORTED)
     stockReply(HTTPStatus_t::NOT_IMPLEMENTED);
-  else if (result == EBRESULT_OPEN_FAILED)
+  else if (result == EBResult::OPEN_FAILED)
     stockReply(HTTPStatus_t::NOT_FOUND);
   else
     stockReply(HTTPStatus_t::INTERNAL_SERVER_ERROR);

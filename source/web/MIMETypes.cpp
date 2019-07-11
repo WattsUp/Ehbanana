@@ -1,5 +1,7 @@
 #include "MIMETypes.h"
 
+#include <spdlog/spdlog.h>
+
 namespace Web {
 
 /**
@@ -8,10 +10,10 @@ namespace Web {
  * @param fileName to read types from
  */
 MIMETypes::MIMETypes(const std::string & fileName) {
-  EBResult_t result = populateList(fileName);
-  if (EBRESULT_ERROR(result)) {
-    // spdlog::error(result);
-    // throw std::exception(result.message.c_str());
+  EBResultMsg_t result = populateList(fileName);
+  if (!result) {
+    spdlog::error(result);
+    throw std::exception(result.message.c_str());
   }
 }
 
@@ -21,15 +23,15 @@ MIMETypes::MIMETypes(const std::string & fileName) {
  * Each line contains one type: .htm text/html
  *
  * @param fileName to parse
- * @return EBResult_t error code
+ * @return EBResultMsg_t error code
  */
-EBResult_t MIMETypes::populateList(const std::string & fileName) {
+EBResultMsg_t MIMETypes::populateList(const std::string & fileName) {
   MemoryMapped file(fileName, 0, MemoryMapped::SequentialScan);
   if (!file.isValid())
-    return EBRESULT_OPEN_FAILED;
-  // spdlog::info("Loading MIME types from \"{}\"", fileName);
+    return EBResult::OPEN_FAILED + ("Opening MIME types from: " + fileName);
+  spdlog::info("Loading MIME types from \"{}\"", fileName);
 
-  size_t index    = 0;
+  size_t   index    = 0;
   uint64_t fileSize = file.size();
 
   while (index < fileSize) {
@@ -44,7 +46,7 @@ EBResult_t MIMETypes::populateList(const std::string & fileName) {
   }
   file.close();
   sortList();
-  return EBRESULT_SUCCESS;
+  return EBResult::SUCCESS;
 }
 
 /**
@@ -71,7 +73,7 @@ std::string MIMETypes::getType(const std::string & extension) {
       return type.type;
     }
   }
-  // spdlog::warn("Could not find MIME type for \"{}\"", extension);
+  spdlog::warn("Could not find MIME type for \"{}\"", extension);
   return UNKNOWN_MIME_TYPE;
 }
 

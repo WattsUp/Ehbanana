@@ -19,15 +19,15 @@
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
-      <AdditionalIncludeDirectories>$(SolutionDir)\include;$(SolutionDir)\source;$(SolutionDir)\lib\MemoryMapping;$(SolutionDir)\lib\asio\asio\include;</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>DEBUG;COMPILING_DLL;WIN32_LEAN_AND_MEAN;_WIN32_WINNT=_WIN32_WINNT_WIN10;ASIO_DISABLE_IOCP;%(PreprocessorDefinitions);</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(SolutionDir)\include;$(SolutionDir)\source;$(SolutionDir)\lib\MemoryMapping;$(SolutionDir)\lib\asio\asio\include;$(SolutionDir)\lib\spdlog\include;</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>DEBUG;COMPILING_DLL;WIN32_LEAN_AND_MEAN;_WIN32_WINNT=_WIN32_WINNT_WIN10;ASIO_DISABLE_IOCP;_WINSOCK_DEPRECATED_NO_WARNINGS;%(PreprocessorDefinitions);</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
-      <AdditionalIncludeDirectories>$(SolutionDir)\include;$(SolutionDir)\source;$(SolutionDir)\MemoryMapping;$(SolutionDir)\lib\asio\asio\include;</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>COMPILING_DLL;WIN32_LEAN_AND_MEAN;_WIN32_WINNT=_WIN32_WINNT_WIN10;ASIO_DISABLE_IOCP;%(PreprocessorDefinitions);</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(SolutionDir)\include;$(SolutionDir)\source;$(SolutionDir)\lib\MemoryMapping;$(SolutionDir)\lib\asio\asio\include;$(SolutionDir)\lib\spdlog\include;</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>COMPILING_DLL;WIN32_LEAN_AND_MEAN;_WIN32_WINNT=_WIN32_WINNT_WIN10;ASIO_DISABLE_IOCP;_WINSOCK_DEPRECATED_NO_WARNINGS;%(PreprocessorDefinitions);</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -37,6 +37,7 @@
   <ItemGroup>
     <ClInclude Include="source\**\*.h" />
     <ClInclude Include="include\**\*.h" />
+    <ClInclude Include="lib\spdlog\include\**\*.h" />
     <ClInclude Include="lib\MemoryMapping\MemoryMapped.h" />
     <ClInclude Include="lib\asio\asio\include\**\*.*pp" />
   </ItemGroup>

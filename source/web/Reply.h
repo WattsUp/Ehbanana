@@ -2,7 +2,7 @@
 #define _WEB_REPLY_H_
 
 #include "Header.h"
-#include "Result.h"
+#include "ResultMsg.h"
 
 #include "MemoryMapped.h"
 #include <asio.hpp>
@@ -162,7 +162,7 @@ public:
   bool updateBuffers(size_t bytesWritten = 0);
 
   void stockReply(HTTPStatus_t status);
-  void stockReply(EBResult_t result);
+  void stockReply(EBResultMsg_t result);
 
 private:
   asio::const_buffer statusToBuffer(HTTPStatus_t status);

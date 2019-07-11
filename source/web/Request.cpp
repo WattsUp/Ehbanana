@@ -1,5 +1,8 @@
 #include "Request.h"
 
+#include <spdlog/spdlog.h>
+#include <sstream>
+
 namespace Web {
 
 /**
@@ -34,34 +37,36 @@ void Request::reset() {
  *
  * @param begin character pointer
  * @param end character pointer
- * @return EBResult_t error code
+ * @return EBResultMsg_t error code
  */
-EBResult_t Request::parse(char * begin, char * end) {
-  EBResult_t result = EBRESULT_SUCCESS;
+EBResultMsg_t Request::parse(char * begin, char * end) {
+  EBResultMsg_t result = EBResult::SUCCESS;
   // For every character in the array, add it to the appropriate field based on
   // the current parsing state
   while (begin != end) {
     result = parse(*begin);
-    if (EBRESULT_ERROR(result))
+    if (!result) {
       return result;
+    }
     ++begin;
   }
   if (state == ParsingState_t::BODY && contentLength == body.size())
-    return EBRESULT_SUCCESS;
+    return EBResult::SUCCESS;
   else if (body.size() > contentLength)
-    return EBRESULT_BUFFER_OVERFLOW;
+    return EBResult::BUFFER_OVERFLOW +
+           "Request body size is longer than content length";
   else
-    return EBRESULT_INCOMPLETE_OPERATION;
+    return EBResult::INCOMPLETE_OPERATION;
 }
 
 /**
  * @brief Parse a single character into the request
  *
  * @param c character to parse
- * @return EBResult_t error code
+ * @return EBResultMsg_t error code
  */
-EBResult_t Request::parse(char c) {
-  EBResult_t result = EBRESULT_SUCCESS;
+EBResultMsg_t Request::parse(char c) {
+  EBResultMsg_t result = EBResult::SUCCESS;
   switch (state) {
     case ParsingState_t::IDLE:
       state = ParsingState_t::METHOD;
@@ -71,7 +76,7 @@ EBResult_t Request::parse(char c) {
         state       = ParsingState_t::URI;
         method.hash = Hash::calculateHash(method.string);
         result      = validateMethod();
-        if (EBRESULT_ERROR(result))
+        if (!result)
           return result;
       } else
         method.string += c;
@@ -80,13 +85,13 @@ EBResult_t Request::parse(char c) {
       if (c == ' ') {
         state  = ParsingState_t::HTTP_VERSION;
         result = decodeURI(uri.string);
-        if (EBRESULT_ERROR(result))
+        if (!result)
           return result;
         uri.hash = Hash::calculateHash(uri.string);
       } else if (c == '?') {
         state  = ParsingState_t::QUERY_NAME;
         result = decodeURI(uri.string);
-        if (EBRESULT_ERROR(result))
+        if (!result)
           return result;
         uri.hash = Hash::calculateHash(uri.string);
       } else
@@ -101,14 +106,14 @@ EBResult_t Request::parse(char c) {
       if (c == '=') {
         state  = ParsingState_t::QUERY_VALUE;
         result = decodeURI(query.name.string);
-        if (EBRESULT_ERROR(result))
+        if (!result)
           return result;
         query.name.hash = Hash::calculateHash(query.name.string);
       } else if (c == ' ') {
         // Valueless query
         state  = ParsingState_t::HTTP_VERSION;
         result = decodeURI(query.name.string);
-        if (EBRESULT_ERROR(result))
+        if (!result)
           return result;
         query.name.hash = Hash::calculateHash(query.name.string);
       } else
@@ -120,13 +125,13 @@ EBResult_t Request::parse(char c) {
       if (c == ' ') {
         state  = ParsingState_t::HTTP_VERSION;
         result = decodeURI(query.value.string);
-        if (EBRESULT_ERROR(result))
+        if (!result)
           return result;
         query.value.hash = Hash::calculateHash(query.value.string);
       } else if (c == '&') {
         state  = ParsingState_t::QUERY_NAME;
         result = decodeURI(query.value.string);
-        if (EBRESULT_ERROR(result))
+        if (!result)
           return result;
         query.value.hash = Hash::calculateHash(query.value.string);
       } else
@@ -137,7 +142,7 @@ EBResult_t Request::parse(char c) {
         state            = ParsingState_t::HEADER_NAME;
         httpVersion.hash = Hash::calculateHash(httpVersion.string);
         result           = validateHTTPVersion();
-        if (EBRESULT_ERROR(result))
+        if (!result)
           return result;
       } else if (c != '\r')
         httpVersion.string += c;
@@ -172,7 +177,8 @@ EBResult_t Request::parse(char c) {
           else if (header.value.hash == Hash::calculateHash("close"))
             keepAlive = false;
           else
-            return EBRESULT_BAD_COMMAND;
+            return EBResult::BAD_COMMAND +
+                   ("Request's Connection is " + header.value.string);
         }
       } else if (c != '\r')
         header.value.string += c;
@@ -181,58 +187,60 @@ EBResult_t Request::parse(char c) {
       if (c == '\n') {
         state = ParsingState_t::BODY;
       } else
-        return EBRESULT_BAD_COMMAND;
+        return EBResult::BAD_COMMAND +
+               "Request is missing a blank new line after header";
       break;
     case ParsingState_t::BODY:
       if (contentLength == 0) {
-        // spdlog::debug("Tried to add '{}' (0x{:02X}) to body", *begin,
-        // *begin);
-        return EBRESULT_BAD_COMMAND;
+        spdlog::debug("Tried to add '{}' (0x{:02X}) to body", c, c);
+        return EBResult::BAD_COMMAND +
+               "Request has body but zero content length";
       }
       body += c;
       break;
     default:
-      return EBRESULT_BAD_COMMAND;
+      return EBResult::INVALID_STATE +
+             ("Request parsing is in state #" + static_cast<uint8_t>(state));
   }
-  return EBRESULT_SUCCESS;
+  return EBResult::SUCCESS;
 }
 
 /**
  * @brief Checks the method is a valid HTTP request and supported
  *
- * @return EBResult_t error code
+ * @return EBResultMsg_t error code
  */
-EBResult_t Request::validateMethod() {
+EBResultMsg_t Request::validateMethod() {
   switch (method.hash) {
     case Hash::calculateHash("GET"):
     case Hash::calculateHash("POST"):
-      return EBRESULT_SUCCESS;
+      return EBResult::SUCCESS;
     case Hash::calculateHash("OPTIONS"):
     case Hash::calculateHash("HEAD"):
     case Hash::calculateHash("PUT"):
     case Hash::calculateHash("DELETE"):
     case Hash::calculateHash("TRACE"):
     case Hash::calculateHash("CONNECT"):
-      return EBRESULT_NOT_SUPPORTED;
+      return EBResult::NOT_SUPPORTED + "Request method";
     default:
-      return EBRESULT_BAD_COMMAND;
+      return EBResult::UNKNOWN_HASH + ("Request method: " + method.string);
   }
 }
 
 /**
  * @brief Checks the HTTP version is valid and supported
  *
- * @return EBResult_t error code
+ * @return EBResultMsg_t error code
  */
-EBResult_t Request::validateHTTPVersion() {
+EBResultMsg_t Request::validateHTTPVersion() {
   switch (httpVersion.hash) {
     case Hash::calculateHash("HTTP/1.0"):
     case Hash::calculateHash("HTTP/1.1"):
-      return EBRESULT_SUCCESS;
+      return EBResult::SUCCESS;
     case Hash::calculateHash("HTTP/2.0"):
-      return EBRESULT_VERSION_NOT_SUPPORTED;
+      return EBResult::VERSION_NOT_SUPPORTED + "Request HTTP/2.0";
     default:
-      return EBRESULT_BAD_COMMAND;
+      return EBResult::UNKNOWN_HASH + ("Request HTTP version: " + httpVersion.string);
   }
 }
 
@@ -287,12 +295,14 @@ const std::vector<HeaderHash_t> & Request::getQueries() const {
 }
 
 /**
- * @brief Get the endpoint of the request
+ * @brief Get the endpoint of the request as a string
  *
- * @return asio::ip::tcp::endpoint endpoint
+ * @return const std::string & endpoint string
  */
-asio::ip::tcp::endpoint Request::getEndpoint() const {
-  return endpoint;
+std::string Request::getEndpointString() const {
+  std::ostringstream os;
+  os << endpoint;
+  return os.str();
 }
 
 /**
@@ -300,12 +310,12 @@ asio::ip::tcp::endpoint Request::getEndpoint() const {
  * Turns escape characters into their real characters
  *
  * @param uri string to read and overwrite
- * @return EBResult_t error code
+ * @return EBResultMsg_t error code
  */
-EBResult_t Request::decodeURI(std::string & uri) {
-  EBResult_t result = EBRESULT_SUCCESS;
-  size_t     length = uri.size();
-  for (int i = 0; i < length; ++i) {
+EBResultMsg_t Request::decodeURI(std::string & uri) {
+  EBResultMsg_t result = EBResult::SUCCESS;
+  size_t        length = uri.size();
+  for (size_t i = 0; i < length; ++i) {
     switch (uri[i]) {
       case '%':
         // Next two letters are hex
@@ -313,13 +323,13 @@ EBResult_t Request::decodeURI(std::string & uri) {
           uint32_t    value = 0;
           std::string hex   = uri.substr(i + 1, 2);
           result            = decodeHex(hex, value);
-          if (EBRESULT_ERROR(result))
-            return EBRESULT_INVALID_DATA;
+          if (!result)
+            return result;
           uri[i] = static_cast<char>(value);
           uri.erase(i + 1, 2);
           length -= 2;
         } else
-          return EBRESULT_INVALID_DATA;
+          return EBResult::INVALID_DATA + "URI has '%' but not enough characters";
         break;
       case '+':
         // plus becomes space
@@ -330,7 +340,7 @@ EBResult_t Request::decodeURI(std::string & uri) {
         break;
     }
   }
-  return EBRESULT_SUCCESS;
+  return EBResult::SUCCESS;
 }
 
 /**
@@ -339,11 +349,11 @@ EBResult_t Request::decodeURI(std::string & uri) {
  *
  * @param hex to decode
  * @param value to return
- * @return EBResult_t error code
+ * @return EBResultMsg_t error code
  */
-EBResult_t Request::decodeHex(const std::string & hex, uint32_t & value) {
+EBResultMsg_t Request::decodeHex(const std::string & hex, uint32_t & value) {
   if (hex.size() > 8)
-    return EBRESULT_BUFFER_OVERFLOW;
+    return EBResult::BUFFER_OVERFLOW + "Too many characters";
   value = 0;
   for (char c : hex) {
     value = value << 4;
@@ -354,9 +364,9 @@ EBResult_t Request::decodeHex(const std::string & hex, uint32_t & value) {
     else if (c >= 'A' && c <= 'F')
       value |= (c - 'A' + 10);
     else
-      return EBRESULT_INVALID_DATA;
+      return EBResult::INVALID_DATA + ("Character is not hex: " + c);
   }
-  return EBRESULT_SUCCESS;
+  return EBResult::SUCCESS;
 }
 
 } // namespace Web

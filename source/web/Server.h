@@ -12,7 +12,7 @@
 
 #include "Connection.h"
 #include "RequestHandler.h"
-#include "Result.h"
+#include "ResultMsg.h"
 
 namespace Web {
 
@@ -24,9 +24,9 @@ public:
   Server(const std::string & httpRoot, const std::string & configRoot);
   ~Server();
 
-  EBResult_t initialize(const std::string & addr, uint16_t port = PORT_AUTO);
-  EBResult_t start();
-  EBResult_t stop();
+  EBResultMsg_t initialize(const std::string & addr, uint16_t port = PORT_AUTO);
+  EBResultMsg_t start();
+  EBResultMsg_t stop();
 
   const std::string & getDomainName() const;
 
