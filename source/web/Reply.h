@@ -151,21 +151,21 @@ public:
 
   void reset();
 
-  void setStatus(HTTPStatus_t status);
+  void setStatus(HTTPStatus_t httpStatus);
   void setKeepAlive(bool keepAlive);
   void addHeader(const std::string & name, const std::string & value);
-  void appendContent(std::string content);
-  void setContent(MemoryMapped * file);
+  void appendContent(std::string string);
+  void setContent(MemoryMapped * contentFile);
 
   const std::vector<asio::const_buffer> & getBuffers();
 
   bool updateBuffers(size_t bytesWritten = 0);
 
-  void stockReply(HTTPStatus_t status);
+  void stockReply(HTTPStatus_t httpStatus);
   void stockReply(EBResultMsg_t result);
 
 private:
-  asio::const_buffer statusToBuffer(HTTPStatus_t status);
+  asio::const_buffer statusToBuffer();
 
   MemoryMapped *                  file;
   std::string                     content;

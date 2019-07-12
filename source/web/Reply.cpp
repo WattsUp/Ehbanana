@@ -43,10 +43,10 @@ void Reply::reset() {
 /**
  * @brief Set the HTTP status of the reply
  *
- * @param status to set
+ * @param httpStatus to set
  */
-void Reply::setStatus(HTTPStatus_t status) {
-  this->status = status;
+void Reply::setStatus(HTTPStatus_t httpStatus) {
+  status = httpStatus;
 }
 
 /**
@@ -74,20 +74,20 @@ void Reply::addHeader(const std::string & name, const std::string & value) {
 /**
  * @brief Append a string to the content string
  *
- * @param content to append
+ * @param string to append
  */
-void Reply::appendContent(std::string content) {
-  this->content.append(content);
+void Reply::appendContent(std::string string) {
+  content.append(string);
 }
 
 /**
  * @brief Set the content to a file
  * file will be closed after it is written or connection closes
  *
- * @param file to set
+ * @param contentFile to set
  */
-void Reply::setContent(MemoryMapped * file) {
-  this->file = file;
+void Reply::setContent(MemoryMapped * contentFile) {
+  file = contentFile;
 }
 
 /**
@@ -100,7 +100,7 @@ const std::vector<asio::const_buffer> & Reply::getBuffers() {
   if (buffers.empty()) {
     bytesRemaining = 0;
     buffers.clear();
-    buffers.push_back(statusToBuffer(status));
+    buffers.push_back(statusToBuffer());
     buffers.push_back(asio::buffer(STRING_CRLF));
     for (size_t i = 0; i < headers.size(); ++i) {
       Header_t & header = headers[i];
@@ -113,7 +113,7 @@ const std::vector<asio::const_buffer> & Reply::getBuffers() {
     if (!content.empty())
       buffers.push_back(asio::buffer(content));
     else if (file != nullptr)
-      buffers.push_back(asio::buffer(file->getData(), file->size()));
+      buffers.push_back(asio::buffer(file->getData(), static_cast<size_t>(file->size())));
   }
   return buffers;
 }
@@ -155,10 +155,10 @@ bool Reply::updateBuffers(size_t bytesWritten) {
  *
  * @param status
  */
-void Reply::stockReply(HTTPStatus_t status) {
+void Reply::stockReply(HTTPStatus_t httpStatus) {
   reset();
-  setStatus(status);
-  switch (status) {
+  setStatus(httpStatus);
+  switch (httpStatus) {
     case HTTPStatus_t::OK:
       appendContent(HTTPStockResponse::OK);
       break;
@@ -237,10 +237,9 @@ void Reply::stockReply(EBResultMsg_t result) {
 /**
  * @brief Transform a HTTP status into its string as a buffer
  *
- * @param status to transform
  * @return asio::const_buffer output string
  */
-asio::const_buffer Reply::statusToBuffer(HTTPStatus_t status) {
+asio::const_buffer Reply::statusToBuffer() {
   switch (status) {
     case HTTPStatus_t::OK:
       return asio::buffer(HTTPStatusString::OK);

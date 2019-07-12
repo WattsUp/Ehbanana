@@ -60,9 +60,9 @@ private:
    * @return constexpr Hash_t hash
    */
   static constexpr Hash_t calculateHash(Hash_t hash, const char c) {
-    hash += c;
-    hash += hash << 10;
-    hash ^= hash >> 6;
+    hash = static_cast<Hash_t>(hash + static_cast<uint64_t>(c));
+    hash = static_cast<Hash_t>(hash + (static_cast<uint64_t>(hash) << 10));
+    hash = static_cast<Hash_t>(hash ^ (static_cast<uint64_t>(hash) >> 6));
     return hash;
   }
 
@@ -73,9 +73,9 @@ private:
    * @return constexpr Hash_t final hash
    */
   static constexpr Hash_t finishHash(Hash_t hash) {
-    hash += hash << 3;
-    hash ^= hash >> 11;
-    hash += hash << 15;
+    hash = static_cast<Hash_t>(hash + (static_cast<uint64_t>(hash) << 3));
+    hash = static_cast<Hash_t>(hash ^ (static_cast<uint64_t>(hash) >> 11));
+    hash = static_cast<Hash_t>(hash + (static_cast<uint64_t>(hash) << 15));
     return hash;
   }
 };

@@ -169,7 +169,7 @@ EBResultMsg_t Request::parse(char c) {
         state             = ParsingState_t::HEADER_NAME;
         header.value.hash = Hash::calculateHash(header.value.string);
         if (header.name.hash == Hash::calculateHash("Content-Length")) {
-          contentLength = std::stoll(header.value.string);
+          contentLength = static_cast<size_t>(std::stoll(header.value.string));
           body.reserve(contentLength);
         } else if (header.name.hash == Hash::calculateHash("Connection")) {
           if (header.value.hash == Hash::calculateHash("keep-alive"))
@@ -309,31 +309,31 @@ std::string Request::getEndpointString() const {
  * @brief Decode a URI into a string
  * Turns escape characters into their real characters
  *
- * @param uri string to read and overwrite
+ * @param uriString to read and overwrite
  * @return EBResultMsg_t error code
  */
-EBResultMsg_t Request::decodeURI(std::string & uri) {
+EBResultMsg_t Request::decodeURI(std::string & uriString) {
   EBResultMsg_t result = EBResult::SUCCESS;
-  size_t        length = uri.size();
+  size_t        length = uriString.size();
   for (size_t i = 0; i < length; ++i) {
-    switch (uri[i]) {
+    switch (uriString[i]) {
       case '%':
         // Next two letters are hex
-        if (i + 2 < uri.size()) {
+        if (i + 2 < uriString.size()) {
           uint32_t    value = 0;
-          std::string hex   = uri.substr(i + 1, 2);
+          std::string hex   = uriString.substr(i + 1, 2);
           result            = decodeHex(hex, value);
           if (!result)
             return result;
-          uri[i] = static_cast<char>(value);
-          uri.erase(i + 1, 2);
+          uriString[i] = static_cast<char>(value);
+          uriString.erase(i + 1, 2);
           length -= 2;
         } else
           return EBResult::INVALID_DATA + "URI has '%' but not enough characters";
         break;
       case '+':
         // plus becomes space
-        uri[i] = ' ';
+        uriString[i] = ' ';
         break;
       default:
         // Leave the character alone

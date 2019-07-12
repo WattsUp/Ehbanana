@@ -38,7 +38,7 @@ private:
   EBResultMsg_t validateMethod();
   EBResultMsg_t validateHTTPVersion();
 
-  EBResultMsg_t decodeURI(std::string & uri);
+  EBResultMsg_t decodeURI(std::string & uriString);
   EBResultMsg_t decodeHex(const std::string & hex, uint32_t & value);
 
   enum class ParsingState_t : uint8_t {
