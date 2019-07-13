@@ -15,6 +15,9 @@ struct EBResultMsg_t {
 
 namespace EBResult {
 
+  
+// clang-format off
+
 static const EBResultMsg_t SUCCESS               = {EBRESULT_SUCCESS,               "No error encountered"};
 static const EBResultMsg_t INVALID_FUNCTION      = {EBRESULT_INVALID_FUNCTION,      "Incorrect function called"};
 static const EBResultMsg_t ACCESS_DENIED         = {EBRESULT_ACCESS_DENIED,         "Access is denied"};
