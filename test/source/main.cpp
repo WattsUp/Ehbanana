@@ -45,11 +45,15 @@ int WINAPI WinMain(
   settings.httpRoot   = "test/http";
 
   EBGUI_t gui = EBCreateGUI(settings);
-  if (gui == nullptr)
+  if (gui == nullptr) {
+    EBLogError(EBGetLastResultMessage());
     return EBGetLastResult();
+  }
 
-  if (EBRESULT_ERROR(EBShowGUI(gui)))
+  if (EBRESULT_ERROR(EBShowGUI(gui))) {
+    EBLogError(EBGetLastResultMessage());
     return EBGetLastResult();
+  }
 
   EBMessage_t                           msg    = {};
   EBResult_t                            result = EBRESULT_SUCCESS;
@@ -64,20 +68,27 @@ int WINAPI WinMain(
 
       // If no operations have occured for 10 seconds, stop
       if (std::chrono::system_clock::now() >= timeout) {
-        if (EBRESULT_ERROR(EBEnqueueQuitMessage(gui)))
+        if (EBRESULT_ERROR(EBEnqueueQuitMessage(gui))) {
+          EBLogError(EBGetLastResultMessage());
           return EBGetLastResult();
+        }
       }
-    } else if (EBRESULT_ERROR(result))
-      return result;
-    else
+    } else if (EBRESULT_ERROR(result)) {
+      EBLogError(EBGetLastResultMessage());
+      return EBGetLastResult();
+    } else
       timeout = std::chrono::system_clock::now() + std::chrono::seconds(10);
   }
 
-  if (EBRESULT_ERROR(EBGetLastResult()))
+  if (EBRESULT_ERROR(EBGetLastResult())) {
+    EBLogError(EBGetLastResultMessage());
     return EBGetLastResult();
+  }
 
-  if (EBRESULT_ERROR(EBDestroyGUI(gui)))
+  if (EBRESULT_ERROR(EBDestroyGUI(gui))) {
+    EBLogError(EBGetLastResultMessage());
     return EBGetLastResult();
+  }
 
   EBLogInfo("Ehbanana test complete");
   return EBRESULT_SUCCESS;

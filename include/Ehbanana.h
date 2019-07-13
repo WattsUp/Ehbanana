@@ -52,7 +52,7 @@ typedef EBResult_t(__stdcall * EBGUIProcess_t)(const EBMessage_t &);
  * @param port http server will attempt to open to
  */
 struct EBGUISettings_t {
-  EBGUIProcess_t guiProcess;
+  EBGUIProcess_t guiProcess = nullptr;
   std::string    configRoot;
   std::string    httpRoot;
   uint16_t       port;
@@ -103,6 +103,13 @@ extern "C" EHBANANA_API EBResult_t EBDestroyGUI(EBGUI_t gui);
  * @return EBResult_t error code
  */
 extern "C" EHBANANA_API EBResult_t EBGetLastResult();
+
+/**
+ * @brief Get the last error's message produced by Ehbanana
+ *
+ * @return const char * string
+ */
+extern "C" EHBANANA_API const char * EBGetLastResultMessage();
 
 /**
  * @brief Get the next message in the queue
@@ -167,35 +174,35 @@ extern "C" EHBANANA_API EBResult_t EBConfigureLogging(const char * fileName,
 
 /**
  * @brief Log a message with debug level
- * 
+ *
  * @param string to log
  */
 extern "C" EHBANANA_API void EBLogDebug(const char * string);
 
 /**
  * @brief Log a message with info level
- * 
+ *
  * @param string to log
  */
 extern "C" EHBANANA_API void EBLogInfo(const char * string);
 
 /**
  * @brief Log a message with warning level
- * 
+ *
  * @param string to log
  */
 extern "C" EHBANANA_API void EBLogWarning(const char * string);
 
 /**
  * @brief Log a message with error level
- * 
+ *
  * @param string to log
  */
 extern "C" EHBANANA_API void EBLogError(const char * string);
 
 /**
  * @brief Log a message with critical level
- * 
+ *
  * @param string to log
  */
 extern "C" EHBANANA_API void EBLogCritical(const char * string);

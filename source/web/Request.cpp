@@ -240,7 +240,8 @@ EBResultMsg_t Request::validateHTTPVersion() {
     case Hash::calculateHash("HTTP/2.0"):
       return EBResult::VERSION_NOT_SUPPORTED + "Request HTTP/2.0";
     default:
-      return EBResult::UNKNOWN_HASH + ("Request HTTP version: " + httpVersion.string);
+      return EBResult::UNKNOWN_HASH +
+             ("Request HTTP version: " + httpVersion.string);
   }
 }
 
@@ -329,7 +330,8 @@ EBResultMsg_t Request::decodeURI(std::string & uriString) {
           uriString.erase(i + 1, 2);
           length -= 2;
         } else
-          return EBResult::INVALID_DATA + "URI has '%' but not enough characters";
+          return EBResult::INVALID_DATA +
+                 "URI has '%' but not enough characters";
         break;
       case '+':
         // plus becomes space

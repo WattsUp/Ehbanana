@@ -28,7 +28,7 @@ public:
       const std::chrono::time_point<std::chrono::system_clock> & now);
   void stop();
 
-  asio::ip::tcp::endpoint getEndpoint();
+  std::string getEndpointString() const;
 
 private:
   EBResultMsg_t read();

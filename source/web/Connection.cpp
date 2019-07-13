@@ -1,6 +1,7 @@
 #include "Connection.h"
 
 #include <spdlog/spdlog.h>
+#include <sstream>
 
 namespace Web {
 
@@ -115,12 +116,14 @@ void Connection::stop() {
 }
 
 /**
- * @brief Get the endpoint of the connection
+ * @brief Get the endpoint of the request as a string
  *
- * @return asio::ip::tcp::endpoint endpoint
+ * @return const std::string & endpoint string
  */
-asio::ip::tcp::endpoint Connection::getEndpoint() {
-  return endpoint;
+std::string Connection::getEndpointString() const {
+  std::ostringstream os;
+  os << endpoint;
+  return os.str();
 }
 
 /**

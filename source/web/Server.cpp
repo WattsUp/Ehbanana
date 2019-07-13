@@ -140,7 +140,8 @@ void Server::run() {
         else if (!result)
           spdlog::error(result);
 
-        // spdlog::debug("Closing connection to {}", connection->getEndpoint());
+        spdlog::debug(
+            "Closing connection to {}", connection->getEndpointString());
         connection->stop();
         i = connections.erase(i);
       }

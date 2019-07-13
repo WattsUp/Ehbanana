@@ -12,7 +12,7 @@
 #include <stdlib.h>
 #include <string>
 
-static EBResult_t             EBLastError = EBRESULT_SUCCESS;
+static EBResultMsg_t          EBLastError = EBResult::SUCCESS;
 static std::list<EBMessage_t> EBMessageQueue;
 
 /**
@@ -40,7 +40,11 @@ EBResultMsg_t EBCreateProcess(
 }
 
 EBResult_t EBGetLastResult() {
-  return EBLastError;
+  return EBLastError.value;
+}
+
+const char * EBGetLastResultMessage() {
+  return EBLastError.message.c_str();
 }
 
 /**
@@ -49,9 +53,9 @@ EBResult_t EBGetLastResult() {
  * @param result to set
  * @return last result
  */
-EBResult_t EBSetLastResult(EBResult_t result) {
+EBResult_t EBSetLastResult(EBResultMsg_t result) {
   EBLastError = result;
-  return EBLastError;
+  return EBLastError.value;
 }
 
 EBGUI_t EBCreateGUI(EBGUISettings_t guiSettings) {
@@ -59,27 +63,33 @@ EBGUI_t EBCreateGUI(EBGUISettings_t guiSettings) {
   EBGUI_t gui   = new EBGUI();
   gui->settings = guiSettings;
 
+  if (gui->settings.guiProcess == nullptr) {
+    EBSetLastResult(EBResult::INVALID_PARAMETER + "guiProcess is nullptr");
+    delete gui;
+    return nullptr;
+  }
+
   // Construct a new server and attach it to the EBGUI
   gui->server = new Web::Server(guiSettings.httpRoot, guiSettings.configRoot);
 
   EBResultMsg_t result = gui->server->initialize("127.0.0.1");
-  if (EBRESULT_ERROR(EBSetLastResult(result.value))) {
-    spdlog::error(result);
+  if (EBRESULT_ERROR(EBSetLastResult(result))) {
     delete gui->server;
     delete gui;
     return nullptr;
   }
 
   result = gui->server->start();
-  if (EBRESULT_ERROR(EBSetLastResult(result.value))) {
-    spdlog::error(result);
+  if (EBRESULT_ERROR(EBSetLastResult(result))) {
     delete gui->server;
     delete gui;
     return nullptr;
   }
 
-  if (EBEnqueueMessage({gui, EBMSGType_t::STARTUP})) {
-    spdlog::error("Failed to enqueue startup message");
+  result = {EBEnqueueMessage({gui, EBMSGType_t::STARTUP}),
+      "During enqueueing startup message"};
+  if (EBRESULT_ERROR(EBSetLastResult(result))) {
+    delete gui->server;
     delete gui;
     return nullptr;
   }
@@ -88,10 +98,8 @@ EBGUI_t EBCreateGUI(EBGUISettings_t guiSettings) {
 
 EBResult_t EBShowGUI(EBGUI_t gui) {
   // Ensure system calls is available
-  if (!std::system(nullptr)) {
-    spdlog::error("System call is not available to open the browser");
-    return EBSetLastResult(EBRESULT_NO_SYSTEM_CALL);
-  }
+  if (!std::system(nullptr))
+    return EBSetLastResult(EBResult::NO_SYSTEM_CALL);
 
   PROCESS_INFORMATION browser;
 
@@ -113,10 +121,9 @@ EBResult_t EBShowGUI(EBGUI_t gui) {
       spdlog::warn("Chrome not found in app data");
       // Use default browser last
       command = "cmd /c start " + URL;
-      if (!EBCreateProcess(command, &browser)) {
-        spdlog::error("Failed to start a web browser");
-        return EBSetLastResult(EBRESULT_OPEN_FAILED);
-      }
+      if (!EBCreateProcess(command, &browser))
+        return EBSetLastResult(
+            EBResult::OPEN_FAILED + "Failed to start a web browser");
     }
   }
 
@@ -127,19 +134,19 @@ EBResult_t EBShowGUI(EBGUI_t gui) {
 
   spdlog::info("Web browser opened to {}", URL);
 
-  return EBSetLastResult(EBRESULT_SUCCESS);
+  return EBSetLastResult(EBResult::SUCCESS);
 }
 
 EBResult_t EBDestroyGUI(EBGUI_t gui) {
   delete gui->server;
   delete gui;
-  return EBSetLastResult(EBRESULT_SUCCESS);
+  return EBSetLastResult(EBResult::SUCCESS);
 }
 
 EBResult_t EBGetMessage(EBMessage_t & msg) {
   if (EBMessageQueue.empty()) {
     msg.type = EBMSGType_t::NONE;
-    return EBSetLastResult(EBRESULT_INCOMPLETE_OPERATION);
+    return EBSetLastResult(EBResult::INCOMPLETE_OPERATION);
   }
   msg = EBMessageQueue.front();
   EBMessageQueue.pop_front();
@@ -147,27 +154,28 @@ EBResult_t EBGetMessage(EBMessage_t & msg) {
     EBResultMsg_t result = msg.gui->server->stop();
     if (!result) {
       spdlog::error(result);
-      return EBSetLastResult(result.value);
+      return EBSetLastResult(result);
     }
-    return EBSetLastResult(EBRESULT_SUCCESS);
+    return EBSetLastResult(EBResult::SUCCESS);
   }
-  return EBSetLastResult(EBRESULT_INCOMPLETE_OPERATION);
+  return EBSetLastResult(EBResult::INCOMPLETE_OPERATION);
 }
 
 EBResult_t EBDispatchMessage(const EBMessage_t & msg) {
   if (msg.type == EBMSGType_t::NONE)
-    return EBSetLastResult(EBRESULT_NO_OPERATION);
-  return EBSetLastResult((msg.gui->settings.guiProcess)(msg));
+    return EBSetLastResult(EBResult::NO_OPERATION);
+  return EBSetLastResult(
+      {(msg.gui->settings.guiProcess)(msg), "Error during guiProcess"});
 }
 
 EBResult_t EBEnqueueMessage(const EBMessage_t & msg) {
   EBMessageQueue.push_back(msg);
-  return EBSetLastResult(EBRESULT_SUCCESS);
+  return EBSetLastResult(EBResult::SUCCESS);
 }
 
 EBResult_t EBDefaultGUIProcess(const EBMessage_t & msg) {
   std::cout << "GUI sent message of type " << (uint16_t)msg.type << "\n";
-  return EBSetLastResult(EBRESULT_NOT_SUPPORTED);
+  return EBSetLastResult(EBResult::NOT_SUPPORTED + "DefaultGUIProcess");
 }
 
 EBResult_t EBConfigureLogging(const char * fileName, bool rotatingLogs,
