@@ -113,7 +113,8 @@ const std::vector<asio::const_buffer> & Reply::getBuffers() {
     if (!content.empty())
       buffers.push_back(asio::buffer(content));
     else if (file != nullptr)
-      buffers.push_back(asio::buffer(file->getData(), static_cast<size_t>(file->size())));
+      buffers.push_back(
+          asio::buffer(file->getData(), static_cast<size_t>(file->size())));
   }
   return buffers;
 }

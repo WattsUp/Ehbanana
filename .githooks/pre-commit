@@ -1,0 +1,33 @@
+#!/bin/sh
+
+# if find -wholename "source/*.h" | xargs clang-format -style=file
+# if clang-format -style=file -output-replacements-xml source/web/Header.h |
+#   grep "<replacement " >/dev/null
+# then
+#   echo "true"
+# else
+#   echo "false"
+# fi
+
+FORMAT_DIR="source/**/*.h source/**/*.cpp include/**/*.h test/source/**/*.h test/source/**/*.cpp"
+
+NEEDS_FORMATTING=0
+
+shopt -s globstar
+for file in $FORMAT_DIR
+do
+  [ -e "$file" ] || continue
+  # echo "Processing $file file"
+  if clang-format -style=file -output-replacements-xml $file | grep "<replacement " >/dev/null
+  then
+    echo "Does not adhere to coding style: $file"
+    NEEDS_FORMATTING=1
+  fi
+done
+
+if [ $NEEDS_FORMATTING -eq "1" ]
+then
+  echo "Please fix before commiting, changes aborted"
+fi
+
+exit $NEEDS_FORMATTING

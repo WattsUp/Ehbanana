@@ -25,7 +25,7 @@ HashSet_t Hash::getNextHash(const MemoryMapped & file, size_t & index,
     hash = calculateHash(hash, buf);
     string += buf;
     index++;
-    if(index >= file.size())
+    if (index >= file.size())
       break;
     buf = file.at(index);
   }
@@ -53,7 +53,7 @@ HashSet_t Hash::getNextHash(
     hash = calculateHash(hash, buf);
     string += buf;
     index++;
-    if(index >= file.size())
+    if (index >= file.size())
       break;
     buf = file.at(index);
   }

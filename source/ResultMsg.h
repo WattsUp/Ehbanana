@@ -15,7 +15,6 @@ struct EBResultMsg_t {
 
 namespace EBResult {
 
-  
 // clang-format off
 
 static const EBResultMsg_t SUCCESS               = {EBRESULT_SUCCESS,               "No error encountered"};
