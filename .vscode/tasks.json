@@ -9,7 +9,7 @@
       "command": "msbuild",
       "args": [
         "/property:GenerateFullPaths=true",
-        "/t:build",
+        "/t:build,copyfiles",
         "-m"
       ],
       "group": {
@@ -24,22 +24,36 @@
       "command": "msbuild",
       "args": [
         "/property:GenerateFullPaths=true",
-        "/t:rebuild",
+        "/t:rebuild,copyfiles",
         "/p:Configuration=Release",
         "-m"
       ],
       "problemMatcher": []
     },
     {
+      "label": "test build",
+      "type": "shell",
+      "command": "msbuild",
+      "args": [
+        "test\\Ehbanana-Test.vcxproj",
+        "/property:GenerateFullPaths=true",
+        "/t:build,copyfiles",
+        "-m"
+      ],
+      "dependsOn":["build"],
+      "problemMatcher": []
+    },
+    {
       "label": "test",
       "type": "shell",
-      "command": "debug/Ehbanana.exe",
+      "command": "bin/Ehbanana-Test.exe",
       "args": [
       ],
       "group": {
         "kind": "test",
         "isDefault": true
       },
+      "dependsOn":["test build"],
       "problemMatcher": []
     },
     {
@@ -48,7 +62,18 @@
       "command": "msbuild",
       "args": [
         "/property:GenerateFullPaths=true",
-        "/t:rebuild"
+        "/t:rebuild,copyfiles"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "test rebuild",
+      "type": "shell",
+      "command": "msbuild",
+      "args": [
+        "test\\Ehbanana-Test.vcxproj",
+        "/property:GenerateFullPaths=true",
+        "/t:rebuild,copyfiles"
       ],
       "problemMatcher": []
     }

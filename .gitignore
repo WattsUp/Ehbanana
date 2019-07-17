@@ -1,13 +1,14 @@
-# Precompiled headers
+# Pre compiled headers
 .vscode/ipch
+
+# VS code files
+.vscode/settings.json
 
 # Build Executable
 debug
 release
-Ehbanana.res
-
-# Eagle Project
-*.epf
+bin
+include/Ehbanana.lib
 
 # Log files
-logfile*
+*.log

@@ -12,31 +12,38 @@
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.default.props" />
   <PropertyGroup>
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <PlatformToolset>v142</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(SolutionDir)\lib\spdlog\include;$(SolutionDir)\lib\MemoryMapping;$(SolutionDir)\src</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>DEBUG;%(PreprocessorDefinitions);</PreprocessorDefinitions>
+      <WarningLevel>Level4</WarningLevel>
+      <AdditionalIncludeDirectories>$(SolutionDir)\include;$(SolutionDir)\source;$(SolutionDir)\lib\MemoryMapping;$(SolutionDir)\lib\asio\asio\include;$(SolutionDir)\lib\spdlog\include;</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>DEBUG;COMPILING_DLL;WIN32_LEAN_AND_MEAN;_WIN32_WINNT=_WIN32_WINNT_WIN10;ASIO_DISABLE_IOCP;_WINSOCK_DEPRECATED_NO_WARNINGS;%(PreprocessorDefinitions);</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(SolutionDir)\lib\spdlog\include;$(SolutionDir)\lib\MemoryMapping;$(SolutionDir)\src</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>%(PreprocessorDefinitions);</PreprocessorDefinitions>
+      <WarningLevel>Level4</WarningLevel>
+      <AdditionalIncludeDirectories>$(SolutionDir)\include;$(SolutionDir)\source;$(SolutionDir)\lib\MemoryMapping;$(SolutionDir)\lib\asio\asio\include;$(SolutionDir)\lib\spdlog\include;</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>COMPILING_DLL;WIN32_LEAN_AND_MEAN;_WIN32_WINNT=_WIN32_WINNT_WIN10;ASIO_DISABLE_IOCP;_WINSOCK_DEPRECATED_NO_WARNINGS;%(PreprocessorDefinitions);</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="src\**\*.cpp" />
-    <ClCompile Include="lib\MemoryMapping\*.cpp" Exclude="lib\MemoryMapping\mywcl.cpp" />
-    <ResourceCompile Include="bin\Ehbanana.rc" />
+    <ClCompile Include="source\**\*.cpp" />
+    <ClCompile Include="lib\MemoryMapping\MemoryMapped.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\**\*.h" />
-    <ClInclude Include="lib\MemoryMapping\*.h" />
+    <ClInclude Include="source\**\*.h" />
+    <ClInclude Include="include\**\*.h" />
     <ClInclude Include="lib\spdlog\include\**\*.h" />
+    <ClInclude Include="lib\MemoryMapping\MemoryMapped.h" />
+    <ClInclude Include="lib\asio\asio\include\**\*.*pp" />
   </ItemGroup>
+  <Target Name="CopyFiles">
+    <Copy SourceFiles="$(OutDir)\Ehbanana.lib" DestinationFiles="$(SolutionDir)\include\Ehbanana.lib"/>
+    <Copy SourceFiles="$(OutDir)\Ehbanana.dll" DestinationFiles="$(SolutionDir)\bin\Ehbanana.dll"/>
+  </Target>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Targets" />
 </Project>

@@ -1,0 +1,110 @@
+<!doctype html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>Ehbanana</title>
+  <link rel="stylesheet" href="/standardstyle.css">
+  <link rel="stylesheet" href="/fonts/fonts.css">
+  <meta name="theme-color" content="#FFE135">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+
+<body>
+  <header>
+    <h1 class="text-align-center">Ehbanana Hello World</h1>
+    <h4 class="text-align-center">Powered by Ehbanana</h4>
+    <hr class="section-break background-quaternary">
+  </header>
+  <div class="main-text">
+    <p>Ehbanana (pronounced "a banana") is a web based GUI framework built with C++ and javascript without any large
+      libraries such as node modules. It also uses the system's browser instead of packaging it inside.</p>
+    <hr class="section-break background-secondary">
+    <h2>Input and Output</h2>
+    <p>The various HTML5 inputs generate a message that is sent to the backend for processing. The backend sends back a
+      message with a response to output</p>
+    <p>
+      <h5>Text</h5><input type="text" value="" size="30" placeholder="Enter text to reverse it"><input type="text">
+    </p>
+    <p>
+      <h5>Password</h5><input type="password" value="" size="30" placeholder="Enter password"><input type="text">
+    </p>
+    <p>
+      <h5>Button</h5><input type="button" value="What is the meaning of life?">
+    </p>
+    <p>
+      <h5>Radio Button</h5>
+      <input type="radio" name="fruit" value="Apple">Apple<br>
+      <input type="radio" name="fruit" value="Banana">Banana<br>
+      <input type="radio" name="fruit" value="Orange">Orange<br>
+    </p>
+    <p>
+      <h5>Checkbox</h5>
+      <input type="checkbox" value="Apple">Apple<br>
+      <input type="checkbox" value="Banana">Banana<br>
+      <input type="checkbox" value="Orange">Orange<br>
+    </p>
+    <p>
+      <h5>Color</h5>
+      <input type="color"> inverted =
+      <input type="color">
+    </p>
+    <p>
+      <h5>Date</h5>
+      <input type="date"> + 10 days =
+      <input type="date">
+    </p>
+    <p>
+      <h5>Datetime Local</h5>
+      <input type="datetime-local"> + 10 days =
+      <input type="datetime-local">
+    </p>
+    <p>
+      <h5>Email</h5>
+      <input type="email">
+      <input type="text">
+    </p>
+    <p>
+      <h5>File</h5>
+      <input type="file">
+      <input type="text">
+    </p>
+    <p>
+      <h5>Month</h5>
+      <input type="month"> + 1 month
+      <input type="month">
+    </p>
+    <p>
+      <h5>Number</h5>
+      <input type="number"> * 2 =
+      <input type="number">
+    </p>
+    <p>
+      <h5>Range</h5>
+      <input type="range"> * 2 =
+      <input type="number">
+    </p>
+    <p>
+      <h5>Telephone</h5>
+      <input type="tel">
+    </p>
+    <p>
+      <h5>Time</h5>
+      <input type="time"> + 3 minutes =
+      <input type="time">
+    </p>
+    <p>
+      <h5>URL</h5>
+      <input type="url">
+    </p>
+    <hr class="section-break background-tertiary">
+    <h2>Streaming</h2>
+    <p>The backend can push processed data to the GUI</p>
+    <input type="number">
+    <p>Which can be presented in any way without affecting the backend. The following uses <a
+        href="https://www.chartjs.org">ChartJS</a>.</p>
+    <canvas id="myChart" width="400" height="400"></canvas>
+  </div>
+</body>
+
+</html>

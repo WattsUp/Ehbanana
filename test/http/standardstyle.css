@@ -1,0 +1,144 @@
+:root {
+  --color-primary: #FFE135;
+  --color-secondary: #F28123;
+  --color-tertiary: #D34E24;
+  --color-quaternary: #563F1B;
+  --color-accent: #38726C;
+  --color-light: #FFFFFF;
+  --color-dark: #282828;
+}
+
+* {
+  margin: 0px;
+}
+
+.background-primary {
+  background: #FFE135;
+  background: var(--color-primary);
+}
+
+.background-secondary {
+  background: #F28123;
+  background: var(--color-secondary);
+}
+
+.background-tertiary {
+  background: #D34E24;
+  background: var(--color-tertiary);
+}
+
+.background-quaternary {
+  background: #563F1B;
+  background: var(--color-quaternary);
+}
+
+body {
+  min-height: 100vh;
+}
+
+h1 {
+  font-size: 1.6rem;
+  margin-top: 0.6rem;
+  line-height: 1;
+}
+
+h2 {
+  font-size: 1.4rem;
+  margin-top: 0.5rem;
+  line-height: 1;
+}
+
+h3 {
+  font-size: 1.3rem;
+  margin-top: 0.4rem;
+  line-height: 1;
+}
+
+h4 {
+  font-size: 1.2rem;
+  margin-top: 0.3rem;
+  line-height: 1;
+}
+
+h5 {
+  font-size: 1.1rem;
+  margin-top: 0.2rem;
+  line-height: 1;
+}
+
+@media (min-width: 769px) {
+  h1 {
+    font-size: 3rem;
+  }
+  h2 {
+    font-size: 2.5rem;
+  }
+  h3 {
+    font-size: 2rem;
+  }
+  h4 {
+    font-size: 1.5rem;
+  }
+  h5 {
+    font-size: 1.25rem;
+  }
+}
+
+header {
+  background: #FFE135;
+  background: var(--color-primary);
+  padding-top: .5rem;
+}
+
+html {
+  font-size: 16px;
+  word-break: break-word;
+  color: #282828;
+  color: var(--color-dark);
+  background: #FFFFFF;
+  background: var(--color-light);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  text-size-adjust: 100%;
+}
+
+.main-text {
+  width: 80%;
+  margin: 0 auto;
+  padding-bottom: 1rem;
+}
+
+p {
+  margin-top: 0.75rem;
+  margin-bottom: 0.25rem;
+}
+
+.section-break {
+  height: 1rem;
+  margin-top: .5rem;
+  border: none;
+}
+
+.text-align-center {
+  text-align: center;
+}
+
+.text-body {
+  font-family: quicksand;
+}
+
+.text-body-dash {
+  font-family: quicksand-dash;
+}
+
+.text-light {
+  font-weight: lighter;
+}
+
+.text-monospace {
+  font-family: code-new-roman;
+}
+
+.text-title {
+  font-family: tektrron;
+}
