@@ -122,7 +122,8 @@ void Server::run() {
     std::list<Connection *>::iterator end = connections.end();
     while (i != end) {
       Connection * connection = *i;
-      // Remove the connection if update returns the connection is complete
+      // Remove the connection and delete if update returns the connection is
+      // complete
       result = connection->update(now);
       if (result == ResultCode_t::INCOMPLETE) {
         ++i;
@@ -138,6 +139,7 @@ void Server::run() {
         spdlog::debug(
             "Closing connection to {}", connection->getEndpointString());
         connection->stop();
+        delete connection;
         i = connections.erase(i);
       }
     }

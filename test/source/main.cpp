@@ -59,7 +59,7 @@ int WINAPI WinMain(
   }
 
   EBMessage_t msg;
-  auto timeout = std::chrono::system_clock::now() + std::chrono::seconds(100);
+  auto timeout = std::chrono::system_clock::now() + std::chrono::seconds(20);
   while ((result = EBGetMessage(msg)) == ResultCode_t::INCOMPLETE ||
          result == ResultCode_t::NO_OPERATION) {
     // If no messages were processed, wait a bit to save CPU
@@ -80,7 +80,7 @@ int WINAPI WinMain(
         EBLogError(EBGetLastResultMessage());
         return static_cast<int>(result);
       }
-      timeout = std::chrono::system_clock::now() + std::chrono::seconds(100);
+      timeout = std::chrono::system_clock::now() + std::chrono::seconds(20);
     }
   }
 
