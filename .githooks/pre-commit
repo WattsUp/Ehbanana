@@ -1,14 +1,5 @@
 #!/bin/sh
 
-# if find -wholename "source/*.h" | xargs clang-format -style=file
-# if clang-format -style=file -output-replacements-xml source/web/Header.h |
-#   grep "<replacement " >/dev/null
-# then
-#   echo "true"
-# else
-#   echo "false"
-# fi
-
 FORMAT_DIR="source/**/*.h source/**/*.cpp include/**/*.h test/source/**/*.h test/source/**/*.cpp"
 
 NEEDS_FORMATTING=0

@@ -4,8 +4,8 @@
 #include "MIMETypes.h"
 #include "Reply.h"
 #include "Request.h"
-#include "ResultMsg.h"
 
+#include <FruitBowl.h>
 #include <asio.hpp>
 
 #include <stdint.h>
@@ -20,11 +20,11 @@ public:
 
   RequestHandler(const std::string & httpRoot, const std::string & configRoot);
 
-  EBResultMsg_t handle(const Request & request, Reply & reply);
+  Result handle(const Request & request, Reply & reply);
 
 private:
-  EBResultMsg_t handleGET(const Request & request, Reply & reply);
-  EBResultMsg_t handlePOST(const Request & request, Reply & reply);
+  Result handleGET(const Request & request, Reply & reply);
+  Result handlePOST(const Request & request, Reply & reply);
 
   std::string fileToType(const std::string & file);
 

@@ -4,8 +4,8 @@
 #include "Reply.h"
 #include "Request.h"
 #include "RequestHandler.h"
-#include "ResultMsg.h"
 
+#include <FruitBowl.h>
 #include <asio.hpp>
 
 #include <array>
@@ -24,15 +24,14 @@ public:
       RequestHandler * requestHandler);
   ~Connection();
 
-  EBResultMsg_t update(
-      const std::chrono::time_point<std::chrono::system_clock> & now);
-  void stop();
+  Result update(const std::chrono::time_point<std::chrono::system_clock> & now);
+  void   stop();
 
   std::string getEndpointString() const;
 
 private:
-  EBResultMsg_t read();
-  EBResultMsg_t write();
+  Result read();
+  Result write();
 
   enum class State_t : uint8_t {
     IDLE,

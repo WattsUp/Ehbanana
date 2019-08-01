@@ -3,8 +3,8 @@
 
 #include "Hash.h"
 #include "Header.h"
-#include "ResultMsg.h"
 
+#include <FruitBowl.h>
 #include <asio.hpp>
 
 #include <stdint.h>
@@ -22,10 +22,10 @@ public:
 
   void reset();
 
-  EBResultMsg_t parse(char * begin, char * end);
+  Result parse(char * begin, char * end);
 
-  const HashSet_t &                 getMethod() const;
-  const HashSet_t &                 getURI() const;
+  const Hash &                      getMethod() const;
+  const Hash &                      getURI() const;
   const std::vector<HeaderHash_t> & getQueries() const;
   std::string                       getEndpointString() const;
 
@@ -33,13 +33,13 @@ public:
   bool isParsing();
 
 private:
-  EBResultMsg_t parse(char c);
+  Result parse(char c);
 
-  EBResultMsg_t validateMethod();
-  EBResultMsg_t validateHTTPVersion();
+  Result validateMethod();
+  Result validateHTTPVersion();
 
-  EBResultMsg_t decodeURI(std::string & uriString);
-  EBResultMsg_t decodeHex(const std::string & hex, uint32_t & value);
+  Result decodeURI(Hash & uriHash);
+  Result decodeHex(const std::string & hex, uint32_t & value);
 
   enum class ParsingState_t : uint8_t {
     IDLE,
@@ -56,9 +56,9 @@ private:
 
   ParsingState_t state = ParsingState_t::IDLE;
 
-  HashSet_t method;
-  HashSet_t uri;
-  HashSet_t httpVersion;
+  Hash method;
+  Hash uri;
+  Hash httpVersion;
 
   size_t contentLength = 0;
   bool   keepAlive     = false;

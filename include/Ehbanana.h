@@ -1,7 +1,7 @@
 #ifndef _EHBANANA_H_
 #define _EHBANANA_H_
 
-#include "Result.h"
+#include <ResultCode.h>
 
 #include <Windows.h>
 #include <string>
@@ -39,9 +39,9 @@ struct EBMessage_t {
  * @brief Process incoming message from the GUI
  *
  * @param msg to process
- * @return EBResult_t error code
+ * @return ResultCode_t error code
  */
-typedef EBResult_t(__stdcall * EBGUIProcess_t)(const EBMessage_t &);
+typedef ResultCode_t(__stdcall * EBGUIProcess_t)(const EBMessage_t &);
 
 /**
  * @brief GUI settings
@@ -77,32 +77,19 @@ struct EBGUI {
  * @brief Create a GUI using the settings
  *
  * @param guiSettings to use to create GUI
- * @return EBGUI_t gui or nullptr if failed, check EBGetLastResult for reason
+ * @param gui struct to return new GUI
+ * @return ResultCode_t error code
  */
-extern "C" EHBANANA_API EBGUI_t EBCreateGUI(EBGUISettings_t guiSettings);
+extern "C" EHBANANA_API ResultCode_t EBCreateGUI(
+    EBGUISettings_t guiSettings, EBGUI_t & gui);
 
 /**
  * @brief Show the GUI by opening the preferred then default browser
  *
  * @param gui to open
- * @return EBResult_t error code
+ * @return ResultCode_t error code
  */
-extern "C" EHBANANA_API EBResult_t EBShowGUI(EBGUI_t gui);
-
-/**
- * @brief Destroy a GUI
- *
- * @param gui to destroy
- * @return EBResult_t error code
- */
-extern "C" EHBANANA_API EBResult_t EBDestroyGUI(EBGUI_t gui);
-
-/**
- * @brief Get the last error produced by Ehbanana
- *
- * @return EBResult_t error code
- */
-extern "C" EHBANANA_API EBResult_t EBGetLastResult();
+extern "C" EHBANANA_API ResultCode_t EBShowGUI(EBGUI_t gui);
 
 /**
  * @brief Get the last error's message produced by Ehbanana
@@ -112,40 +99,50 @@ extern "C" EHBANANA_API EBResult_t EBGetLastResult();
 extern "C" EHBANANA_API const char * EBGetLastResultMessage();
 
 /**
+ * @brief Destroy a GUI
+ *
+ * @param gui to destroy
+ * @return ResultCode_t error code
+ */
+extern "C" EHBANANA_API ResultCode_t EBDestroyGUI(EBGUI_t gui);
+
+/**
  * @brief Get the next message in the queue
  *
- * Returns EBRESULT_SUCCESS when the message type is QUIT
- * Returns EBRESULT_INCOMPLETE_OPERATION when the message type is not quit and
+ * Returns ResultCode_tCode_t::SUCCESS when the message type is QUIT
+ * Returns ResultCode_tCode_t::NO_OPERATION when the queue is empty
+ * Returns ResultCode_tCode_t::INCOMPLETE when the message type is not quit and
  * no other errors occured
  *
  * @param msg to write into
- * @return EBResult_t error code
+ * @return ResultCode_t error code
  */
-extern "C" EHBANANA_API EBResult_t EBGetMessage(EBMessage_t & msg);
+extern "C" EHBANANA_API ResultCode_t EBGetMessage(EBMessage_t & msg);
 
 /**
  * @brief Send the message to the appropriate consumers
  *
  * @param msg to dispatch
- * @return EBResult_t error code
+ * @return ResultCode_t error code
  */
-extern "C" EHBANANA_API EBResult_t EBDispatchMessage(const EBMessage_t & msg);
+extern "C" EHBANANA_API ResultCode_t EBDispatchMessage(const EBMessage_t & msg);
 
 /**
  * @brief Add a message to the queue
  *
  * @param msg to add
- * @param EBResult_t error code
+ * @param ResultCode_t error code
  */
-extern "C" EHBANANA_API EBResult_t EBEnqueueMessage(const EBMessage_t & msg);
+extern "C" EHBANANA_API ResultCode_t EBEnqueueMessage(const EBMessage_t & msg);
 
 /**
  * @brief Process incoming message from the GUI in the default method
  *
  * @param msg to process
- * @return EBResult_t error code
+ * @return ResultCode_t error code
  */
-extern "C" EHBANANA_API EBResult_t EBDefaultGUIProcess(const EBMessage_t & msg);
+extern "C" EHBANANA_API ResultCode_t EBDefaultGUIProcess(
+    const EBMessage_t & msg);
 
 /**
  * @brief Add a quit message to the queue
@@ -167,9 +164,9 @@ extern "C" EHBANANA_API EBResult_t EBDefaultGUIProcess(const EBMessage_t & msg);
  * true, or overwrite the single file if false
  * @param showConsole will open a console output window if true
  * @param logLevel sets the minimum level to log
- * @return EBResult_t error code
+ * @return ResultCode_t error code
  */
-extern "C" EHBANANA_API EBResult_t EBConfigureLogging(const char * fileName,
+extern "C" EHBANANA_API ResultCode_t EBConfigureLogging(const char * fileName,
     bool rotatingLogs, bool showConsole, uint8_t logLevel);
 
 /**

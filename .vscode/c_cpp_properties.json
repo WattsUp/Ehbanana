@@ -7,7 +7,8 @@
         "${workspaceFolder}/source/**",
         "${workspaceFolder}/lib/MemoryMapping/**",
         "${workspaceFolder}/lib/asio/asio/include/**",
-        "${workspaceFolder}/lib/spdlog/include/**"
+        "${workspaceFolder}/lib/spdlog/include/**",
+        "${workspaceFolder}/lib/FruitBowl/include/**"
       ],
       "defines": [
         "DEBUG",

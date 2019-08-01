@@ -1,8 +1,8 @@
 #ifndef _WEB_HEADER_H_
 #define _WEB_HEADER_H_
 
+#include <FruitBowl.h>
 #include <string>
-#include "Hash.h"
 
 namespace Web {
 
@@ -12,8 +12,8 @@ struct Header_t {
 };
 
 struct HeaderHash_t {
-  HashSet_t name;
-  HashSet_t value;
+  Hash name;
+  Hash value;
 };
 
 } // namespace Web
