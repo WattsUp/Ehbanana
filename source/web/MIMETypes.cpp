@@ -12,7 +12,6 @@ namespace Web {
 MIMETypes::MIMETypes(const std::string & fileName) {
   Result result = populateList(fileName);
   if (!result) {
-    spdlog::error(result.getMessage());
     throw std::exception(result.getMessage());
   }
 }

@@ -59,17 +59,42 @@ ResultCode_t EBCreateGUI(EBGUISettings_t guiSettings, EBGUI_t & gui) {
   Result result = EBDestroyGUI(gui);
   if (!result)
     return setLastResult(result + "Desroying GUI before creating a new one");
-  gui           = new EBGUI();
-  gui->settings = guiSettings;
+  gui = new EBGUI();
 
-  if (gui->settings.guiProcess == nullptr) {
+  if (guiSettings.guiProcess == nullptr) {
     delete gui;
     return setLastResult(
         ResultCode_t::INVALID_PARAMETER + "guiProcess is nullptr");
   }
 
   // Construct a new server and attach it to the EBGUI
-  gui->server = new Web::Server(guiSettings.httpRoot, guiSettings.configRoot);
+  try {
+    gui->server = new Web::Server(guiSettings.httpRoot, guiSettings.configRoot);
+  } catch (const std::exception & e) {
+    delete gui->server;
+    if (strncmp(e.what(), "[0x10]", 6) == 0) {
+      // Exception was "OPEN_FAILED"
+      // Most likely: the working directory is not correct
+      // Try again with the one folder up
+      try {
+        guiSettings.httpRoot   = "../" + guiSettings.httpRoot;
+        guiSettings.configRoot = "../" + guiSettings.configRoot;
+        gui->server =
+            new Web::Server(guiSettings.httpRoot, guiSettings.configRoot);
+      } catch (const std::exception & e) {
+        // No hope
+        delete gui;
+        return setLastResult(ResultCode_t::EXCEPTION_OCCURED + e.what() +
+                             "Constructing new server");
+      }
+    } else {
+      delete gui;
+      return setLastResult(ResultCode_t::EXCEPTION_OCCURED + e.what() +
+                           "Constructing new server");
+    }
+  }
+
+  gui->settings = guiSettings;
 
   result = gui->server->initialize("127.0.0.1");
   if (!result) {
