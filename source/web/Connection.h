@@ -20,7 +20,7 @@ public:
   Connection(const Connection &) = delete;
   Connection & operator=(const Connection &) = delete;
 
-  Connection(asio::ip::tcp::socket * socket, asio::ip::tcp::endpoint endpoint,
+  Connection(asio::ip::tcp::socket * socket, std::string endpoint,
       RequestHandler * requestHandler);
   ~Connection();
 
@@ -43,7 +43,7 @@ private:
   };
 
   asio::ip::tcp::socket * socket;
-  asio::ip::tcp::endpoint endpoint;
+  std::string             endpoint;
   RequestHandler *        requestHandler;
 
   Reply                  reply;

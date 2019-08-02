@@ -101,8 +101,6 @@ ResultCode_t EBCreateGUI(EBGUISettings_t guiSettings, EBGUI_t & gui) {
     return setLastResult(result + "Initializing server");
   }
 
-  gui->server->setGUIPort(guiSettings.guiPort);
-
   gui->server->start();
 
   result = EBEnqueueMessage({gui, EBMSGType_t::STARTUP});

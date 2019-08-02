@@ -12,12 +12,10 @@ namespace Web {
  * @param endpoint socket is connected to
  * @param requestHandler to use to process requests
  */
-Connection::Connection(asio::ip::tcp::socket * socket,
-    asio::ip::tcp::endpoint endpoint, RequestHandler * requestHandler) :
-  request(endpoint) {
-  this->socket         = socket;
-  this->endpoint       = endpoint;
-  this->requestHandler = requestHandler;
+Connection::Connection(asio::ip::tcp::socket * socket, std::string endpoint,
+    RequestHandler * requestHandler) :
+  socket(socket),
+  endpoint(endpoint), requestHandler(requestHandler), request(endpoint) {
   socket->non_blocking(true);
 
   asio::socket_base::keep_alive option(true);
@@ -47,7 +45,7 @@ Result Connection::update(
   Result result;
   switch (state) {
     case State_t::IDLE:
-      reply.stockReply(HTTPStatus_t::OK);
+      reply.setStatus(HTTPStatus_t::OK);
       state       = State_t::READING;
       timeoutTime = now + TIMEOUT;
       // Fall through
@@ -65,7 +63,7 @@ Result Connection::update(
         // An error occurred while reading the request, generate the appropriate
         // stock reply
         spdlog::warn(result.getMessage());
-        reply.stockReply(result);
+        reply = Reply::stockReply(result);
         state = State_t::WRITING;
       }
       break;
@@ -75,7 +73,7 @@ Result Connection::update(
         // An error occurred while reading the request, generate the appropriate
         // stock reply
         spdlog::warn(result.getMessage());
-        reply.stockReply(result);
+        reply = Reply::stockReply(result);
       }
 
       reply.setKeepAlive(request.isKeepAlive());
@@ -89,9 +87,9 @@ Result Connection::update(
       break;
     case State_t::WRITING_DONE:
       if (request.isKeepAlive()) {
-        reply.reset();
-        request.reset();
-        state = State_t::IDLE;
+        reply   = Reply();
+        request = Request(getEndpointString());
+        state   = State_t::IDLE;
       } else
         state = State_t::COMPLETE;
       break;

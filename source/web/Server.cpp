@@ -71,6 +71,8 @@ Result Server::initialize(const std::string & addr, uint16_t port) {
            "Setting acceptor options";
   }
 
+  requestHandler.setGUIPort(endpoint.port());
+
   domainName =
       endpoint.address().to_string() + ":" + std::to_string(endpoint.port());
 
@@ -108,7 +110,10 @@ void Server::run() {
       socket = new asio::ip::tcp::socket(ioContext);
     acceptor.accept(*socket, endpoint, errorCode);
     if (!errorCode) {
-      connections.push_back(new Connection(socket, endpoint, &requestHandler));
+      std::string endpointString = endpoint.address().to_string() + ":" +
+                                   std::to_string(endpoint.port());
+      connections.push_back(
+          new Connection(socket, endpointString, &requestHandler));
       socket       = nullptr;
       didSomething = true;
     } else if (errorCode != asio::error::would_block) {
@@ -175,15 +180,6 @@ void Server::stop() {
     delete connection;
   }
   connections.clear();
-}
-
-/**
- * @brief Set the port used by the GUI
- *
- * @param port to set
- */
-void Server::setGUIPort(uint16_t port) {
-  requestHandler.setGUIPort(port);
 }
 
 /**

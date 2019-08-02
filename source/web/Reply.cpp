@@ -24,23 +24,6 @@ Reply::~Reply() {
 }
 
 /**
- * @brief Reset all fields to their default state
- *
- */
-void Reply::reset() {
-  content.clear();
-  buffers.clear();
-  headers.clear();
-  bytesRemaining = 0;
-  status         = HTTPStatus_t::OK;
-  if (file != nullptr) {
-    file->close();
-    delete file;
-    file = nullptr;
-  }
-}
-
-/**
  * @brief Set the HTTP status of the reply
  *
  * @param httpStatus to set
@@ -155,84 +138,87 @@ bool Reply::updateBuffers(size_t bytesWritten) {
  * @brief Generate a stock reply from the HTTP status
  *
  * @param status
+ * @return reply
  */
-void Reply::stockReply(HTTPStatus_t httpStatus) {
-  reset();
-  setStatus(httpStatus);
+Reply Reply::stockReply(HTTPStatus_t httpStatus) {
+  Reply reply;
+  reply.setStatus(httpStatus);
   switch (httpStatus) {
     case HTTPStatus_t::OK:
-      appendContent(HTTPStockResponse::OK);
+      reply.appendContent(HTTPStockResponse::OK);
       break;
     case HTTPStatus_t::CREATED:
-      appendContent(HTTPStockResponse::CREATED);
+      reply.appendContent(HTTPStockResponse::CREATED);
       break;
     case HTTPStatus_t::ACCEPTED:
-      appendContent(HTTPStockResponse::ACCEPTED);
+      reply.appendContent(HTTPStockResponse::ACCEPTED);
       break;
     case HTTPStatus_t::NO_CONTENT:
-      appendContent(HTTPStockResponse::NO_CONTENT);
+      reply.appendContent(HTTPStockResponse::NO_CONTENT);
       break;
     case HTTPStatus_t::MULTIPLE_CHOICES:
-      appendContent(HTTPStockResponse::MULTIPLE_CHOICES);
+      reply.appendContent(HTTPStockResponse::MULTIPLE_CHOICES);
       break;
     case HTTPStatus_t::MOVED_PERMANENTLY:
-      appendContent(HTTPStockResponse::MOVED_PERMANENTLY);
+      reply.appendContent(HTTPStockResponse::MOVED_PERMANENTLY);
       break;
     case HTTPStatus_t::MOVED_TEMPORARILY:
-      appendContent(HTTPStockResponse::MOVED_TEMPORARILY);
+      reply.appendContent(HTTPStockResponse::MOVED_TEMPORARILY);
       break;
     case HTTPStatus_t::NOT_MODIFIED:
-      appendContent(HTTPStockResponse::NOT_MODIFIED);
+      reply.appendContent(HTTPStockResponse::NOT_MODIFIED);
       break;
     case HTTPStatus_t::BAD_REQUEST:
-      appendContent(HTTPStockResponse::BAD_REQUEST);
+      reply.appendContent(HTTPStockResponse::BAD_REQUEST);
       break;
     case HTTPStatus_t::UNAUTHORIZED:
-      appendContent(HTTPStockResponse::UNAUTHORIZED);
+      reply.appendContent(HTTPStockResponse::UNAUTHORIZED);
       break;
     case HTTPStatus_t::FORBIDDEN:
-      appendContent(HTTPStockResponse::FORBIDDEN);
+      reply.appendContent(HTTPStockResponse::FORBIDDEN);
       break;
     case HTTPStatus_t::NOT_FOUND:
-      appendContent(HTTPStockResponse::NOT_FOUND);
+      reply.appendContent(HTTPStockResponse::NOT_FOUND);
       break;
     case HTTPStatus_t::INTERNAL_SERVER_ERROR:
     default:
-      appendContent(HTTPStockResponse::INTERNAL_SERVER_ERROR);
+      reply.appendContent(HTTPStockResponse::INTERNAL_SERVER_ERROR);
       break;
     case HTTPStatus_t::NOT_IMPLEMENTED:
-      appendContent(HTTPStockResponse::NOT_IMPLEMENTED);
+      reply.appendContent(HTTPStockResponse::NOT_IMPLEMENTED);
       break;
     case HTTPStatus_t::BAD_GATEWAY:
-      appendContent(HTTPStockResponse::BAD_GATEWAY);
+      reply.appendContent(HTTPStockResponse::BAD_GATEWAY);
       break;
     case HTTPStatus_t::SERVICE_UNAVAILABLE:
-      appendContent(HTTPStockResponse::SERVICE_UNAVAILABLE);
+      reply.appendContent(HTTPStockResponse::SERVICE_UNAVAILABLE);
       break;
   }
-  addHeader("Content-Length", std::to_string(content.size()));
-  addHeader("Content-Type", "text/html");
+  reply.addHeader("Content-Length", std::to_string(reply.content.size()));
+  reply.addHeader("Content-Type", "text/html");
+  return reply;
 }
 
 /**
  * @brief Generate a stock reply from the result
  *
  * @param result
+ * @return reply
  */
-void Reply::stockReply(Result result) {
+Reply Reply::stockReply(Result result) {
   if (result)
-    stockReply(HTTPStatus_t::OK);
+    return stockReply(HTTPStatus_t::OK);
   else if (result == ResultCode_t::BAD_COMMAND ||
            result == ResultCode_t::BUFFER_OVERFLOW ||
            result == ResultCode_t::INVALID_DATA ||
            result == ResultCode_t::UNKNOWN_HASH)
-    stockReply(HTTPStatus_t::BAD_REQUEST);
+    return stockReply(HTTPStatus_t::BAD_REQUEST);
   else if (result == ResultCode_t::NOT_SUPPORTED)
-    stockReply(HTTPStatus_t::NOT_IMPLEMENTED);
+    return stockReply(HTTPStatus_t::NOT_IMPLEMENTED);
   else if (result == ResultCode_t::OPEN_FAILED)
-    stockReply(HTTPStatus_t::NOT_FOUND);
+    return stockReply(HTTPStatus_t::NOT_FOUND);
   else
-    stockReply(HTTPStatus_t::INTERNAL_SERVER_ERROR);
+    return stockReply(HTTPStatus_t::INTERNAL_SERVER_ERROR);
 }
 
 /**

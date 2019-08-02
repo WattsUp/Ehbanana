@@ -25,7 +25,6 @@ RequestHandler::RequestHandler(
  * @return Result error code
  */
 Result RequestHandler::handle(const Request & request, Reply & reply) {
-  reply.reset();
   switch (request.getMethod().get()) {
     case Hash::calculateHash("GET"):
       return handleGET(request, reply) + "Handling GET";

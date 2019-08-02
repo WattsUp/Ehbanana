@@ -1,8 +1,6 @@
 #ifndef _WEB_REPLY_H_
 #define _WEB_REPLY_H_
 
-#include "Header.h"
-
 #include <FruitBowl.h>
 #include <MemoryMapped.h>
 #include <asio.hpp>
@@ -141,15 +139,15 @@ const std::string SERVICE_UNAVAILABLE =
 const std::string STRING_CRLF                 = "\r\n";
 const std::string STRING_NAME_VALUE_SEPARATOR = ": ";
 
+struct Header_t {
+  std::string name;
+  std::string value;
+};
+
 class Reply {
 public:
-  Reply(const Reply &) = delete;
-  Reply & operator=(const Reply &) = delete;
-
   Reply();
   ~Reply();
-
-  void reset();
 
   void setStatus(HTTPStatus_t httpStatus);
   void setKeepAlive(bool keepAlive);
@@ -161,8 +159,8 @@ public:
 
   bool updateBuffers(size_t bytesWritten = 0);
 
-  void stockReply(HTTPStatus_t httpStatus);
-  void stockReply(Result result);
+  static Reply stockReply(HTTPStatus_t httpStatus);
+  static Reply stockReply(Result result);
 
 private:
   asio::const_buffer statusToBuffer();

@@ -10,24 +10,8 @@ namespace Web {
  *
  * @param endpoint that sourced this request
  */
-Request::Request(asio::ip::tcp::endpoint endpoint) {
+Request::Request(std::string endpoint) {
   this->endpoint = endpoint;
-}
-
-/**
- * @brief Reset all fields to their default state
- *
- */
-void Request::reset() {
-  state         = ParsingState_t::IDLE;
-  method        = Hash();
-  uri           = Hash();
-  httpVersion   = Hash();
-  contentLength = 0;
-  keepAlive     = false;
-  body.clear();
-  headers.clear();
-  queries.clear();
 }
 
 /**
@@ -50,9 +34,10 @@ Result Request::parse(char * begin, char * end) {
     }
     ++begin;
   }
-  if (state == ParsingState_t::BODY && contentLength == body.size())
+  if (state == ParsingState_t::BODY &&
+      headers.getContentLength() == body.size())
     return ResultCode_t::SUCCESS;
-  else if (body.size() > contentLength)
+  else if (body.size() > headers.getContentLength())
     return ResultCode_t::BUFFER_OVERFLOW +
            "Request body size is longer than content length";
   else
@@ -147,44 +132,31 @@ Result Request::parse(char c) {
       }
       // If there are no headers or the last header is already complete, add a
       // new one
-      if (headers.empty() || headers.back().value.isDone())
-        headers.push_back(HeaderHash_t());
-      HeaderHash_t & header = headers.back();
       if (c == ' ') {
         state = ParsingState_t::HEADER_VALUE;
       } else if (c != ':')
-        header.name.add(c);
+        currentHeader.name.add(c);
     } break;
     case ParsingState_t::HEADER_VALUE: {
-      HeaderHash_t & header = headers.back();
       if (c == '\n') {
-        state = ParsingState_t::HEADER_NAME;
-        header.value.setDone(true);
-        if (header.name.get() == Hash::calculateHash("Content-Length")) {
-          contentLength =
-              static_cast<size_t>(std::stoll(header.value.getString()));
-          body.reserve(contentLength);
-        } else if (header.name.get() == Hash::calculateHash("Connection")) {
-          if (header.value.get() == Hash::calculateHash("keep-alive"))
-            keepAlive = true;
-          else if (header.value.get() == Hash::calculateHash("close"))
-            keepAlive = false;
-          else
-            return ResultCode_t::BAD_COMMAND +
-                   ("Request's Connection is " + header.value.getString());
-        }
+        state  = ParsingState_t::HEADER_NAME;
+        result = headers.addHeader(currentHeader);
+        if (!result)
+          return result + "Adding request header";
+        currentHeader = HeaderHash_t();
       } else if (c != '\r')
-        header.value.add(c);
+        currentHeader.value.add(c);
     } break;
     case ParsingState_t::BODY_NEWLINE:
       if (c == '\n') {
         state = ParsingState_t::BODY;
+        body.reserve(headers.getContentLength());
       } else
         return ResultCode_t::BAD_COMMAND +
                "Request is missing a blank new line after header";
       break;
     case ParsingState_t::BODY:
-      if (contentLength == 0) {
+      if (headers.getContentLength() == 0) {
         spdlog::debug("Tried to add '{}' (0x{:02X}) to body", c, c);
         return ResultCode_t::BAD_COMMAND +
                "Request has body but zero content length";
@@ -246,7 +218,7 @@ Result Request::validateHTTPVersion() {
  * @return false otherwise
  */
 bool Request::isKeepAlive() {
-  return keepAlive;
+  return headers.getConnection() == RequestHeaders::Connection::KEEP_ALIVE;
 }
 
 /**
@@ -257,7 +229,8 @@ bool Request::isKeepAlive() {
  */
 bool Request::isParsing() {
   return state != ParsingState_t::IDLE &&
-         (state != ParsingState_t::BODY || contentLength != body.size());
+         (state != ParsingState_t::BODY ||
+             headers.getContentLength() != body.size());
 }
 
 /**
@@ -294,10 +267,8 @@ const std::vector<HeaderHash_t> & Request::getQueries() const {
  *
  * @return const std::string & endpoint string
  */
-std::string Request::getEndpointString() const {
-  std::ostringstream os;
-  os << endpoint;
-  return os.str();
+const std::string & Request::getEndpointString() const {
+  return endpoint;
 }
 
 /**

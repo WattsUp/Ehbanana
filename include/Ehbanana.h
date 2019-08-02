@@ -50,14 +50,12 @@ typedef ResultCode_t(__stdcall * EBGUIProcess_t)(const EBMessage_t &);
  * @param configRoot directory containing configuration files
  * @param httpRoot directory containing HTTP top level
  * @param httpPort http server will attempt to open to
- * @param guiPort gui server will attempt to open to
  */
 struct EBGUISettings_t {
   EBGUIProcess_t guiProcess = nullptr;
   std::string    configRoot;
   std::string    httpRoot;
   uint16_t       httpPort = 0;
-  uint16_t       guiPort  = 0;
 };
 
 namespace Web {
