@@ -1,8 +1,6 @@
 #ifndef _WEB_MIME_TYPES_H_
 #define _WEB_MIME_TYPES_H_
 
-#include "Hash.h"
-
 #include <FruitBowl.h>
 #include <MemoryMapped.h>
 
@@ -26,7 +24,7 @@ public:
 
   MIMETypes(const std::string & fileName);
 
-  std::string getType(const std::string & extension);
+  const std::string & getType(const std::string & extension);
 
 private:
   Result populateList(const std::string & fileName);

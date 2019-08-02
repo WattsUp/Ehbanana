@@ -1,6 +1,7 @@
 #ifndef _WEB_REQUEST_HANDLER_H_
 #define _WEB_REQUEST_HANDLER_H_
 
+#include "CacheControl.h"
 #include "MIMETypes.h"
 #include "Reply.h"
 #include "Request.h"
@@ -31,8 +32,9 @@ private:
 
   std::string fileToType(const std::string & file);
 
-  std::string root;
-  MIMETypes   mimeTypes;
+  std::string  root;
+  MIMETypes    mimeTypes;
+  CacheControl cacheControl;
 
   uint16_t guiPort;
 };

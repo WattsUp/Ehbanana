@@ -12,7 +12,8 @@ namespace Web {
  */
 RequestHandler::RequestHandler(
     const std::string & httpRoot, const std::string & configRoot) :
-  mimeTypes(configRoot + "/mime.types") {
+  mimeTypes(configRoot + "/mime.types"),
+  cacheControl(configRoot + "/cache.xml") {
   this->root = httpRoot;
 }
 
@@ -79,6 +80,7 @@ Result RequestHandler::handleGET(const Request & request, Reply & reply) {
     return ResultCode_t::OPEN_FAILED + (root + uri);
   }
   reply.addHeader("Content-Length", std::to_string(file->size()));
+  reply.addHeader("Cache-Control", cacheControl.getCacheControl(uri));
   reply.setContent(file);
 
   return ResultCode_t::SUCCESS;

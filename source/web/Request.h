@@ -1,7 +1,6 @@
 #ifndef _WEB_REQUEST_H_
 #define _WEB_REQUEST_H_
 
-#include "Hash.h"
 #include "Header.h"
 
 #include <FruitBowl.h>

@@ -65,7 +65,7 @@ Result MIMETypes::populateList(const std::string & fileName) {
  * @param extension to parse
  * @return const std::string& MIME type
  */
-std::string MIMETypes::getType(const std::string & extension) {
+const std::string & MIMETypes::getType(const std::string & extension) {
   // Every SORT_TIMER_RESET times this is called, sort the list to improve fetch
   // performance
   sortTimer--;
