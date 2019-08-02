@@ -1,10 +1,8 @@
 #ifndef _WEB_MIME_TYPES_H_
 #define _WEB_MIME_TYPES_H_
 
-#include "Hash.h"
-#include "ResultMsg.h"
-
-#include "MemoryMapped.h"
+#include <FruitBowl.h>
+#include <MemoryMapped.h>
 
 #include <list>
 #include <stdint.h>
@@ -12,7 +10,7 @@
 
 namespace Web {
 struct MIMEType_t {
-  const Hash_t      fileExtension;
+  const HashValue_t fileExtension;
   const std::string type;
   uint32_t          usage = 0;
 };
@@ -26,10 +24,10 @@ public:
 
   MIMETypes(const std::string & fileName);
 
-  std::string getType(const std::string & extension);
+  const std::string & getType(const std::string & extension);
 
 private:
-  EBResultMsg_t populateList(const std::string & fileName);
+  Result populateList(const std::string & fileName);
 
   void sortList();
 

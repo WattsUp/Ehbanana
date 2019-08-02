@@ -9,6 +9,7 @@ debug
 release
 bin
 include/Ehbanana.lib
+test/http/Ehbanana.js
 
 # Log files
 *.log

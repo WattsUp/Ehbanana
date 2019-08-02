@@ -7,9 +7,9 @@
  * @brief Process incoming message from the GUI
  *
  * @param msg to process
- * @return EBResult_t error code
+ * @return ResultCode_t error code
  */
-EBResult_t __stdcall guiProcess(const EBMessage_t & msg) {
+ResultCode_t __stdcall guiProcess(const EBMessage_t & msg) {
   switch (msg.type) {
     case EBMSGType_t::STARTUP:
       EBLogInfo("Server starting up");
@@ -19,7 +19,7 @@ EBResult_t __stdcall guiProcess(const EBMessage_t & msg) {
       break;
     case EBMSGType_t::INPUT_FORM:
       if (msg.htmlID.empty())
-        return EBRESULT_INVALID_DATA;
+        return ResultCode_t::INVALID_DATA;
       EBLogInfo(("Received input from #" + msg.htmlID).c_str());
       if (msg.htmlID.compare("Exit")) {
         return EBEnqueueQuitMessage(msg.gui);
@@ -28,14 +28,15 @@ EBResult_t __stdcall guiProcess(const EBMessage_t & msg) {
     default:
       return EBDefaultGUIProcess(msg);
   }
-  return EBRESULT_SUCCESS;
+  return ResultCode_t::SUCCESS;
 }
 
 int WINAPI WinMain(
     HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdArgs, int cmdShow) {
-  if (EBRESULT_ERROR(
-          EBConfigureLogging("ehbanana.log", true, true, EB_LOG_LEVEL_DEBUG)))
-    return EBGetLastResult();
+  ResultCode_t result =
+      EBConfigureLogging("ehbanana.log", true, true, EB_LOG_LEVEL_DEBUG);
+  if (!result)
+    return static_cast<int>(result);
 
   EBLogInfo("Ehbanana test starting");
 
@@ -44,52 +45,56 @@ int WINAPI WinMain(
   settings.configRoot = "test/config";
   settings.httpRoot   = "test/http";
 
-  EBGUI_t gui = EBCreateGUI(settings);
-  if (gui == nullptr) {
+  EBGUI_t gui = nullptr;
+  result      = EBCreateGUI(settings, gui);
+  if (!result) {
     EBLogError(EBGetLastResultMessage());
-    return EBGetLastResult();
+    return static_cast<int>(result);
   }
 
-  if (EBRESULT_ERROR(EBShowGUI(gui))) {
+  result = EBShowGUI(gui);
+  if (!result) {
     EBLogError(EBGetLastResultMessage());
-    return EBGetLastResult();
+    return static_cast<int>(result);
   }
 
-  EBMessage_t                           msg    = {};
-  EBResult_t                            result = EBRESULT_SUCCESS;
-  std::chrono::system_clock::time_point timeout =
-      std::chrono::system_clock::now() + std::chrono::seconds(10);
-  while (EBGetMessage(msg) == EBRESULT_INCOMPLETE_OPERATION) {
-    result = EBDispatchMessage(msg);
-
+  EBMessage_t msg;
+  auto timeout = std::chrono::system_clock::now() + std::chrono::seconds(20);
+  while ((result = EBGetMessage(msg)) == ResultCode_t::INCOMPLETE ||
+         result == ResultCode_t::NO_OPERATION) {
     // If no messages were processed, wait a bit to save CPU
-    if (result == EBRESULT_NO_OPERATION) {
+    if (result == ResultCode_t::NO_OPERATION) {
       std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
       // If no operations have occured for 10 seconds, stop
       if (std::chrono::system_clock::now() >= timeout) {
-        if (EBRESULT_ERROR(EBEnqueueQuitMessage(gui))) {
+        result = EBEnqueueQuitMessage(gui);
+        if (!result) {
           EBLogError(EBGetLastResultMessage());
-          return EBGetLastResult();
+          return static_cast<int>(result);
         }
       }
-    } else if (EBRESULT_ERROR(result)) {
-      EBLogError(EBGetLastResultMessage());
-      return EBGetLastResult();
-    } else
-      timeout = std::chrono::system_clock::now() + std::chrono::seconds(10);
+    } else {
+      result = EBDispatchMessage(msg);
+      if (!result) {
+        EBLogError(EBGetLastResultMessage());
+        return static_cast<int>(result);
+      }
+      timeout = std::chrono::system_clock::now() + std::chrono::seconds(20);
+    }
   }
 
-  if (EBRESULT_ERROR(EBGetLastResult())) {
+  if (!result) {
     EBLogError(EBGetLastResultMessage());
-    return EBGetLastResult();
+    return static_cast<int>(result);
   }
 
-  if (EBRESULT_ERROR(EBDestroyGUI(gui))) {
+  result = EBDestroyGUI(gui);
+  if (!result) {
     EBLogError(EBGetLastResultMessage());
-    return EBGetLastResult();
+    return static_cast<int>(result);
   }
 
   EBLogInfo("Ehbanana test complete");
-  return EBRESULT_SUCCESS;
+  return static_cast<int>(ResultCode_t::SUCCESS);
 }

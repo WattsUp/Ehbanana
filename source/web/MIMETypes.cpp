@@ -10,10 +10,9 @@ namespace Web {
  * @param fileName to read types from
  */
 MIMETypes::MIMETypes(const std::string & fileName) {
-  EBResultMsg_t result = populateList(fileName);
+  Result result = populateList(fileName);
   if (!result) {
-    spdlog::error(result);
-    throw std::exception(result.message.c_str());
+    throw std::exception(result.getMessage());
   }
 }
 
@@ -23,30 +22,41 @@ MIMETypes::MIMETypes(const std::string & fileName) {
  * Each line contains one type: .htm text/html
  *
  * @param fileName to parse
- * @return EBResultMsg_t error code
+ * @return Result error code
  */
-EBResultMsg_t MIMETypes::populateList(const std::string & fileName) {
+Result MIMETypes::populateList(const std::string & fileName) {
   MemoryMapped file(fileName, 0, MemoryMapped::SequentialScan);
   if (!file.isValid())
-    return EBResult::OPEN_FAILED + ("Opening MIME types from: " + fileName);
+    return ResultCode_t::OPEN_FAILED + ("Opening MIME types from: " + fileName);
   spdlog::info("Loading MIME types from \"{}\"", fileName);
 
-  size_t   index    = 0;
-  uint64_t fileSize = file.size();
+  size_t                fileSize = static_cast<size_t>(file.size());
+  const unsigned char * data     = file.getData();
+  size_t                readCount;
 
-  while (index < fileSize) {
-    if (file.at(index) == '\n')
-      ++index;
-    HashSet_t extension = Hash::getNextHash(file, index, ' ');
-    ++index;
-    HashSet_t mimeType = Hash::getNextHash(file, index, '\r');
-    ++index;
-    typeBuckets[(extension.hash & 0xF)].push_back(
-        {extension.hash, mimeType.string, 0});
+  while (fileSize > 0) {
+    if (*data == '\r') {
+      ++data;
+      --fileSize;
+    }
+    if (*data == '\n') {
+      ++data;
+      --fileSize;
+    }
+    Hash extension;
+    readCount = extension.add(data, fileSize, ' ');
+    data += readCount + 1;
+    fileSize -= readCount + 1;
+    Hash mimeType;
+    readCount = mimeType.add(data, fileSize, '\r');
+    data += readCount;
+    fileSize -= readCount;
+    typeBuckets[(extension.get() & 0xF)].push_back(
+        {extension.get(), mimeType.getString(), 0});
   }
   file.close();
   sortList();
-  return EBResult::SUCCESS;
+  return ResultCode_t::SUCCESS;
 }
 
 /**
@@ -55,7 +65,7 @@ EBResultMsg_t MIMETypes::populateList(const std::string & fileName) {
  * @param extension to parse
  * @return const std::string& MIME type
  */
-std::string MIMETypes::getType(const std::string & extension) {
+const std::string & MIMETypes::getType(const std::string & extension) {
   // Every SORT_TIMER_RESET times this is called, sort the list to improve fetch
   // performance
   sortTimer--;
@@ -66,7 +76,7 @@ std::string MIMETypes::getType(const std::string & extension) {
 
   // Go to the bucket given by the last nibble of the hash, and search that for
   // the extension
-  Hash_t hash = Hash::calculateHash(extension);
+  HashValue_t hash = Hash::calculateHash(extension);
   for (MIMEType_t & type : typeBuckets[(hash & 0xF)]) {
     if (type.fileExtension == hash) {
       ++type.usage;

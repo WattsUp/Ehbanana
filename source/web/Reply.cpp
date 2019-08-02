@@ -219,17 +219,17 @@ void Reply::stockReply(HTTPStatus_t httpStatus) {
  *
  * @param result
  */
-void Reply::stockReply(EBResultMsg_t result) {
-  if (result == EBResult::SUCCESS)
+void Reply::stockReply(Result result) {
+  if (result)
     stockReply(HTTPStatus_t::OK);
-  else if (result == EBResult::BAD_COMMAND ||
-           result == EBResult::BUFFER_OVERFLOW ||
-           result == EBResult::INVALID_DATA)
+  else if (result == ResultCode_t::BAD_COMMAND ||
+           result == ResultCode_t::BUFFER_OVERFLOW ||
+           result == ResultCode_t::INVALID_DATA ||
+           result == ResultCode_t::UNKNOWN_HASH)
     stockReply(HTTPStatus_t::BAD_REQUEST);
-  else if (result == EBResult::NOT_SUPPORTED ||
-           result == EBResult::VERSION_NOT_SUPPORTED)
+  else if (result == ResultCode_t::NOT_SUPPORTED)
     stockReply(HTTPStatus_t::NOT_IMPLEMENTED);
-  else if (result == EBResult::OPEN_FAILED)
+  else if (result == ResultCode_t::OPEN_FAILED)
     stockReply(HTTPStatus_t::NOT_FOUND);
   else
     stockReply(HTTPStatus_t::INTERNAL_SERVER_ERROR);

@@ -1,6 +1,7 @@
 #ifndef _WEB_SERVER_H_
 #define _WEB_SERVER_H_
 
+#include <FruitBowl.h>
 #include <asio.hpp>
 
 #include <atomic>
@@ -12,7 +13,6 @@
 
 #include "Connection.h"
 #include "RequestHandler.h"
-#include "ResultMsg.h"
 
 namespace Web {
 
@@ -24,9 +24,11 @@ public:
   Server(const std::string & httpRoot, const std::string & configRoot);
   ~Server();
 
-  EBResultMsg_t initialize(const std::string & addr, uint16_t port = PORT_AUTO);
-  EBResultMsg_t start();
-  EBResultMsg_t stop();
+  Result initialize(const std::string & addr, uint16_t port = PORT_AUTO);
+  void   start();
+  void   stop();
+
+  void setGUIPort(uint16_t port);
 
   const std::string & getDomainName() const;
 

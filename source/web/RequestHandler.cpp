@@ -12,7 +12,8 @@ namespace Web {
  */
 RequestHandler::RequestHandler(
     const std::string & httpRoot, const std::string & configRoot) :
-  mimeTypes(configRoot + "/mime.types") {
+  mimeTypes(configRoot + "/mime.types"),
+  cacheControl(configRoot + "/cache.xml") {
   this->root = httpRoot;
 }
 
@@ -21,18 +22,18 @@ RequestHandler::RequestHandler(
  *
  * @param request to handle
  * @param reply to populate
- * @return EBResultMsg_t error code
+ * @return Result error code
  */
-EBResultMsg_t RequestHandler::handle(const Request & request, Reply & reply) {
+Result RequestHandler::handle(const Request & request, Reply & reply) {
   reply.reset();
-  switch (request.getMethod().hash) {
+  switch (request.getMethod().get()) {
     case Hash::calculateHash("GET"):
-      return handleGET(request, reply);
+      return handleGET(request, reply) + "Handling GET";
     case Hash::calculateHash("POST"):
-      return handlePOST(request, reply);
+      return handlePOST(request, reply) + "Handling POST";
     default:
-      return EBResult::UNKNOWN_HASH +
-             ("Request method: " + request.getMethod().string);
+      return ResultCode_t::UNKNOWN_HASH +
+             ("Request method: " + request.getMethod().getString());
   }
 }
 
@@ -41,26 +42,29 @@ EBResultMsg_t RequestHandler::handle(const Request & request, Reply & reply) {
  *
  * @param request to handle
  * @param reply to populate
- * @return EBResultMsg_t error code
+ * @return Result error code
  */
-EBResultMsg_t RequestHandler::handleGET(
-    const Request & request, Reply & reply) {
-  std::string uri = request.getURI().string;
+Result RequestHandler::handleGET(const Request & request, Reply & reply) {
+  std::string uri = request.getURI().getString();
   if (request.getQueries().empty())
     spdlog::info("{} GET URI: \"{}\"", request.getEndpointString(), uri);
   else {
     std::string buffer = "";
     for (HeaderHash_t query : request.getQueries()) {
-      buffer +=
-          "\n    \"" + query.name.string + "\"=\"" + query.value.string + "\"";
+      buffer += "\n    \"" + query.name.getString() + "\"=\"" +
+                query.value.getString() + "\"";
     }
     spdlog::info("{} GET URI: \"{}\" Queries:{}", request.getEndpointString(),
         uri, buffer);
   }
 
+  if (uri.compare(0, 3, "/~/") == 0) {
+    return handleEBFile(request, reply);
+  }
+
   // URI must be absolute
   if (uri.empty() || uri[0] != '/' || uri.find("..") != std::string::npos)
-    return EBResult::INVALID_DATA + ("URI is not absolute: " + uri);
+    return ResultCode_t::INVALID_DATA + ("URI is not absolute: " + uri);
 
   // Add index.html to folders
   if (uri[uri.size() - 1] == '/')
@@ -73,12 +77,13 @@ EBResultMsg_t RequestHandler::handleGET(
   if (!file->isValid()) {
     file->close();
     delete file;
-    return EBResult::OPEN_FAILED + (root + uri);
+    return ResultCode_t::OPEN_FAILED + (root + uri);
   }
   reply.addHeader("Content-Length", std::to_string(file->size()));
+  reply.addHeader("Cache-Control", cacheControl.getCacheControl(uri));
   reply.setContent(file);
 
-  return EBResult::SUCCESS;
+  return ResultCode_t::SUCCESS;
 }
 
 /**
@@ -86,25 +91,54 @@ EBResultMsg_t RequestHandler::handleGET(
  *
  * @param request to handle
  * @param reply to populate
- * @return EBResultMsg_t error code
+ * @return Result error code
  */
-EBResultMsg_t RequestHandler::handlePOST(
-    const Request & request, Reply & reply) {
+Result RequestHandler::handlePOST(const Request & request, Reply & reply) {
   if (request.getQueries().empty())
-    spdlog::info("POST URI: \"{}\"", request.getURI().string);
+    spdlog::info("POST URI: \"{}\"", request.getURI().getString());
   else {
     std::string buffer = "";
     for (HeaderHash_t query : request.getQueries()) {
-      buffer +=
-          "\n    \"" + query.name.string + "\"=\"" + query.value.string + "\"";
+      buffer += "\n    \"" + query.name.getString() + "\"=\"" +
+                query.value.getString() + "\"";
     }
     spdlog::info(
-        "POST URI: \"{}\" Queries:{}", request.getURI().string, buffer);
+        "POST URI: \"{}\" Queries:{}", request.getURI().getString(), buffer);
   }
 
   reply.setStatus(HTTPStatus_t::NOT_IMPLEMENTED);
 
-  return EBResult::NOT_SUPPORTED + "handlePOST";
+  return ResultCode_t::NOT_SUPPORTED + "handlePOST";
+}
+
+/**
+ * @brief Handles special files for setting up ehbanana gui
+ *
+ * @param request to handle
+ * @param reply to populate
+ * @return Result error code
+ */
+Result RequestHandler::handleEBFile(const Request & request, Reply & reply) {
+  switch (request.getURI().get()) {
+    case Hash::calculateHash("/~/websocket"): {
+      std::string port = std::to_string(guiPort);
+      reply.appendContent(port);
+      reply.addHeader("Content-Length", std::to_string(port.length()));
+    } break;
+    default:
+      return ResultCode_t::UNKNOWN_HASH + "Handling EBFile";
+  }
+  return ResultCode_t::SUCCESS;
+}
+
+/**
+ * @brief Set the port used by the GUI
+ * Passed to the web browser at the file "/~/websocket" in handleEBFile
+ *
+ * @param port to set
+ */
+void RequestHandler::setGUIPort(uint16_t port) {
+  guiPort = port;
 }
 
 /**

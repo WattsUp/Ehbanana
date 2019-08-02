@@ -1,8 +1,8 @@
 #include "Ehbanana.h"
 
-#include "ResultMsg.h"
 #include "web/Server.h"
 
+#include <FruitBowl.h>
 #include <iostream>
 #include <list>
 #include <spdlog/sinks/basic_file_sink.h>
@@ -12,17 +12,17 @@
 #include <stdlib.h>
 #include <string>
 
-static EBResultMsg_t          EBLastError = EBResult::SUCCESS;
 static std::list<EBMessage_t> EBMessageQueue;
+static Result                 lastResult;
 
 /**
  * @brief Create a process from the command string
  *
  * @param command string to execute
- * @return EBResultMsg_t error code
+ * @return Result error code
  */
 
-EBResultMsg_t EBCreateProcess(
+Result EBCreateProcess(
     const std::string & command, PROCESS_INFORMATION * process) {
   STARTUPINFOA startupInfo;
   ZeroMemory(&startupInfo, sizeof(startupInfo));
@@ -33,73 +33,93 @@ EBResultMsg_t EBCreateProcess(
           NULL, buf, NULL, NULL, FALSE, 0, NULL, NULL, &startupInfo, process)) {
     spdlog::error("Failed to create process with command \"{}\"", command);
     delete buf;
-    return EBResult::BAD_COMMAND + ("Create process: " + command);
+    return ResultCode_t::BAD_COMMAND + ("Create process: " + command);
   }
   delete buf;
-  return EBResult::SUCCESS;
-}
-
-EBResult_t EBGetLastResult() {
-  return EBLastError.value;
+  return ResultCode_t::SUCCESS;
 }
 
 const char * EBGetLastResultMessage() {
-  return EBLastError.message.c_str();
+  return lastResult.getMessage();
 }
 
 /**
- * @brief Set the last error produced by Ehbanana
+ * @brief Set the Last Result
  *
  * @param result to set
- * @return last result
+ * @return ResultCode_t of that result
  */
-EBResult_t EBSetLastResult(EBResultMsg_t result) {
-  EBLastError = result;
-  return EBLastError.value;
+ResultCode_t setLastResult(Result result) {
+  lastResult = result;
+  return lastResult.getCode();
 }
 
-EBGUI_t EBCreateGUI(EBGUISettings_t guiSettings) {
+ResultCode_t EBCreateGUI(EBGUISettings_t guiSettings, EBGUI_t & gui) {
   // Construct a new EBGUI object to store settings and the server
-  EBGUI_t gui   = new EBGUI();
-  gui->settings = guiSettings;
+  Result result = EBDestroyGUI(gui);
+  if (!result)
+    return setLastResult(result + "Desroying GUI before creating a new one");
+  gui = new EBGUI();
 
-  if (gui->settings.guiProcess == nullptr) {
-    EBSetLastResult(EBResult::INVALID_PARAMETER + "guiProcess is nullptr");
+  if (guiSettings.guiProcess == nullptr) {
     delete gui;
-    return nullptr;
+    return setLastResult(
+        ResultCode_t::INVALID_PARAMETER + "guiProcess is nullptr");
   }
 
   // Construct a new server and attach it to the EBGUI
-  gui->server = new Web::Server(guiSettings.httpRoot, guiSettings.configRoot);
-
-  EBResultMsg_t result = gui->server->initialize("127.0.0.1");
-  if (EBRESULT_ERROR(EBSetLastResult(result))) {
+  try {
+    gui->server = new Web::Server(guiSettings.httpRoot, guiSettings.configRoot);
+  } catch (const std::exception & e) {
     delete gui->server;
-    delete gui;
-    return nullptr;
+    if (strncmp(e.what(), "[0x10]", 6) == 0) {
+      // Exception was "OPEN_FAILED"
+      // Most likely: the working directory is not correct
+      // Try again with the one folder up
+      try {
+        guiSettings.httpRoot   = "../" + guiSettings.httpRoot;
+        guiSettings.configRoot = "../" + guiSettings.configRoot;
+        gui->server =
+            new Web::Server(guiSettings.httpRoot, guiSettings.configRoot);
+      } catch (const std::exception & e) {
+        // No hope
+        delete gui;
+        return setLastResult(ResultCode_t::EXCEPTION_OCCURED + e.what() +
+                             "Constructing new server");
+      }
+    } else {
+      delete gui;
+      return setLastResult(ResultCode_t::EXCEPTION_OCCURED + e.what() +
+                           "Constructing new server");
+    }
   }
 
-  result = gui->server->start();
-  if (EBRESULT_ERROR(EBSetLastResult(result))) {
+  result = gui->server->initialize("127.0.0.1", guiSettings.httpPort);
+  if (!result) {
     delete gui->server;
     delete gui;
-    return nullptr;
+    return setLastResult(result + "Initializing server");
   }
 
-  result = {EBEnqueueMessage({gui, EBMSGType_t::STARTUP}),
-      "During enqueueing startup message"};
-  if (EBRESULT_ERROR(EBSetLastResult(result))) {
+  gui->server->setGUIPort(guiSettings.guiPort);
+
+  gui->server->start();
+
+  result = EBEnqueueMessage({gui, EBMSGType_t::STARTUP});
+  if (!result) {
     delete gui->server;
     delete gui;
-    return nullptr;
+    return setLastResult(result + "Enqueueing STARTUP message");
   }
-  return gui;
+
+  gui->settings = guiSettings;
+  return setLastResult(ResultCode_t::SUCCESS);
 }
 
-EBResult_t EBShowGUI(EBGUI_t gui) {
+ResultCode_t EBShowGUI(EBGUI_t gui) {
   // Ensure system calls is available
   if (!std::system(nullptr))
-    return EBSetLastResult(EBResult::NO_SYSTEM_CALL);
+    return setLastResult(ResultCode_t::NO_SYSTEM_CALL);
 
   PROCESS_INFORMATION browser;
 
@@ -122,8 +142,8 @@ EBResult_t EBShowGUI(EBGUI_t gui) {
       // Use default browser last
       command = "cmd /c start " + URL;
       if (!EBCreateProcess(command, &browser))
-        return EBSetLastResult(
-            EBResult::OPEN_FAILED + "Failed to start a web browser");
+        return setLastResult(
+            ResultCode_t::OPEN_FAILED + "Failed to start a web browser");
     }
   }
 
@@ -134,51 +154,46 @@ EBResult_t EBShowGUI(EBGUI_t gui) {
 
   spdlog::info("Web browser opened to {}", URL);
 
-  return EBSetLastResult(EBResult::SUCCESS);
+  return setLastResult(ResultCode_t::SUCCESS);
 }
 
-EBResult_t EBDestroyGUI(EBGUI_t gui) {
-  delete gui->server;
+ResultCode_t EBDestroyGUI(EBGUI_t gui) {
+  if (gui != nullptr)
+    delete gui->server;
   delete gui;
-  return EBSetLastResult(EBResult::SUCCESS);
+  return setLastResult(ResultCode_t::SUCCESS);
 }
 
-EBResult_t EBGetMessage(EBMessage_t & msg) {
+ResultCode_t EBGetMessage(EBMessage_t & msg) {
   if (EBMessageQueue.empty()) {
     msg.type = EBMSGType_t::NONE;
-    return EBSetLastResult(EBResult::INCOMPLETE_OPERATION);
+    return setLastResult(ResultCode_t::NO_OPERATION);
   }
   msg = EBMessageQueue.front();
   EBMessageQueue.pop_front();
   if (msg.type == EBMSGType_t::QUIT) {
-    EBResultMsg_t result = msg.gui->server->stop();
-    if (!result) {
-      spdlog::error(result);
-      return EBSetLastResult(result);
-    }
-    return EBSetLastResult(EBResult::SUCCESS);
+    msg.gui->server->stop();
+    return setLastResult(ResultCode_t::SUCCESS);
   }
-  return EBSetLastResult(EBResult::INCOMPLETE_OPERATION);
+  return setLastResult(ResultCode_t::INCOMPLETE);
 }
 
-EBResult_t EBDispatchMessage(const EBMessage_t & msg) {
-  if (msg.type == EBMSGType_t::NONE)
-    return EBSetLastResult(EBResult::NO_OPERATION);
-  return EBSetLastResult(
-      {(msg.gui->settings.guiProcess)(msg), "Error during guiProcess"});
+ResultCode_t EBDispatchMessage(const EBMessage_t & msg) {
+  return setLastResult(
+      (msg.gui->settings.guiProcess)(msg) + "Dispatched message to guiProcess");
 }
 
-EBResult_t EBEnqueueMessage(const EBMessage_t & msg) {
+ResultCode_t EBEnqueueMessage(const EBMessage_t & msg) {
   EBMessageQueue.push_back(msg);
-  return EBSetLastResult(EBResult::SUCCESS);
+  return setLastResult(ResultCode_t::SUCCESS);
 }
 
-EBResult_t EBDefaultGUIProcess(const EBMessage_t & msg) {
+ResultCode_t EBDefaultGUIProcess(const EBMessage_t & msg) {
   std::cout << "GUI sent message of type " << (uint16_t)msg.type << "\n";
-  return EBSetLastResult(EBResult::NOT_SUPPORTED + "DefaultGUIProcess");
+  return setLastResult(ResultCode_t::NOT_SUPPORTED + "DefaultGUIProcess");
 }
 
-EBResult_t EBConfigureLogging(const char * fileName, bool rotatingLogs,
+ResultCode_t EBConfigureLogging(const char * fileName, bool rotatingLogs,
     bool showConsole, uint8_t logLevel) {
   std::vector<spdlog::sink_ptr> sinks;
 
@@ -195,7 +210,7 @@ EBResult_t EBConfigureLogging(const char * fileName, bool rotatingLogs,
       MessageBoxA(NULL, "Log console initialization failed", "Error", MB_OK);
       std::cout << "Failed to AllocConsole with Win32 error: " << GetLastError()
                 << std::endl;
-      return EBRESULT_OPEN_FAILED;
+      return setLastResult(ResultCode_t::OPEN_FAILED + "AllocConsole");
     }
     sinks.push_back(std::make_shared<spdlog::sinks::wincolor_stdout_sink_mt>());
   }
@@ -211,7 +226,8 @@ EBResult_t EBConfigureLogging(const char * fileName, bool rotatingLogs,
     } catch (const spdlog::spdlog_ex & e) {
       MessageBoxA(NULL, "Log initialization failed", "Error", MB_OK);
       std::cout << "Log initialization failed: " << e.what() << std::endl;
-      return EBRESULT_OPEN_FAILED;
+      return setLastResult(ResultCode_t::OPEN_FAILED +
+                           ("Opening log files to " + std::string(fileName)));
     }
   }
 
@@ -236,7 +252,7 @@ EBResult_t EBConfigureLogging(const char * fileName, bool rotatingLogs,
       break;
   }
 
-  return EBRESULT_SUCCESS;
+  return setLastResult(ResultCode_t::SUCCESS);
 }
 
 void EBLogDebug(const char * string) {

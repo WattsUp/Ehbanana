@@ -7,3 +7,6 @@
 [submodule "lib/asio"]
 	path = lib/asio
 	url = https://github.com/chriskohlhoff/asio.git
+[submodule "lib/FruitBowl"]
+	path = lib/FruitBowl
+	url = https://github.com/WattsUp/FruitBowl.git
