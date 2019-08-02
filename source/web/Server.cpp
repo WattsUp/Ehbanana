@@ -178,6 +178,15 @@ void Server::stop() {
 }
 
 /**
+ * @brief Set the port used by the GUI
+ *
+ * @param port to set
+ */
+void Server::setGUIPort(uint16_t port) {
+  requestHandler.setGUIPort(port);
+}
+
+/**
  * @brief Get the domain name the server is listening to
  *
  * @return std::string& domain name: '127.0.0.1:8080'

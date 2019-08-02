@@ -34,7 +34,7 @@ ResultCode_t __stdcall guiProcess(const EBMessage_t & msg) {
 int WINAPI WinMain(
     HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdArgs, int cmdShow) {
   ResultCode_t result =
-      EBConfigureLogging("ehbanana.log", true, false, EB_LOG_LEVEL_DEBUG);
+      EBConfigureLogging("ehbanana.log", true, true, EB_LOG_LEVEL_DEBUG);
   if (!result)
     return static_cast<int>(result);
 

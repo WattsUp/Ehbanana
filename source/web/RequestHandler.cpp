@@ -57,6 +57,10 @@ Result RequestHandler::handleGET(const Request & request, Reply & reply) {
         uri, buffer);
   }
 
+  if (uri.compare(0, 3, "/~/") == 0) {
+    return handleEBFile(request, reply);
+  }
+
   // URI must be absolute
   if (uri.empty() || uri[0] != '/' || uri.find("..") != std::string::npos)
     return ResultCode_t::INVALID_DATA + ("URI is not absolute: " + uri);
@@ -103,6 +107,36 @@ Result RequestHandler::handlePOST(const Request & request, Reply & reply) {
   reply.setStatus(HTTPStatus_t::NOT_IMPLEMENTED);
 
   return ResultCode_t::NOT_SUPPORTED + "handlePOST";
+}
+
+/**
+ * @brief Handles special files for setting up ehbanana gui
+ *
+ * @param request to handle
+ * @param reply to populate
+ * @return Result error code
+ */
+Result RequestHandler::handleEBFile(const Request & request, Reply & reply) {
+  switch (request.getURI().get()) {
+    case Hash::calculateHash("/~/websocket"): {
+      std::string port = std::to_string(guiPort);
+      reply.appendContent(port);
+      reply.addHeader("Content-Length", std::to_string(port.length()));
+    } break;
+    default:
+      return ResultCode_t::UNKNOWN_HASH + "Handling EBFile";
+  }
+  return ResultCode_t::SUCCESS;
+}
+
+/**
+ * @brief Set the port used by the GUI
+ * Passed to the web browser at the file "/~/websocket" in handleEBFile
+ *
+ * @param port to set
+ */
+void RequestHandler::setGUIPort(uint16_t port) {
+  guiPort = port;
 }
 
 /**

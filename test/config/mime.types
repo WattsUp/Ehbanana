@@ -375,7 +375,7 @@
 .osf application/vnd.yamaha.openscoreformat
 .osfpvg application/vnd.yamaha.openscoreformat.osfpvg+xml
 .otc application/vnd.oasis.opendocument.chart-template
-.otf application/x-font-otf
+.otf font/otf
 .otg application/vnd.oasis.opendocument.graphics-template
 .oth application/vnd.oasis.opendocument.text-web
 .oti application/vnd.oasis.opendocument.image-template
@@ -571,7 +571,7 @@
 .trm application/x-msterminal
 .tsd application/timestamped-data
 .tsv text/tab-separated-values
-.ttf application/x-font-ttf
+.ttf font/ttf
 .ttl text/turtle
 .twd application/vnd.simtech-mindmapper
 .txd application/vnd.genomatix.tuxedo
@@ -627,7 +627,8 @@
 .wmv video/x-ms-wmv
 .wmx video/x-ms-wmx
 .wmz application/x-ms-wmz
-.woff application/x-font-woff
+.woff font/woff
+.woff2 font/woff2
 .wpd application/vnd.wordperfect
 .wpl application/vnd.ms-wpl
 .wps application/vnd.ms-works

@@ -44,6 +44,7 @@
   </ItemGroup>
   <Target Name="CopyFiles">
     <Copy SourceFiles="$(OutDir)\Ehbanana-Test.exe" DestinationFiles="$(SolutionDir)\..\bin\Ehbanana-Test.exe"/>
+    <Copy SourceFiles="$(SolutionDir)\..\include\Ehbanana.js" DestinationFiles="$(SolutionDir)\http\Ehbanana.js"/>
   </Target>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Targets" />
 </Project>

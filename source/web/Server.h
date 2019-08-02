@@ -28,6 +28,8 @@ public:
   void   start();
   void   stop();
 
+  void setGUIPort(uint16_t port);
+
   const std::string & getDomainName() const;
 
   static const uint16_t PORT_AUTO    = 0;

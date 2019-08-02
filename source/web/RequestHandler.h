@@ -22,14 +22,19 @@ public:
 
   Result handle(const Request & request, Reply & reply);
 
+  void setGUIPort(uint16_t port);
+
 private:
   Result handleGET(const Request & request, Reply & reply);
   Result handlePOST(const Request & request, Reply & reply);
+  Result handleEBFile(const Request & request, Reply & reply);
 
   std::string fileToType(const std::string & file);
 
   std::string root;
   MIMETypes   mimeTypes;
+
+  uint16_t guiPort;
 };
 
 } // namespace Web

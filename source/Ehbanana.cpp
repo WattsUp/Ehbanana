@@ -94,14 +94,14 @@ ResultCode_t EBCreateGUI(EBGUISettings_t guiSettings, EBGUI_t & gui) {
     }
   }
 
-  gui->settings = guiSettings;
-
-  result = gui->server->initialize("127.0.0.1");
+  result = gui->server->initialize("127.0.0.1", guiSettings.httpPort);
   if (!result) {
     delete gui->server;
     delete gui;
     return setLastResult(result + "Initializing server");
   }
+
+  gui->server->setGUIPort(guiSettings.guiPort);
 
   gui->server->start();
 
@@ -111,6 +111,8 @@ ResultCode_t EBCreateGUI(EBGUISettings_t guiSettings, EBGUI_t & gui) {
     delete gui;
     return setLastResult(result + "Enqueueing STARTUP message");
   }
+
+  gui->settings = guiSettings;
   return setLastResult(ResultCode_t::SUCCESS);
 }
 
