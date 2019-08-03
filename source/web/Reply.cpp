@@ -228,6 +228,8 @@ Reply Reply::stockReply(Result result) {
  */
 asio::const_buffer Reply::statusToBuffer() {
   switch (status) {
+    case HTTPStatus_t::SWITCHING_PROTOCOLS:
+      return asio::buffer(HTTPStatusString::SWITCHING_PROTOCOLS);
     case HTTPStatus_t::OK:
       return asio::buffer(HTTPStatusString::OK);
     case HTTPStatus_t::CREATED:

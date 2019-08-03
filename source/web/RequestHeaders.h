@@ -20,16 +20,25 @@ public:
 
   Result addHeader(HeaderHash_t header);
 
-  enum class Connection : uint8_t { CLOSE, KEEP_ALIVE, UPGRADE };
+  enum class Connection_t : uint8_t { CLOSE, KEEP_ALIVE, UPGRADE };
+  enum class Upgrade_t : uint8_t { NOT_SET, WEB_SOCKET };
 
-  const size_t     getContentLength() const;
-  const Connection getConnection() const;
+  const size_t       getContentLength() const;
+  const Connection_t getConnection() const;
+
+  const Hash getWebSocketKey() const;
+  const Hash getWebSocketVersion() const;
 
 private:
   Result addConnection(HeaderHash_t header);
+  Result addUpgrade(HeaderHash_t header);
 
-  size_t     contentLength = 0;
-  Connection connection    = Connection::CLOSE;
+  size_t       contentLength = 0;
+  Connection_t connection    = Connection_t::CLOSE;
+  Upgrade_t    upgrade       = Upgrade_t::NOT_SET;
+
+  Hash webSocketKey;
+  Hash webSocketVersion;
 };
 
 } // namespace Web

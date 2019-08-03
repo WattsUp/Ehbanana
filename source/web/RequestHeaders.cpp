@@ -23,6 +23,14 @@ Result RequestHeaders::addHeader(HeaderHash_t header) {
       break;
     case Hash::calculateHash("Connection"):
       return addConnection(header);
+    case Hash::calculateHash("Upgrade"):
+      return addUpgrade(header);
+    case Hash::calculateHash("Sec-WebSocket-Key"):
+      webSocketKey = header.value;
+      break;
+    case Hash::calculateHash("Sec-WebSocket-Version"):
+      webSocketVersion = header.value;
+      break;
     case Hash::calculateHash("Host"):
     case Hash::calculateHash("Upgrade-Insecure-Requests"):
     case Hash::calculateHash("User-Agent"):
@@ -33,6 +41,7 @@ Result RequestHeaders::addHeader(HeaderHash_t header) {
     case Hash::calculateHash("Cache-Control"):
     case Hash::calculateHash("Pragma"):
     case Hash::calculateHash("Origin"):
+    case Hash::calculateHash("Sec-WebSocket-Extensions"):
       // Ignoring
       break;
     default:
@@ -51,17 +60,35 @@ Result RequestHeaders::addHeader(HeaderHash_t header) {
 Result RequestHeaders::addConnection(HeaderHash_t header) {
   switch (header.value.get()) {
     case Hash::calculateHash("close"):
-      connection = Connection::CLOSE;
+      connection = Connection_t::CLOSE;
       break;
     case Hash::calculateHash("keep-alive"):
-      connection = Connection::KEEP_ALIVE;
+      connection = Connection_t::KEEP_ALIVE;
       break;
     case Hash::calculateHash("Upgrade"):
-      connection = Connection::UPGRADE;
+      connection = Connection_t::UPGRADE;
       break;
     default:
       return ResultCode_t::UNKNOWN_HASH +
              ("Request header Connection: " + header.value.getString());
+  }
+  return ResultCode_t::SUCCESS;
+}
+
+/**
+ * @brief Add upgrade header
+ *
+ * @param header to add
+ * @return Result error code
+ */
+Result RequestHeaders::addUpgrade(HeaderHash_t header) {
+  switch (header.value.get()) {
+    case Hash::calculateHash("websocket"):
+      upgrade = Upgrade_t::WEB_SOCKET;
+      break;
+    default:
+      return ResultCode_t::UNKNOWN_HASH +
+             ("Request header Upgrade: " + header.value.getString());
   }
   return ResultCode_t::SUCCESS;
 }
@@ -78,10 +105,28 @@ const size_t RequestHeaders::getContentLength() const {
 /**
  * @brief Get the connection header, CLOSE if not set
  *
- * @return const RequestHeaders::Connection
+ * @return const RequestHeaders::Connection_t
  */
-const RequestHeaders::Connection RequestHeaders::getConnection() const {
+const RequestHeaders::Connection_t RequestHeaders::getConnection() const {
   return connection;
+}
+
+/**
+ * @brief Get the web socket key
+ *
+ * @return const Hash
+ */
+const Hash RequestHeaders::getWebSocketKey() const {
+  return webSocketKey;
+}
+
+/**
+ * @brief Get the web socket version
+ *
+ * @return const Hash
+ */
+const Hash RequestHeaders::getWebSocketVersion() const {
+  return webSocketVersion;
 }
 
 } // namespace Web

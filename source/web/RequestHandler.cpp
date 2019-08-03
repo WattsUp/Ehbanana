@@ -27,6 +27,9 @@ RequestHandler::RequestHandler(
 Result RequestHandler::handle(const Request & request, Reply & reply) {
   switch (request.getMethod().get()) {
     case Hash::calculateHash("GET"):
+      if (request.getHeaders().getConnection() ==
+          RequestHeaders::Connection_t::UPGRADE)
+        return handleUpgrade(request, reply) + "Handling Connection: Upgrade";
       return handleGET(request, reply) + "Handling GET";
     case Hash::calculateHash("POST"):
       return handlePOST(request, reply) + "Handling POST";
@@ -57,10 +60,6 @@ Result RequestHandler::handleGET(const Request & request, Reply & reply) {
         uri, buffer);
   }
 
-  if (uri.compare(0, 3, "/~/") == 0) {
-    return handleEBFile(request, reply);
-  }
-
   // URI must be absolute
   if (uri.empty() || uri[0] != '/' || uri.find("..") != std::string::npos)
     return ResultCode_t::INVALID_DATA + ("URI is not absolute: " + uri);
@@ -80,6 +79,15 @@ Result RequestHandler::handleGET(const Request & request, Reply & reply) {
   }
   reply.addHeader("Content-Length", std::to_string(file->size()));
   reply.addHeader("Cache-Control", cacheControl.getCacheControl(uri));
+  switch (request.getHeaders().getConnection()) {
+    default:
+    case RequestHeaders::Connection_t::CLOSE:
+      reply.addHeader("Connection", "close");
+      break;
+    case RequestHeaders::Connection_t::KEEP_ALIVE:
+      reply.addHeader("Connection", "keep-alive");
+      break;
+  }
   reply.setContent(file);
 
   return ResultCode_t::SUCCESS;
@@ -111,33 +119,28 @@ Result RequestHandler::handlePOST(const Request & request, Reply & reply) {
 }
 
 /**
- * @brief Handles special files for setting up ehbanana gui
+ * @brief Handle a request to upgrade the connection
  *
  * @param request to handle
  * @param reply to populate
  * @return Result error code
  */
-Result RequestHandler::handleEBFile(const Request & request, Reply & reply) {
-  switch (request.getURI().get()) {
-    case Hash::calculateHash("/~/websocket"): {
-      std::string port = std::to_string(guiPort);
-      reply.appendContent(port);
-      reply.addHeader("Content-Length", std::to_string(port.length()));
-    } break;
-    default:
-      return ResultCode_t::UNKNOWN_HASH + "Handling EBFile";
-  }
-  return ResultCode_t::SUCCESS;
-}
+Result RequestHandler::handleUpgrade(const Request & request, Reply & reply) {
+  reply.setStatus(HTTPStatus_t::SWITCHING_PROTOCOLS);
+  if (request.getHeaders().getWebSocketVersion().get() !=
+      Hash::calculateHash("13"))
+    return ResultCode_t::BAD_COMMAND +
+           ("Websocket version" +
+               request.getHeaders().getWebSocketVersion().getString());
 
-/**
- * @brief Set the port used by the GUI
- * Passed to the web browser at the file "/~/websocket" in handleEBFile
- *
- * @param port to set
- */
-void RequestHandler::setGUIPort(uint16_t port) {
-  guiPort = port;
+  std::string magicString = request.getHeaders().getWebSocketKey().getString() +
+                            "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+  // Perform SHA 1
+  // reply.addHeader("Sec-WebSocket-Accept", base64(sha1 result));
+  reply.addHeader("Upgrade", "websocket");
+  reply.addHeader("Connection", "Upgrade");
+
+  return ResultCode_t::SUCCESS;
 }
 
 /**

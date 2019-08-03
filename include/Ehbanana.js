@@ -3,32 +3,13 @@
  * Open a websocket to that port
  */
 function startWebsocket() {
-  webSocketStatus            = document.getElementById("websocket-status");
-  var xmlHTTP                = new XMLHttpRequest();
-  xmlHTTP.onreadystatechange = xmlHTTPReadyState;
-  xmlHTTP.open("GET", "~/websocket", true);
-  xmlHTTP.send();
-}
-
-/**
- * On XML HTTP request ready state change, check for successful completion then
- * open a websocket
- */
-function xmlHTTPReadyState() {
-  if (this.readyState == XMLHttpRequest.DONE) {
-    if (this.status == 200) {
-      webSocketPort             = this.responseText;
-      webSocketStatus.innerHTML = "Found GUI port at " + webSocketPort;
-
-      webSocket = new WebSocket("ws://127.0.0.1:" + webSocketPort, "Ehbanana");
-      webSocket.onreadystatechange = webSocketReadyState;
-      webSocket.onerror            = function() {
-        webSocketStatus.innerHTML =
-            "Could not connect to port " + webSocketPort;
-      };
-    } else
-      webSocketStatus.innerHTML = "Cannot find GUI port ERROR: " + this.status;
-  }
+  webSocketStatus              = document.getElementById("websocket-status");
+  webSocket                    = new WebSocket(webSocketAddress);
+  webSocket.onreadystatechange = webSocketReadyState;
+  webSocket.onerror            = function(event) {
+    console.log(event.code);
+    webSocketStatus.innerHTML = "Could not connect to " + webSocketAddress;
+  };
 }
 
 /**
@@ -52,6 +33,7 @@ function webSocketReadyState() {
 
 window.onload = startWebsocket;
 
-var webSocket       = null;
-var webSocketPort   = null;
+var webSocket = null;
+var webSocketAddress =
+    "ws://" + window.location.hostname + ":" + window.location.port;
 var webSocketStatus = null;

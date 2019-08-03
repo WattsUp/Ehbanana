@@ -1,5 +1,8 @@
 #include "Server.h"
 
+#include "ConnectionHTTP.h"
+#include "ConnectionWebSocket.h"
+
 #include <spdlog/spdlog.h>
 #include <string>
 
@@ -71,8 +74,6 @@ Result Server::initialize(const std::string & addr, uint16_t port) {
            "Setting acceptor options";
   }
 
-  requestHandler.setGUIPort(endpoint.port());
-
   domainName =
       endpoint.address().to_string() + ":" + std::to_string(endpoint.port());
 
@@ -113,7 +114,7 @@ void Server::run() {
       std::string endpointString = endpoint.address().to_string() + ":" +
                                    std::to_string(endpoint.port());
       connections.push_back(
-          new Connection(socket, endpointString, &requestHandler));
+          new ConnectionHTTP(socket, endpointString, &requestHandler));
       socket       = nullptr;
       didSomething = true;
     } else if (errorCode != asio::error::would_block) {
@@ -135,14 +136,20 @@ void Server::run() {
         didSomething = true;
       } else if (result == ResultCode_t::NO_OPERATION)
         ++i;
-      else {
+      else if (result == ResultCode_t::SUCCESS &&
+               connection->getProtocol() ==
+                   Connection::Protocol_t::PENDING_WEBSOCKET) {
+        connections.push_back(new ConnectionWS(
+            connection->getSocket(), connection->getEndpoint()));
+        delete connection;
+        i = connections.erase(i);
+      } else {
         if (result == ResultCode_t::TIMEOUT)
           spdlog::warn(result.getMessage());
         else if (!result)
           spdlog::error(result.getMessage());
 
-        spdlog::debug(
-            "Closing connection to {}", connection->getEndpointString());
+        spdlog::debug("Closing connection to {}", connection->getEndpoint());
         connection->stop();
         delete connection;
         i = connections.erase(i);

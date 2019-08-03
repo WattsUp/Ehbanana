@@ -12,6 +12,7 @@
 namespace Web {
 
 enum class HTTPStatus_t : uint16_t {
+  SWITCHING_PROTOCOLS   = 101,
   OK                    = 200,
   CREATED               = 201,
   ACCEPTED              = 202,
@@ -32,6 +33,7 @@ enum class HTTPStatus_t : uint16_t {
 
 namespace HTTPStatusString {
 // clang-format off
+const std::string SWITCHING_PROTOCOLS   = "HTTP/1.0 101 Switching Protocols";
 const std::string OK                    = "HTTP/1.0 200 OK";
 const std::string CREATED               = "HTTP/1.0 201 Created";
 const std::string ACCEPTED              = "HTTP/1.0 202 Accepted";

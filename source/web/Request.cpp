@@ -212,13 +212,12 @@ Result Request::validateHTTPVersion() {
 }
 
 /**
- * @brief Get the keep alive status
+ * @brief Get the headers of the request
  *
- * @return true if keep alive was requested
- * @return false otherwise
+ * @return const RequestHeaders&
  */
-bool Request::isKeepAlive() {
-  return headers.getConnection() == RequestHeaders::Connection::KEEP_ALIVE;
+const RequestHeaders & Request::getHeaders() const {
+  return headers;
 }
 
 /**

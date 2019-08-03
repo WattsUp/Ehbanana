@@ -21,8 +21,8 @@ public:
   const Hash &                      getURI() const;
   const std::vector<HeaderHash_t> & getQueries() const;
   const std::string &               getEndpointString() const;
+  const RequestHeaders &            getHeaders() const;
 
-  bool isKeepAlive();
   bool isParsing();
 
 private:
