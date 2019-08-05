@@ -1,4 +1,4 @@
-#include "ConnectionHTTP.h"
+#include "Connection.h"
 
 #include <spdlog/spdlog.h>
 #include <sstream>
@@ -6,17 +6,28 @@
 namespace Web {
 
 /**
- * @brief Construct a new ConnectionHTTP:: ConnectionHTTP object
+ * @brief Construct a new Connection:: Connection object
  *
  * @param socket to read from and write to
  * @param endpoint socket is connected to
  * @param requestHandler to use to process requests
  */
-ConnectionHTTP::ConnectionHTTP(asio::ip::tcp::socket * socket,
-    std::string endpoint, RequestHandler * requestHandler) :
-  Connection(socket, endpoint),
-  requestHandler(requestHandler), request(endpoint) {
-  protocol = Protocol_t::HTTP;
+Connection::Connection(asio::ip::tcp::socket * socket, std::string endpoint,
+    RequestHandler * requestHandler) :
+  socket(socket),
+  endpoint(endpoint), requestHandler(requestHandler), request(endpoint) {
+  socket->non_blocking(true);
+
+  asio::socket_base::keep_alive option(true);
+  socket->set_option(option);
+}
+
+/**
+ * @brief Destroy the Connection:: Connection object
+ * Safely stop the socket
+ */
+Connection::~Connection() {
+  stop();
 }
 
 /**
@@ -29,7 +40,7 @@ ConnectionHTTP::ConnectionHTTP(asio::ip::tcp::socket * socket,
  * @param now current timestamp
  * @return Result error code
  */
-Result ConnectionHTTP::update(
+Result Connection::update(
     const std::chrono::time_point<std::chrono::system_clock> & now) {
   Result result;
   switch (state) {
@@ -64,9 +75,6 @@ Result ConnectionHTTP::update(
         spdlog::warn(result.getMessage());
         reply = Reply::stockReply(result);
       }
-      if (request.getHeaders().getConnection() ==
-          RequestHeaders::Connection_t::UPGRADE)
-        protocol = Protocol_t::PENDING_WEBSOCKET;
 
       state = State_t::WRITING;
       break;
@@ -80,7 +88,7 @@ Result ConnectionHTTP::update(
       if (request.getHeaders().getConnection() ==
           RequestHeaders::Connection_t::KEEP_ALIVE) {
         reply   = Reply();
-        request = Request(getEndpoint());
+        request = Request(getEndpointString());
         state   = State_t::IDLE;
       } else
         state = State_t::COMPLETE;
@@ -94,6 +102,31 @@ Result ConnectionHTTP::update(
 }
 
 /**
+ * @brief Stop the socket and free its memory
+ *
+ */
+void Connection::stop() {
+  if (socket != nullptr && socket->is_open()) {
+    asio::error_code errorCode;
+    socket->shutdown(asio::ip::tcp::socket::shutdown_both, errorCode);
+    socket->close(errorCode);
+  }
+  delete socket;
+  socket = nullptr;
+}
+
+/**
+ * @brief Get the endpoint of the request as a string
+ *
+ * @return const std::string & endpoint string
+ */
+std::string Connection::getEndpointString() const {
+  std::ostringstream os;
+  os << endpoint;
+  return os.str();
+}
+
+/**
  * @brief Read data from the socket into a request and process if reading is
  * complete
  *
@@ -103,7 +136,7 @@ Result ConnectionHTTP::update(
  *
  * @return Result error code
  */
-Result ConnectionHTTP::read() {
+Result Connection::read() {
   asio::error_code errorCode;
   size_t           length = socket->read_some(asio::buffer(buffer), errorCode);
   if (!errorCode) {
@@ -121,7 +154,7 @@ Result ConnectionHTTP::read() {
  *
  * @return Result error code
  */
-Result ConnectionHTTP::write() {
+Result Connection::write() {
   asio::error_code errorCode;
   size_t           length = socket->write_some(reply.getBuffers(), errorCode);
   if (reply.updateBuffers(length)) {
