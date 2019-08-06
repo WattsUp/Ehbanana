@@ -8,7 +8,9 @@
         "${workspaceFolder}/lib/MemoryMapping/**",
         "${workspaceFolder}/lib/asio/asio/include/**",
         "${workspaceFolder}/lib/spdlog/include/**",
-        "${workspaceFolder}/lib/FruitBowl/include/**"
+        "${workspaceFolder}/lib/FruitBowl/include/**",
+        "${workspaceFolder}/lib/digestpp/**",
+        "${workspaceFolder}/lib/cpp-base64/**"
       ],
       "defines": [
         "DEBUG",

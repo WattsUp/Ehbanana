@@ -10,3 +10,9 @@
 [submodule "lib/FruitBowl"]
 	path = lib/FruitBowl
 	url = https://github.com/WattsUp/FruitBowl.git
+[submodule "lib/digestpp"]
+	path = lib/digestpp
+	url = https://github.com/kerukuro/digestpp.git
+[submodule "lib/cpp-base64"]
+	path = lib/cpp-base64
+	url = https://github.com/ReneNyffenegger/cpp-base64.git

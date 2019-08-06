@@ -1,34 +1,30 @@
 /**
+ * On receiving a message from the WebSocket
+ * @param {WebSocket event} event
+ */
+function webSocketMessage(event) {
+  console.log(event.data);
+}
+
+/**
  * Send a request for the websocket port
  * Open a websocket to that port
  */
 function startWebsocket() {
-  webSocketStatus              = document.getElementById("websocket-status");
-  webSocket                    = new WebSocket(webSocketAddress);
-  webSocket.onreadystatechange = webSocketReadyState;
-  webSocket.onerror            = function(event) {
+  webSocketStatus     = document.getElementById("websocket-status");
+  webSocket           = new WebSocket(webSocketAddress);
+  webSocket.onmessage = webSocketMessage;
+  webSocket.onclose   = function(event) {
+    webSocketStatus.innerHTML = "Closed connection to " + webSocketAddress;
+  };
+  webSocket.onopen = function(event) {
+    webSocket.send("Hello WebSocket");
+    webSocketStatus.innerHTML = "Opened connection to " + webSocketAddress;
+  };
+  webSocket.onerror = function(event) {
     console.log(event.code);
     webSocketStatus.innerHTML = "Could not connect to " + webSocketAddress;
   };
-}
-
-/**
- * On webSocket ready state change, check for open connection
- */
-function webSocketReadyState() {
-  if (this.readyState == WebSocket.OPEN) {
-    webSocketStatus.innerHTML = "Connected to port " + webSocketPort;
-    console.log("Connected");
-  } else if (this.readyState == WebSocket.CONNECTING) {
-    webSocketStatus.innerHTML = "Connecting to port " + webSocketPort;
-    console.log("Connecting");
-  } else if (this.readyState == WebSocket.CLOSING) {
-    webSocketStatus.innerHTML = "Closing port " + webSocketPort;
-    console.log("Closing");
-  } else if (this.readyState == WebSocket.CLOSED) {
-    webSocketStatus.innerHTML = "Closed port " + webSocketPort;
-    console.log("Closed");
-  }
 }
 
 window.onload = startWebsocket;

@@ -1,5 +1,7 @@
 #include "RequestHandler.h"
 
+#include <algorithm/sha1.hpp>
+#include <base64.h>
 #include <spdlog/spdlog.h>
 
 namespace Web {
@@ -133,12 +135,17 @@ Result RequestHandler::handleUpgrade(const Request & request, Reply & reply) {
            ("Websocket version" +
                request.getHeaders().getWebSocketVersion().getString());
 
-  std::string magicString = request.getHeaders().getWebSocketKey().getString() +
-                            "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
-  // Perform SHA 1
-  // reply.addHeader("Sec-WebSocket-Accept", base64(sha1 result));
   reply.addHeader("Upgrade", "websocket");
   reply.addHeader("Connection", "Upgrade");
+
+  // Perform SHA 1 with the magic string
+  digestpp::sha1 sha;
+  sha.absorb(request.getHeaders().getWebSocketKey().getString());
+  sha.absorb("258EAFA5-E914-47DA-95CA-C5AB0DC85B11");
+  uint8_t buf[20];
+  sha.digest(buf, 20);
+  std::string shaBase64 = base64_encode(buf, 20);
+  reply.addHeader("Sec-WebSocket-Accept", shaBase64);
 
   return ResultCode_t::SUCCESS;
 }

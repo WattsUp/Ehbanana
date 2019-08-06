@@ -31,7 +31,7 @@ Connection::~Connection() {
 }
 
 /**
- * @brief Update the current operation, read or write
+ * @brief Update the current operation based on the protocol
  *
  * Returns ResultCode_t::INCOMPLETE if more operations are required
  * Returns ResultCode_t::NO_OPERATION if nothing happenend this update
@@ -41,6 +41,30 @@ Connection::~Connection() {
  * @return Result error code
  */
 Result Connection::update(
+    const std::chrono::time_point<std::chrono::system_clock> & now) {
+  switch (protocol) {
+    case Protocol_t::HTTP:
+      return updateHTTP(now);
+    case Protocol_t::WEBSOCKET:
+      return updateWebSocket(now);
+    default:
+      return ResultCode_t::INVALID_STATE +
+             ("Connection protocol: " +
+                 std::to_string(static_cast<uint8_t>(protocol)));
+  }
+}
+
+/**
+ * @brief Update the current HTTP operation, read or write
+ *
+ * Returns ResultCode_t::INCOMPLETE if more operations are required
+ * Returns ResultCode_t::NO_OPERATION if nothing happenend this update
+ * Returns ResultCode_t::TIMEOUT if the connection was idle for too long
+ *
+ * @param now current timestamp
+ * @return Result error code
+ */
+Result Connection::updateHTTP(
     const std::chrono::time_point<std::chrono::system_clock> & now) {
   Result result;
   switch (state) {
@@ -94,11 +118,40 @@ Result Connection::update(
         state = State_t::COMPLETE;
       break;
     case State_t::COMPLETE:
+      if (request.getHeaders().getConnection() ==
+          RequestHeaders::Connection_t::UPGRADE) {
+        spdlog::info("Upgrade requested");
+        protocol = Protocol_t::WEBSOCKET;
+        return ResultCode_t::INCOMPLETE;
+      }
       return ResultCode_t::SUCCESS;
     default:
       return ResultCode_t::INVALID_STATE + "During connection update";
   }
   return ResultCode_t::NO_OPERATION;
+}
+
+/**
+ * @brief Update the current WebSocket operation, read or write
+ *
+ * Returns ResultCode_t::INCOMPLETE if more operations are required
+ * Returns ResultCode_t::NO_OPERATION if nothing happenend this update
+ * Returns ResultCode_t::TIMEOUT if the connection was idle for too long
+ *
+ * @param now current timestamp
+ * @return Result error code
+ */
+Result Connection::updateWebSocket(
+    const std::chrono::time_point<std::chrono::system_clock> & now) {
+  asio::error_code errorCode;
+  size_t           length = socket->read_some(asio::buffer(buffer), errorCode);
+  if (!errorCode) {
+    spdlog::debug(buffer.data());
+    return ResultCode_t::SUCCESS;
+  } else if (errorCode == asio::error::would_block)
+    return request.isParsing() ? ResultCode_t::INCOMPLETE
+                               : ResultCode_t::NO_OPERATION;
+  return ResultCode_t::READ_FAULT + getEndpointString();
 }
 
 /**
@@ -144,7 +197,7 @@ Result Connection::read() {
   } else if (errorCode == asio::error::would_block)
     return request.isParsing() ? ResultCode_t::INCOMPLETE
                                : ResultCode_t::NO_OPERATION;
-  return ResultCode_t::READ_FAULT;
+  return ResultCode_t::READ_FAULT + getEndpointString();
 }
 
 /**
@@ -162,7 +215,7 @@ Result Connection::write() {
       return ResultCode_t::INCOMPLETE;
   } else if (!errorCode)
     return ResultCode_t::SUCCESS;
-  return ResultCode_t::WRITE_FAULT;
+  return ResultCode_t::WRITE_FAULT + getEndpointString();
 }
 
 } // namespace Web

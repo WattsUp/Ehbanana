@@ -30,6 +30,11 @@ public:
   std::string getEndpointString() const;
 
 private:
+  Result updateHTTP(
+      const std::chrono::time_point<std::chrono::system_clock> & now);
+  Result updateWebSocket(
+      const std::chrono::time_point<std::chrono::system_clock> & now);
+
   Result read();
   Result write();
 
@@ -42,6 +47,8 @@ private:
     COMPLETE
   };
 
+  enum class Protocol_t : uint16_t { HTTP, WEBSOCKET };
+
   asio::ip::tcp::socket * socket;
   std::string             endpoint;
   RequestHandler *        requestHandler;
@@ -50,6 +57,8 @@ private:
   Request                request;
   std::array<char, 8192> buffer;
   State_t                state = State_t::IDLE;
+
+  Protocol_t protocol = Protocol_t::HTTP;
 
   std::chrono::time_point<std::chrono::system_clock> timeoutTime;
 
