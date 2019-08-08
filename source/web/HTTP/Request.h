@@ -10,17 +10,18 @@
 #include <vector>
 
 namespace Web {
+namespace HTTP {
 
 class Request {
 public:
-  Request(std::string endpoint);
+  Request();
+  ~Request();
 
-  Result parse(char * begin, char * end);
+  Result parse(const char * begin, const char * end);
 
   const Hash &                      getMethod() const;
   const Hash &                      getURI() const;
   const std::vector<HeaderHash_t> & getQueries() const;
-  const std::string &               getEndpointString() const;
   const RequestHeaders &            getHeaders() const;
 
   bool isParsing();
@@ -34,7 +35,7 @@ private:
   Result decodeURI(Hash & uriHash);
   Result decodeHex(const std::string & hex, uint32_t & value);
 
-  enum class ParsingState_t : uint8_t {
+  enum class State_t : uint8_t {
     IDLE,
     METHOD,
     URI,
@@ -47,7 +48,7 @@ private:
     BODY
   };
 
-  ParsingState_t state = ParsingState_t::IDLE;
+  State_t state = State_t::IDLE;
 
   Hash method;
   Hash uri;
@@ -63,6 +64,7 @@ private:
   RequestHeaders headers;
 };
 
+} // namespace HTTP
 } // namespace Web
 
 #endif /* _WEB_REQUEST_H_ */

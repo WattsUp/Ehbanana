@@ -12,7 +12,6 @@
 #include <thread>
 
 #include "Connection.h"
-#include "RequestHandler.h"
 
 namespace Web {
 
@@ -21,10 +20,11 @@ public:
   Server(const Server &) = delete;
   Server & operator=(const Server &) = delete;
 
-  Server(const std::string & httpRoot, const std::string & configRoot);
+  Server();
   ~Server();
 
-  Result initialize(const std::string & addr, uint16_t port = PORT_AUTO);
+  Result configure(const std::string & httpRoot, const std::string & configRoot);
+  Result initializeSocket(const std::string & addr, uint16_t port = PORT_AUTO);
   void   start();
   void   stop();
 
@@ -43,8 +43,6 @@ private:
   asio::ip::tcp::acceptor acceptor;
 
   std::string domainName;
-
-  RequestHandler requestHandler;
 
   std::list<Connection *> connections;
 };

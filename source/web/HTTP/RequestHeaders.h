@@ -8,6 +8,7 @@
 #include <string>
 
 namespace Web {
+namespace HTTP {
 
 struct HeaderHash_t {
   Hash name;
@@ -25,6 +26,7 @@ public:
 
   const size_t       getContentLength() const;
   const Connection_t getConnection() const;
+  const Upgrade_t    getUpgrade() const;
 
   const Hash getWebSocketKey() const;
   const Hash getWebSocketVersion() const;
@@ -41,6 +43,7 @@ private:
   Hash webSocketVersion;
 };
 
+} // namespace HTTP
 } // namespace Web
 
 #endif /* _WEB_REQUEST_HEADERS_H_ */

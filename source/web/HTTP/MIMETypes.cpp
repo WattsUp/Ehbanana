@@ -3,18 +3,7 @@
 #include <spdlog/spdlog.h>
 
 namespace Web {
-
-/**
- * @brief Construct a new MIMETypes::MIMETypes object
- *
- * @param fileName to read types from
- */
-MIMETypes::MIMETypes(const std::string & fileName) {
-  Result result = populateList(fileName);
-  if (!result) {
-    throw std::exception(result.getMessage());
-  }
-}
+namespace HTTP {
 
 /**
  * @brief Populates the list of types from a file
@@ -60,12 +49,26 @@ Result MIMETypes::populateList(const std::string & fileName) {
 }
 
 /**
- * @brief Get the MIME type of the file extension
+ * @brief Get the MIME type of the file name
  *
- * @param extension to parse
+ * @param fileName to parse
  * @return const std::string& MIME type
  */
-const std::string & MIMETypes::getType(const std::string & extension) {
+const std::string & MIMETypes::getType(const std::string & fileName) {
+  // Extract the file extentsion
+  std::string fileExtension;
+  bool        dotPresent = false;
+  for (char c : fileName) {
+    if (c == '/') {
+      fileExtension.erase();
+      dotPresent = false;
+    } else if (c == '.') {
+      fileExtension = ".";
+      dotPresent    = true;
+    } else if (dotPresent)
+      fileExtension += c;
+  }
+
   // Every SORT_TIMER_RESET times this is called, sort the list to improve fetch
   // performance
   sortTimer--;
@@ -76,14 +79,14 @@ const std::string & MIMETypes::getType(const std::string & extension) {
 
   // Go to the bucket given by the last nibble of the hash, and search that for
   // the extension
-  HashValue_t hash = Hash::calculateHash(extension);
+  HashValue_t hash = Hash::calculateHash(fileExtension);
   for (MIMEType_t & type : typeBuckets[(hash & 0xF)]) {
     if (type.fileExtension == hash) {
       ++type.usage;
       return type.type;
     }
   }
-  spdlog::warn("Could not find MIME type for \"{}\"", extension);
+  spdlog::warn("Could not find MIME type for \"{}\"", fileExtension);
   return UNKNOWN_MIME_TYPE;
 }
 
@@ -109,4 +112,5 @@ bool operator>(const MIMEType_t & left, const MIMEType_t & right) {
   return left.usage > right.usage;
 }
 
+} // namespace HTTP
 } // namespace Web

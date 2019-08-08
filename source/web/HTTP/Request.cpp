@@ -4,26 +4,30 @@
 #include <sstream>
 
 namespace Web {
+namespace HTTP {
 
 /**
  * @brief Construct a new Request:: Request object
  *
- * @param endpoint that sourced this request
  */
-Request::Request(std::string endpoint) {
-  this->endpoint = endpoint;
-}
+Request::Request() {}
+
+/**
+ * @brief Destroy the Request:: Request object
+ *
+ */
+Request::~Request() {}
 
 /**
  * @brief Parse a string and add its contents to the request
  *
- * The string may be a portion of the entire request
+ * The string may be a fragment of the entire request
  *
  * @param begin character pointer
  * @param end character pointer
  * @return Result error code
  */
-Result Request::parse(char * begin, char * end) {
+Result Request::parse(const char * begin, const char * end) {
   Result result;
   // For every character in the array, add it to the appropriate field based on
   // the current parsing state
@@ -34,8 +38,7 @@ Result Request::parse(char * begin, char * end) {
     }
     ++begin;
   }
-  if (state == ParsingState_t::BODY &&
-      headers.getContentLength() == body.size())
+  if (state == State_t::BODY && headers.getContentLength() == body.size())
     return ResultCode_t::SUCCESS;
   else if (body.size() > headers.getContentLength())
     return ResultCode_t::BUFFER_OVERFLOW +
@@ -53,46 +56,46 @@ Result Request::parse(char * begin, char * end) {
 Result Request::parse(char c) {
   Result result;
   switch (state) {
-    case ParsingState_t::IDLE:
-      state = ParsingState_t::METHOD;
+    case State_t::IDLE:
+      state = State_t::METHOD;
       // Fall through
-    case ParsingState_t::METHOD:
+    case State_t::METHOD:
       if (c == ' ') {
-        state  = ParsingState_t::URI;
+        state  = State_t::URI;
         result = validateMethod();
         if (!result)
           return result + "Validating request method";
       } else
         method.add(c);
       break;
-    case ParsingState_t::URI:
+    case State_t::URI:
       if (c == ' ') {
-        state  = ParsingState_t::HTTP_VERSION;
+        state  = State_t::HTTP_VERSION;
         result = decodeURI(uri);
         if (!result)
           return result + "Decoding request URI";
       } else if (c == '?') {
-        state  = ParsingState_t::QUERY_NAME;
+        state  = State_t::QUERY_NAME;
         result = decodeURI(uri);
         if (!result)
           return result + "Decoding request URI";
       } else
         uri.add(c);
       break;
-    case ParsingState_t::QUERY_NAME: {
+    case State_t::QUERY_NAME: {
       // If there are no queries or the last query is already complete, add a
       // new one
       if (queries.empty() || queries.back().value.isDone())
         queries.push_back(HeaderHash_t());
       HeaderHash_t & query = queries.back();
       if (c == '=') {
-        state  = ParsingState_t::QUERY_VALUE;
+        state  = State_t::QUERY_VALUE;
         result = decodeURI(query.name);
         if (!result)
           return result + "Decoding request URI of query name";
       } else if (c == ' ') {
         // Valueless query
-        state  = ParsingState_t::HTTP_VERSION;
+        state  = State_t::HTTP_VERSION;
         result = decodeURI(query.name);
         if (!result)
           return result + "Decoding request URI of query name";
@@ -100,46 +103,46 @@ Result Request::parse(char c) {
         query.name.add(c);
 
     } break;
-    case ParsingState_t::QUERY_VALUE: {
+    case State_t::QUERY_VALUE: {
       HeaderHash_t & query = queries.back();
       if (c == ' ') {
-        state  = ParsingState_t::HTTP_VERSION;
+        state  = State_t::HTTP_VERSION;
         result = decodeURI(query.value);
         query.value.setDone(true);
         if (!result)
           return result + "Decoding request URI of query value";
       } else if (c == '&') {
-        state  = ParsingState_t::QUERY_NAME;
+        state  = State_t::QUERY_NAME;
         result = decodeURI(query.value);
         if (!result)
           return result + "Decoding request URI of query value";
       } else
         query.value.add(c);
     } break;
-    case ParsingState_t::HTTP_VERSION:
+    case State_t::HTTP_VERSION:
       if (c == '\n') {
-        state  = ParsingState_t::HEADER_NAME;
+        state  = State_t::HEADER_NAME;
         result = validateHTTPVersion();
         if (!result)
           return result + "Validating request HTTP version";
       } else if (c != '\r')
         httpVersion.add(c);
       break;
-    case ParsingState_t::HEADER_NAME: {
+    case State_t::HEADER_NAME: {
       if (c == '\r') {
-        state = ParsingState_t::BODY_NEWLINE;
+        state = State_t::BODY_NEWLINE;
         break;
       }
       // If there are no headers or the last header is already complete, add a
       // new one
       if (c == ' ') {
-        state = ParsingState_t::HEADER_VALUE;
+        state = State_t::HEADER_VALUE;
       } else if (c != ':')
         currentHeader.name.add(c);
     } break;
-    case ParsingState_t::HEADER_VALUE: {
+    case State_t::HEADER_VALUE: {
       if (c == '\n') {
-        state  = ParsingState_t::HEADER_NAME;
+        state  = State_t::HEADER_NAME;
         result = headers.addHeader(currentHeader);
         if (!result)
           return result + "Adding request header";
@@ -147,15 +150,15 @@ Result Request::parse(char c) {
       } else if (c != '\r')
         currentHeader.value.add(c);
     } break;
-    case ParsingState_t::BODY_NEWLINE:
+    case State_t::BODY_NEWLINE:
       if (c == '\n') {
-        state = ParsingState_t::BODY;
+        state = State_t::BODY;
         body.reserve(headers.getContentLength());
       } else
         return ResultCode_t::BAD_COMMAND +
                "Request is missing a blank new line after header";
       break;
-    case ParsingState_t::BODY:
+    case State_t::BODY:
       if (headers.getContentLength() == 0) {
         spdlog::debug("Tried to add '{}' (0x{:02X}) to body", c, c);
         return ResultCode_t::BAD_COMMAND +
@@ -227,9 +230,8 @@ const RequestHeaders & Request::getHeaders() const {
  * @return false otherwise
  */
 bool Request::isParsing() {
-  return state != ParsingState_t::IDLE &&
-         (state != ParsingState_t::BODY ||
-             headers.getContentLength() != body.size());
+  return state != State_t::IDLE &&
+         (state != State_t::BODY || headers.getContentLength() != body.size());
 }
 
 /**
@@ -259,15 +261,6 @@ const Hash & Request::getURI() const {
  */
 const std::vector<HeaderHash_t> & Request::getQueries() const {
   return queries;
-}
-
-/**
- * @brief Get the endpoint of the request as a string
- *
- * @return const std::string & endpoint string
- */
-const std::string & Request::getEndpointString() const {
-  return endpoint;
 }
 
 /**
@@ -342,4 +335,5 @@ Result Request::decodeHex(const std::string & hex, uint32_t & value) {
   return ResultCode_t::SUCCESS;
 }
 
+} // namespace HTTP
 } // namespace Web

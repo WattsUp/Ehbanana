@@ -1,5 +1,8 @@
 #include "Server.h"
 
+#include "HTTP/CacheControl.h"
+#include "HTTP/MIMETypes.h"
+
 #include <spdlog/spdlog.h>
 #include <string>
 
@@ -11,8 +14,7 @@ namespace Web {
  * @param httpRoot directory to serve http pages
  * @param configRoot containing the configuration files
  */
-Server::Server(const std::string & httpRoot, const std::string & configRoot) :
-  ioContext(1), acceptor(ioContext), requestHandler(httpRoot, configRoot) {}
+Server::Server() : ioContext(1), acceptor(ioContext) {}
 
 /**
  * @brief Destroy the Server:: Server object
@@ -20,6 +22,29 @@ Server::Server(const std::string & httpRoot, const std::string & configRoot) :
  */
 Server::~Server() {
   stop();
+}
+
+/**
+ * @brief Configure settings of the server, folder directories
+ *
+ * @param httpRoot directory to serve http pages
+ * @param configRoot containing the configuration files
+ * @return Result error code
+ */
+Result Server::configure(
+    const std::string & httpRoot, const std::string & configRoot) {
+  Result result;
+
+  HTTP::HTTP::setRoot(httpRoot);
+  result =
+      HTTP::CacheControl::Instance()->populateList(configRoot + "/cache.xml");
+  if (!result)
+    return result + "Configuring server's cache control";
+  result =
+      HTTP::MIMETypes::Instance()->populateList(configRoot + "/mime.types");
+  if (!result)
+    return result + "Configuring server's mime types";
+  return ResultCode_t::SUCCESS;
 }
 
 /**
@@ -32,7 +57,7 @@ Server::~Server() {
  * @param port to bind to
  * @return Result error code
  */
-Result Server::initialize(const std::string & addr, uint16_t port) {
+Result Server::initializeSocket(const std::string & addr, uint16_t port) {
   asio::ip::tcp::endpoint endpoint;
   try {
     asio::ip::address address = asio::ip::make_address(addr);
@@ -110,8 +135,7 @@ void Server::run() {
     if (!errorCode) {
       std::string endpointString = endpoint.address().to_string() + ":" +
                                    std::to_string(endpoint.port());
-      connections.push_back(
-          new Connection(socket, endpointString, &requestHandler));
+      connections.push_back(new Connection(socket, endpointString, now));
       socket       = nullptr;
       didSomething = true;
     } else if (errorCode != asio::error::would_block) {
@@ -135,12 +159,11 @@ void Server::run() {
         ++i;
       else {
         if (result == ResultCode_t::TIMEOUT)
-          spdlog::warn(result.getMessage());
+          spdlog::info(result.getMessage());
         else if (!result)
           spdlog::error(result.getMessage());
 
-        spdlog::debug(
-            "Closing connection to {}", connection->getEndpointString());
+        spdlog::debug("Closing connection to {}", connection->getEndpoint());
         connection->stop();
         delete connection;
         i = connections.erase(i);

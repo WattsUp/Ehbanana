@@ -1,6 +1,7 @@
 #include "Reply.h"
 
 namespace Web {
+namespace HTTP {
 
 /**
  * @brief Construct a new Reply:: Reply object
@@ -28,7 +29,7 @@ Reply::~Reply() {
  *
  * @param httpStatus to set
  */
-void Reply::setStatus(HTTPStatus_t httpStatus) {
+void Reply::setStatus(Status_t httpStatus) {
   status = httpStatus;
 }
 
@@ -140,58 +141,58 @@ bool Reply::updateBuffers(size_t bytesWritten) {
  * @param status
  * @return reply
  */
-Reply Reply::stockReply(HTTPStatus_t httpStatus) {
+Reply Reply::stockReply(Status_t httpStatus) {
   Reply reply;
   reply.setStatus(httpStatus);
   switch (httpStatus) {
-    case HTTPStatus_t::OK:
-      reply.appendContent(HTTPStockResponse::OK);
+    case Status_t::OK:
+      reply.appendContent(StockReply::OK);
       break;
-    case HTTPStatus_t::CREATED:
-      reply.appendContent(HTTPStockResponse::CREATED);
+    case Status_t::CREATED:
+      reply.appendContent(StockReply::CREATED);
       break;
-    case HTTPStatus_t::ACCEPTED:
-      reply.appendContent(HTTPStockResponse::ACCEPTED);
+    case Status_t::ACCEPTED:
+      reply.appendContent(StockReply::ACCEPTED);
       break;
-    case HTTPStatus_t::NO_CONTENT:
-      reply.appendContent(HTTPStockResponse::NO_CONTENT);
+    case Status_t::NO_CONTENT:
+      reply.appendContent(StockReply::NO_CONTENT);
       break;
-    case HTTPStatus_t::MULTIPLE_CHOICES:
-      reply.appendContent(HTTPStockResponse::MULTIPLE_CHOICES);
+    case Status_t::MULTIPLE_CHOICES:
+      reply.appendContent(StockReply::MULTIPLE_CHOICES);
       break;
-    case HTTPStatus_t::MOVED_PERMANENTLY:
-      reply.appendContent(HTTPStockResponse::MOVED_PERMANENTLY);
+    case Status_t::MOVED_PERMANENTLY:
+      reply.appendContent(StockReply::MOVED_PERMANENTLY);
       break;
-    case HTTPStatus_t::MOVED_TEMPORARILY:
-      reply.appendContent(HTTPStockResponse::MOVED_TEMPORARILY);
+    case Status_t::MOVED_TEMPORARILY:
+      reply.appendContent(StockReply::MOVED_TEMPORARILY);
       break;
-    case HTTPStatus_t::NOT_MODIFIED:
-      reply.appendContent(HTTPStockResponse::NOT_MODIFIED);
+    case Status_t::NOT_MODIFIED:
+      reply.appendContent(StockReply::NOT_MODIFIED);
       break;
-    case HTTPStatus_t::BAD_REQUEST:
-      reply.appendContent(HTTPStockResponse::BAD_REQUEST);
+    case Status_t::BAD_REQUEST:
+      reply.appendContent(StockReply::BAD_REQUEST);
       break;
-    case HTTPStatus_t::UNAUTHORIZED:
-      reply.appendContent(HTTPStockResponse::UNAUTHORIZED);
+    case Status_t::UNAUTHORIZED:
+      reply.appendContent(StockReply::UNAUTHORIZED);
       break;
-    case HTTPStatus_t::FORBIDDEN:
-      reply.appendContent(HTTPStockResponse::FORBIDDEN);
+    case Status_t::FORBIDDEN:
+      reply.appendContent(StockReply::FORBIDDEN);
       break;
-    case HTTPStatus_t::NOT_FOUND:
-      reply.appendContent(HTTPStockResponse::NOT_FOUND);
+    case Status_t::NOT_FOUND:
+      reply.appendContent(StockReply::NOT_FOUND);
       break;
-    case HTTPStatus_t::INTERNAL_SERVER_ERROR:
+    case Status_t::INTERNAL_SERVER_ERROR:
     default:
-      reply.appendContent(HTTPStockResponse::INTERNAL_SERVER_ERROR);
+      reply.appendContent(StockReply::INTERNAL_SERVER_ERROR);
       break;
-    case HTTPStatus_t::NOT_IMPLEMENTED:
-      reply.appendContent(HTTPStockResponse::NOT_IMPLEMENTED);
+    case Status_t::NOT_IMPLEMENTED:
+      reply.appendContent(StockReply::NOT_IMPLEMENTED);
       break;
-    case HTTPStatus_t::BAD_GATEWAY:
-      reply.appendContent(HTTPStockResponse::BAD_GATEWAY);
+    case Status_t::BAD_GATEWAY:
+      reply.appendContent(StockReply::BAD_GATEWAY);
       break;
-    case HTTPStatus_t::SERVICE_UNAVAILABLE:
-      reply.appendContent(HTTPStockResponse::SERVICE_UNAVAILABLE);
+    case Status_t::SERVICE_UNAVAILABLE:
+      reply.appendContent(StockReply::SERVICE_UNAVAILABLE);
       break;
   }
   reply.addHeader("Content-Length", std::to_string(reply.content.size()));
@@ -207,18 +208,18 @@ Reply Reply::stockReply(HTTPStatus_t httpStatus) {
  */
 Reply Reply::stockReply(Result result) {
   if (result)
-    return stockReply(HTTPStatus_t::OK);
+    return stockReply(Status_t::OK);
   else if (result == ResultCode_t::BAD_COMMAND ||
            result == ResultCode_t::BUFFER_OVERFLOW ||
            result == ResultCode_t::INVALID_DATA ||
            result == ResultCode_t::UNKNOWN_HASH)
-    return stockReply(HTTPStatus_t::BAD_REQUEST);
+    return stockReply(Status_t::BAD_REQUEST);
   else if (result == ResultCode_t::NOT_SUPPORTED)
-    return stockReply(HTTPStatus_t::NOT_IMPLEMENTED);
+    return stockReply(Status_t::NOT_IMPLEMENTED);
   else if (result == ResultCode_t::OPEN_FAILED)
-    return stockReply(HTTPStatus_t::NOT_FOUND);
+    return stockReply(Status_t::NOT_FOUND);
   else
-    return stockReply(HTTPStatus_t::INTERNAL_SERVER_ERROR);
+    return stockReply(Status_t::INTERNAL_SERVER_ERROR);
 }
 
 /**
@@ -228,42 +229,43 @@ Reply Reply::stockReply(Result result) {
  */
 asio::const_buffer Reply::statusToBuffer() {
   switch (status) {
-    case HTTPStatus_t::SWITCHING_PROTOCOLS:
-      return asio::buffer(HTTPStatusString::SWITCHING_PROTOCOLS);
-    case HTTPStatus_t::OK:
-      return asio::buffer(HTTPStatusString::OK);
-    case HTTPStatus_t::CREATED:
-      return asio::buffer(HTTPStatusString::CREATED);
-    case HTTPStatus_t::ACCEPTED:
-      return asio::buffer(HTTPStatusString::ACCEPTED);
-    case HTTPStatus_t::NO_CONTENT:
-      return asio::buffer(HTTPStatusString::NO_CONTENT);
-    case HTTPStatus_t::MULTIPLE_CHOICES:
-      return asio::buffer(HTTPStatusString::MULTIPLE_CHOICES);
-    case HTTPStatus_t::MOVED_PERMANENTLY:
-      return asio::buffer(HTTPStatusString::MOVED_PERMANENTLY);
-    case HTTPStatus_t::MOVED_TEMPORARILY:
-      return asio::buffer(HTTPStatusString::MOVED_TEMPORARILY);
-    case HTTPStatus_t::NOT_MODIFIED:
-      return asio::buffer(HTTPStatusString::NOT_MODIFIED);
-    case HTTPStatus_t::BAD_REQUEST:
-      return asio::buffer(HTTPStatusString::BAD_REQUEST);
-    case HTTPStatus_t::UNAUTHORIZED:
-      return asio::buffer(HTTPStatusString::UNAUTHORIZED);
-    case HTTPStatus_t::FORBIDDEN:
-      return asio::buffer(HTTPStatusString::FORBIDDEN);
-    case HTTPStatus_t::NOT_FOUND:
-      return asio::buffer(HTTPStatusString::NOT_FOUND);
-    case HTTPStatus_t::INTERNAL_SERVER_ERROR:
+    case Status_t::SWITCHING_PROTOCOLS:
+      return asio::buffer(StatusString::SWITCHING_PROTOCOLS);
+    case Status_t::OK:
+      return asio::buffer(StatusString::OK);
+    case Status_t::CREATED:
+      return asio::buffer(StatusString::CREATED);
+    case Status_t::ACCEPTED:
+      return asio::buffer(StatusString::ACCEPTED);
+    case Status_t::NO_CONTENT:
+      return asio::buffer(StatusString::NO_CONTENT);
+    case Status_t::MULTIPLE_CHOICES:
+      return asio::buffer(StatusString::MULTIPLE_CHOICES);
+    case Status_t::MOVED_PERMANENTLY:
+      return asio::buffer(StatusString::MOVED_PERMANENTLY);
+    case Status_t::MOVED_TEMPORARILY:
+      return asio::buffer(StatusString::MOVED_TEMPORARILY);
+    case Status_t::NOT_MODIFIED:
+      return asio::buffer(StatusString::NOT_MODIFIED);
+    case Status_t::BAD_REQUEST:
+      return asio::buffer(StatusString::BAD_REQUEST);
+    case Status_t::UNAUTHORIZED:
+      return asio::buffer(StatusString::UNAUTHORIZED);
+    case Status_t::FORBIDDEN:
+      return asio::buffer(StatusString::FORBIDDEN);
+    case Status_t::NOT_FOUND:
+      return asio::buffer(StatusString::NOT_FOUND);
+    case Status_t::INTERNAL_SERVER_ERROR:
     default:
-      return asio::buffer(HTTPStatusString::INTERNAL_SERVER_ERROR);
-    case HTTPStatus_t::NOT_IMPLEMENTED:
-      return asio::buffer(HTTPStatusString::NOT_IMPLEMENTED);
-    case HTTPStatus_t::BAD_GATEWAY:
-      return asio::buffer(HTTPStatusString::BAD_GATEWAY);
-    case HTTPStatus_t::SERVICE_UNAVAILABLE:
-      return asio::buffer(HTTPStatusString::SERVICE_UNAVAILABLE);
+      return asio::buffer(StatusString::INTERNAL_SERVER_ERROR);
+    case Status_t::NOT_IMPLEMENTED:
+      return asio::buffer(StatusString::NOT_IMPLEMENTED);
+    case Status_t::BAD_GATEWAY:
+      return asio::buffer(StatusString::BAD_GATEWAY);
+    case Status_t::SERVICE_UNAVAILABLE:
+      return asio::buffer(StatusString::SERVICE_UNAVAILABLE);
   }
 }
 
+} // namespace HTTP
 } // namespace Web

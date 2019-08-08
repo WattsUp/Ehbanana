@@ -9,6 +9,8 @@
 #include <string>
 
 namespace Web {
+namespace HTTP {
+
 struct MIMEType_t {
   const HashValue_t fileExtension;
   const std::string type;
@@ -22,12 +24,26 @@ public:
   MIMETypes(const MIMETypes &) = delete;
   MIMETypes & operator=(const MIMETypes &) = delete;
 
-  MIMETypes(const std::string & fileName);
+  /**
+   * @brief Get the singleton instance
+   *
+   * @return MIMETypes*
+   */
+  static MIMETypes * Instance() {
+    static MIMETypes instance;
+    return &instance;
+  }
+
+  Result populateList(const std::string & fileName);
 
   const std::string & getType(const std::string & extension);
 
 private:
-  Result populateList(const std::string & fileName);
+  /**
+   * @brief Construct a new MIMETypes object
+   *
+   */
+  MIMETypes() {}
 
   void sortList();
 
@@ -39,6 +55,7 @@ private:
   std::list<MIMEType_t> typeBuckets[16];
 };
 
+} // namespace HTTP
 } // namespace Web
 
 #endif /* _WEB_MIME_TYPES_H_ */

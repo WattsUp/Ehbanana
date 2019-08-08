@@ -1,6 +1,7 @@
 #include "RequestHeaders.h"
 
 namespace Web {
+namespace HTTP {
 
 /**
  * @brief Construct a new Request Headers:: Request Headers object
@@ -112,6 +113,15 @@ const RequestHeaders::Connection_t RequestHeaders::getConnection() const {
 }
 
 /**
+ * @brief Get the requested upgrade protocol
+ *
+ * @return const Upgrade_t
+ */
+const RequestHeaders::Upgrade_t RequestHeaders::getUpgrade() const {
+  return upgrade;
+}
+
+/**
  * @brief Get the web socket key
  *
  * @return const Hash
@@ -129,4 +139,5 @@ const Hash RequestHeaders::getWebSocketVersion() const {
   return webSocketVersion;
 }
 
+} // namespace HTTP
 } // namespace Web

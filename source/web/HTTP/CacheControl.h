@@ -10,6 +10,7 @@
 #include <string>
 
 namespace Web {
+namespace HTTP {
 
 struct CacheFilesMatch_t {
   std::regex  regex;
@@ -21,12 +22,27 @@ public:
   CacheControl(const CacheControl &) = delete;
   CacheControl & operator=(const CacheControl &) = delete;
 
-  CacheControl(const std::string & fileName);
+  /**
+   * @brief Get the singleton instance
+   *
+   * @return CacheControl*
+   */
+  static CacheControl * Instance() {
+    static CacheControl instance;
+    return &instance;
+  }
+
+  Result populateList(const std::string & fileName);
 
   std::string getCacheControl(const std::string & fileName);
 
 private:
-  Result populateList(const std::string & fileName);
+  /**
+   * @brief Construct a new Cache Control object
+   *
+   */
+  CacheControl() {}
+
   Result parseTag(const unsigned char *& data, size_t & fileSize,
       CacheFilesMatch_t & filesMatch);
 
@@ -35,6 +51,7 @@ private:
   std::list<CacheFilesMatch_t> cacheFilesMatches;
 };
 
+} // namespace HTTP
 } // namespace Web
 
 #endif /* _WEB_CACHE_CONTROL_H_ */

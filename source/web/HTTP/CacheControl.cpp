@@ -3,18 +3,7 @@
 #include <spdlog/spdlog.h>
 
 namespace Web {
-
-/**
- * @brief Construct a new CacheControl::CacheControl object
- *
- * @param fileName to read types from
- */
-CacheControl::CacheControl(const std::string & fileName) {
-  Result result = populateList(fileName);
-  if (!result) {
-    throw std::exception(result.getMessage());
-  }
-}
+namespace HTTP {
 
 /**
  * @brief Populates the list of types from a file
@@ -129,4 +118,5 @@ std::string CacheControl::getCacheControl(const std::string & fileName) {
   return DEFAULT;
 }
 
+} // namespace HTTP
 } // namespace Web
