@@ -32,7 +32,7 @@ public:
    * @param length of buffer
    * @return Result error code
    */
-  virtual Result processReceiveBuffer(const char * begin, size_t length) = 0;
+  virtual Result processReceiveBuffer(const uint8_t * begin, size_t length) = 0;
 
   /**
    * @brief Check the completion of the protocol

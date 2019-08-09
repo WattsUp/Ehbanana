@@ -112,7 +112,7 @@ extern "C" EHBANANA_API ResultCode_t EBDestroyGUI(EBGUI_t gui);
  * Returns ResultCode_tCode_t::SUCCESS when the message type is QUIT
  * Returns ResultCode_tCode_t::NO_OPERATION when the queue is empty
  * Returns ResultCode_tCode_t::INCOMPLETE when the message type is not quit and
- * no other errors occured
+ * no other errors occurred
  *
  * @param msg to write into
  * @return ResultCode_t error code

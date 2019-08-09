@@ -19,7 +19,7 @@ public:
   HTTP();
   ~HTTP();
 
-  Result        processReceiveBuffer(const char * begin, size_t length);
+  Result        processReceiveBuffer(const uint8_t * begin, size_t length);
   bool          updateTransmitBuffers(size_t bytesWritten);
   bool          isDone();
   AppProtocol_t getChangeRequest();

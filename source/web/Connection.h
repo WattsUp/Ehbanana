@@ -33,7 +33,7 @@ private:
   asio::ip::tcp::socket * socket;
   std::string             endpoint;
 
-  std::array<char, 8192> bufferReceive;
+  std::array<uint8_t, 8192> bufferReceive;
 
   AppProtocol * protocol = new HTTP::HTTP();
 

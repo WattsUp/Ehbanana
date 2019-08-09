@@ -29,7 +29,7 @@ HTTP::~HTTP() {}
  * @param length of buffer
  * @return Result error code
  */
-Result HTTP::processReceiveBuffer(const char * begin, size_t length) {
+Result HTTP::processReceiveBuffer(const uint8_t * begin, size_t length) {
   Result result;
   switch (state) {
     case State_t::READING:

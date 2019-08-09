@@ -27,7 +27,7 @@ Request::~Request() {}
  * @param end character pointer
  * @return Result error code
  */
-Result Request::parse(const char * begin, const char * end) {
+Result Request::parse(const uint8_t * begin, const uint8_t * end) {
   Result result;
   // For every character in the array, add it to the appropriate field based on
   // the current parsing state
@@ -53,7 +53,7 @@ Result Request::parse(const char * begin, const char * end) {
  * @param c character to parse
  * @return Result error code
  */
-Result Request::parse(char c) {
+Result Request::parse(uint8_t c) {
   Result result;
   switch (state) {
     case State_t::IDLE:

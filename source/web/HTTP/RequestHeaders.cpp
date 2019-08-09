@@ -63,6 +63,7 @@ Result RequestHeaders::addConnection(HeaderHash_t header) {
     case Hash::calculateHash("close"):
       connection = Connection_t::CLOSE;
       break;
+    case Hash::calculateHash("Keep-Alive"):
     case Hash::calculateHash("keep-alive"):
       connection = Connection_t::KEEP_ALIVE;
       break;

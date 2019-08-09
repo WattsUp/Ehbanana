@@ -17,7 +17,7 @@ public:
   Request();
   ~Request();
 
-  Result parse(const char * begin, const char * end);
+  Result parse(const uint8_t * begin, const uint8_t * end);
 
   const Hash &                      getMethod() const;
   const Hash &                      getURI() const;
@@ -27,7 +27,7 @@ public:
   bool isParsing();
 
 private:
-  Result parse(char c);
+  Result parse(uint8_t c);
 
   Result validateMethod();
   Result validateHTTPVersion();

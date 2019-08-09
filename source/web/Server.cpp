@@ -135,6 +135,7 @@ void Server::run() {
     if (!errorCode) {
       std::string endpointString = endpoint.address().to_string() + ":" +
                                    std::to_string(endpoint.port());
+      spdlog::debug("Opening connection to {}", endpointString);
       connections.push_back(new Connection(socket, endpointString, now));
       socket       = nullptr;
       didSomething = true;

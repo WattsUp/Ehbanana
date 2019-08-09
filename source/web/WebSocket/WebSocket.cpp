@@ -24,9 +24,14 @@ WebSocket::~WebSocket() {}
  * @param length of buffer
  * @return Result error code
  */
-Result WebSocket::processReceiveBuffer(const char * begin, size_t length) {
-  spdlog::info(std::string(begin, length));
-  return ResultCode_t::NOT_SUPPORTED + "WebSocket processReceiveBuffer";
+Result WebSocket::processReceiveBuffer(const uint8_t * begin, size_t length) {
+  Result result = frame.decode(begin, length);
+  if(!result)
+    return result;
+  
+  //Frame is done, do something
+
+  return result;
 }
 
 /**

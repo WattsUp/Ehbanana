@@ -18,7 +18,10 @@ function startWebsocket() {
     webSocketStatus.innerHTML = "Closed connection to " + webSocketAddress;
   };
   webSocket.onopen = function(event) {
-    webSocket.send("Hello WebSocket");
+    string = "Hello WebSocket|";
+    // for(var i = 0; i < Math.pow(2, 16); i++)
+    //   string +="Hello WebSocket|";
+    webSocket.send(string);
     webSocketStatus.innerHTML = "Opened connection to " + webSocketAddress;
   };
   webSocket.onerror = function(event) {
@@ -27,7 +30,7 @@ function startWebsocket() {
   };
 }
 
-window.onload = startWebsocket;
+window.addEventListener("load", startWebsocket);
 
 var webSocket = null;
 var webSocketAddress =
