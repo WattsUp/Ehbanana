@@ -1,6 +1,5 @@
 #include <Ehbanana.h>
 
-#include <chrono>
 #include <thread>
 
 /**
@@ -59,28 +58,17 @@ int WINAPI WinMain(
   }
 
   EBMessage_t msg;
-  auto timeout = std::chrono::system_clock::now() + std::chrono::seconds(20);
   while ((result = EBGetMessage(msg)) == ResultCode_t::INCOMPLETE ||
          result == ResultCode_t::NO_OPERATION) {
     // If no messages were processed, wait a bit to save CPU
     if (result == ResultCode_t::NO_OPERATION) {
       std::this_thread::sleep_for(std::chrono::milliseconds(1));
-
-      // If no operations have occured for 10 seconds, stop
-      if (std::chrono::system_clock::now() >= timeout) {
-        result = EBEnqueueQuitMessage(gui);
-        if (!result) {
-          EBLogError(EBGetLastResultMessage());
-          return static_cast<int>(result);
-        }
-      }
     } else {
       result = EBDispatchMessage(msg);
       if (!result) {
         EBLogError(EBGetLastResultMessage());
         return static_cast<int>(result);
       }
-      timeout = std::chrono::system_clock::now() + std::chrono::seconds(20);
     }
   }
 

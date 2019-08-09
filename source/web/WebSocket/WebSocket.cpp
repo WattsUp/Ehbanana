@@ -26,12 +26,38 @@ WebSocket::~WebSocket() {}
  */
 Result WebSocket::processReceiveBuffer(const uint8_t * begin, size_t length) {
   Result result = frame.decode(begin, length);
-  if(!result)
+  if (!result)
     return result;
-  
-  //Frame is done, do something
 
-  return result;
+  switch (frame.getOpcode()) {
+    case Opcode_t::TEXT:
+      spdlog::debug("WebSocket received text: \"{}\"", frame.getData());
+      break;
+    case Opcode_t::BINARY:
+      spdlog::debug("WebSocket received binary: \"{}\"", frame.getData());
+      break;
+    case Opcode_t::PING:
+      spdlog::debug("WebSocket received ping");
+      // Send pong
+      frame = Frame();
+      frame.setOpcode(Opcode_t::PONG);
+      addTransmitBuffer(frame.toBuffer());
+      return ResultCode_t::INCOMPLETE;
+    case Opcode_t::PONG:
+      spdlog::debug("WebSocket received pong");
+      pingSent = false;
+      break;
+    case Opcode_t::CLOSE:
+      spdlog::debug("WebSocket received close");
+      // Echo the close back
+      addTransmitBuffer(frame.toBuffer());
+      return ResultCode_t::SUCCESS;
+  }
+
+  // Frame is done, do something
+  frame = Frame();
+
+  return ResultCode_t::INCOMPLETE;
 }
 
 /**
@@ -41,6 +67,24 @@ Result WebSocket::processReceiveBuffer(const uint8_t * begin, size_t length) {
  * @return false if all messages have been processed and no more are expected
  */
 bool WebSocket::isDone() {
+  return frame.getOpcode() == Opcode_t::CLOSE && AppProtocol::isDone();
+}
+
+/**
+ * @brief Send a check to test the connection for aliveness
+ *
+ * @return true when the protocol has already sent an alive check
+ * @return false when the protocol has not sent an alive check yet
+ */
+bool WebSocket::sendAliveCheck() {
+  if (pingSent)
+    return true;
+  // send ping
+  frame = Frame();
+  frame.setOpcode(Opcode_t::PING);
+  frame.addData("Ping");
+  addTransmitBuffer(frame.toBuffer());
+  pingSent = true;
   return false;
 }
 

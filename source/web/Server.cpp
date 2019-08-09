@@ -11,10 +11,9 @@ namespace Web {
 /**
  * @brief Construct a new Server:: Server object
  *
- * @param httpRoot directory to serve http pages
- * @param configRoot containing the configuration files
+ * @param gui that owns this server
  */
-Server::Server() : ioContext(1), acceptor(ioContext) {}
+Server::Server(EBGUI_t gui) : ioContext(1), acceptor(ioContext), gui(gui) {}
 
 /**
  * @brief Destroy the Server:: Server object
@@ -123,7 +122,10 @@ void Server::run() {
   asio::error_code        errorCode;
   Result                  result;
   bool                    didSomething = false;
-  auto                    now          = std::chrono::system_clock::now();
+
+  auto now         = std::chrono::system_clock::now();
+  auto timeoutTime = std::chrono::time_point<std::chrono::system_clock>::min();
+
   while (running) {
     didSomething = false;
     now          = std::chrono::system_clock::now();
@@ -135,7 +137,7 @@ void Server::run() {
     if (!errorCode) {
       std::string endpointString = endpoint.address().to_string() + ":" +
                                    std::to_string(endpoint.port());
-      spdlog::debug("Opening connection to {}", endpointString);
+      spdlog::info("Opening connection to {}", endpointString);
       connections.push_back(new Connection(socket, endpointString, now));
       socket       = nullptr;
       didSomething = true;
@@ -160,15 +162,34 @@ void Server::run() {
         ++i;
       else {
         if (result == ResultCode_t::TIMEOUT)
-          spdlog::info(result.getMessage());
+          spdlog::info(
+              "Closing connection to {} - Timeout", connection->getEndpoint());
         else if (!result)
-          spdlog::error(result.getMessage());
+          spdlog::error("Closing connection to {} - {}",
+              connection->getEndpoint(), result.getMessage());
+        else
+          spdlog::info(
+              "Closing connection to {} - Operations completed successfully",
+              connection->getEndpoint());
 
-        spdlog::debug("Closing connection to {}", connection->getEndpoint());
         connection->stop();
         delete connection;
         i = connections.erase(i);
       }
+    }
+    if (connections.empty()) {
+      if (timeoutTime ==
+          std::chrono::time_point<std::chrono::system_clock>::min()) {
+        timeoutTime = now + TIMEOUT_NO_CONNECTIONS;
+      }
+      if (now > timeoutTime) {
+        // Server had no connections for the timeout time
+        running = false;
+        EBEnqueueMessage({gui, EBMSGType_t::SHUTDOWN});
+        EBEnqueueMessage({gui, EBMSGType_t::QUIT});
+      }
+    } else {
+      timeoutTime = std::chrono::time_point<std::chrono::system_clock>::min();
     }
 
     // If nothing was processed this loop, sleep until the next to save CPU

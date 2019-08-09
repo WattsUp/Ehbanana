@@ -1,6 +1,9 @@
 #ifndef _WEB_SERVER_H_
 #define _WEB_SERVER_H_
 
+#include "Connection.h"
+#include "Ehbanana.h"
+
 #include <FruitBowl.h>
 #include <asio.hpp>
 
@@ -11,8 +14,6 @@
 #include <string>
 #include <thread>
 
-#include "Connection.h"
-
 namespace Web {
 
 class Server {
@@ -20,7 +21,7 @@ public:
   Server(const Server &) = delete;
   Server & operator=(const Server &) = delete;
 
-  Server();
+  Server(EBGUI_t gui);
   ~Server();
 
   Result configure(const std::string & httpRoot, const std::string & configRoot);
@@ -45,6 +46,10 @@ private:
   std::string domainName;
 
   std::list<Connection *> connections;
+
+  EBGUI_t gui;
+
+  const std::chrono::seconds TIMEOUT_NO_CONNECTIONS {3};
 };
 
 } // namespace Web

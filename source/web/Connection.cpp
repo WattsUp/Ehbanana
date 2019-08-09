@@ -44,6 +44,7 @@ Connection::~Connection() {
  */
 Result Connection::update(
     const std::chrono::time_point<std::chrono::system_clock> & now) {
+  Result           result;
   asio::error_code errorCode;
   size_t           length = socket->available(errorCode);
   if (errorCode) {
@@ -54,9 +55,11 @@ Result Connection::update(
     timeoutTime = now + TIMEOUT;
     // Bytes available to read.
     length = socket->read_some(asio::buffer(bufferReceive), errorCode);
-    if (!errorCode)
-      return protocol->processReceiveBuffer(bufferReceive.data(), length);
-    else
+    if (!errorCode) {
+      result = protocol->processReceiveBuffer(bufferReceive.data(), length);
+      if (!result)
+        return result;
+    } else
       return ResultCode_t::READ_FAULT + errorCode.message() + endpoint;
   }
   if (protocol->hasTransmitBuffers()) {
@@ -90,7 +93,7 @@ Result Connection::update(
                        static_cast<uint8_t>(protocol->getChangeRequest())));
     }
   }
-  if (now > timeoutTime)
+  if (now > timeoutTime && protocol->sendAliveCheck())
     return ResultCode_t::TIMEOUT;
   return ResultCode_t::NO_OPERATION;
 }

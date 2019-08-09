@@ -101,6 +101,16 @@ public:
     return AppProtocol_t::NONE;
   }
 
+  /**
+   * @brief Send a check to test the connection for aliveness
+   *
+   * @return true when the protocol has already sent an alive check
+   * @return false when the protocol has not sent an alive check yet
+   */
+  virtual bool sendAliveCheck() {
+    return true;
+  }
+
 protected:
   /**
    * @brief Add a buffer to the transmit queue

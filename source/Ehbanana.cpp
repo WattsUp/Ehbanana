@@ -68,7 +68,7 @@ ResultCode_t EBCreateGUI(EBGUISettings_t guiSettings, EBGUI_t & gui) {
   }
 
   // Construct a new server and attach it to the EBGUI
-  gui->server = new Web::Server();
+  gui->server = new Web::Server(gui);
   result = gui->server->configure(guiSettings.httpRoot, guiSettings.configRoot);
   if (!result) {
     if (result == ResultCode_t::OPEN_FAILED) {

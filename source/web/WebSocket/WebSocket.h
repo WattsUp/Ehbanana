@@ -18,9 +18,12 @@ public:
   Result processReceiveBuffer(const uint8_t * begin, size_t length);
 
   bool isDone();
+  bool sendAliveCheck();
 
 private:
   Frame frame;
+
+  bool pingSent = false;
 };
 
 } // namespace WebSocket
