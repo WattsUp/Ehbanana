@@ -110,6 +110,8 @@ void Connection::stop() {
   }
   delete socket;
   socket = nullptr;
+  delete protocol;
+  protocol = nullptr;
 }
 
 /**

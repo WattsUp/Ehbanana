@@ -18,16 +18,53 @@ function startWebsocket() {
     webSocketStatus.innerHTML = "Closed connection to " + webSocketAddress;
   };
   webSocket.onopen = function(event) {
-    string = "Hello WebSocket|";
-    // for(var i = 0; i < Math.pow(2, 16); i++)
-    //   string +="Hello WebSocket|";
-    webSocket.send(string);
     webSocketStatus.innerHTML = "Opened connection to " + webSocketAddress;
+    attachListeners();
   };
   webSocket.onerror = function(event) {
-    console.log(event.code);
     webSocketStatus.innerHTML = "Could not connect to " + webSocketAddress;
   };
+}
+
+/**
+ * Listen to an input event and send the results to the WebSocket
+ * @param {InputEvent} event 
+ */
+function listenerInput(event) {
+  var jsonEvent = {name: event.target.name, value: event.target.value};
+  if(event.target.type == "checkbox")
+      jsonEvent.checked = event.target.checked;
+  else if (event.target.type == "file"){
+    var fileReader = new FileReader();
+    fileReader.onload = function(file) {
+      var fileJSONEvent = {name: event.target.name, value: event.target.value};
+      fileJSONEvent.file = file.target.result;
+      webSocket.send(JSON.stringify(fileJSONEvent));
+    };
+    fileReader.readAsDataURL(event.target.files[0]);
+    return;
+  }
+  webSocket.send(JSON.stringify(jsonEvent));
+}
+
+/**
+ * Add a listener to each element with "eb-*" class
+ */
+function attachListeners() {
+  var elementsInput = document.getElementsByClassName("eb-input");
+  for (var i = 0; i < elementsInput.length; i++) {
+    if (elementsInput[i].getAttribute("name") == null) {
+      if (elementsInput[i].getAttribute("id") == null) {
+        console.log("No name nor id for eb-input:", elementsInput[i]);
+        continue;
+      }
+      elementsInput[i].setAttribute("name", elementsInput[i].id);
+    }
+    if (elementsInput[i].getAttribute("type") == "button")
+      elementsInput[i].addEventListener("click", listenerInput);
+    else
+      elementsInput[i].addEventListener("input", listenerInput);
+  }
 }
 
 window.addEventListener("load", startWebsocket);

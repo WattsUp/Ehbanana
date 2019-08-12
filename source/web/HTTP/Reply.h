@@ -151,6 +151,8 @@ class Reply {
 public:
   Reply();
   ~Reply();
+  Reply(const Reply & that);
+  Reply & operator=(const Reply & that);
 
   void setStatus(Status_t httpStatus);
   void setKeepAlive(bool keepAlive);
@@ -159,8 +161,6 @@ public:
   void setContent(MemoryMapped * contentFile);
 
   const std::vector<asio::const_buffer> & getBuffers();
-
-  bool updateBuffers(size_t bytesWritten = 0);
 
   static Reply stockReply(Status_t httpStatus);
   static Reply stockReply(Result result);
@@ -172,8 +172,7 @@ private:
   std::string                     content;
   std::vector<asio::const_buffer> buffers;
   std::vector<Header_t>           headers;
-  size_t                          bytesRemaining = 0;
-  Status_t                        status = Status_t::OK;
+  Status_t                        status         = Status_t::OK;
 };
 
 } // namespace HTTP

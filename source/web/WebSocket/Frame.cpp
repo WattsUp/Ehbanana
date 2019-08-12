@@ -51,8 +51,11 @@ Result Frame::decode(const uint8_t * begin, size_t length) {
 Result Frame::decode(const uint8_t c) {
   switch (state) {
     case DecodeState_t::HEADER_OP_CODE:
-      opcode = static_cast<Opcode_t>(c & 0x0F);
-      state  = DecodeState_t::HEADER_PAYLOAD_LEN;
+      fin = (c & 0x80) == 0x80;
+      if ((c & 0xF) != static_cast<uint8_t>(Opcode_t::CONTINUATION))
+        // Set the op code if not a continuation
+        opcode = static_cast<Opcode_t>(c & 0x0F);
+      state = DecodeState_t::HEADER_PAYLOAD_LEN;
       break;
     case DecodeState_t::HEADER_PAYLOAD_LEN:
       if ((c & 0x80) == 0)
@@ -89,11 +92,11 @@ Result Frame::decode(const uint8_t c) {
       maskingKey = (maskingKey << 8) | key; // Circularly shift to the next byte
       --payloadLength;
       if (payloadLength == 0) {
-        if (opcode == Opcode_t::CONTINUATION)
+        if (fin)
+          state = DecodeState_t::COMPLETE;
+        else
           // This message is fragmented, add on to this one
           state = DecodeState_t::HEADER_OP_CODE;
-        else
-          state = DecodeState_t::COMPLETE;
       }
     } break;
     case DecodeState_t::COMPLETE:
@@ -141,11 +144,17 @@ const std::string & Frame::getData() const {
   return data;
 }
 
+/**
+ * @brief Convert the frame into a buffer byte stream
+ *
+ * @return asio::const_buffer
+ */
 asio::const_buffer Frame::toBuffer() {
   buffer.push_back(0x80 | static_cast<uint8_t>(opcode)); // FIN = 1
   payloadLength = data.length();
   // No masking
   if (payloadLength < 126) {
+    // 7b payloadLength
     buffer.push_back(static_cast<uint8_t>(payloadLength));
   } else if (payloadLength <= static_cast<size_t>(1 << 16)) {
     buffer.push_back(126); // 16b payload length

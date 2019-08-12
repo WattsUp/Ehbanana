@@ -24,6 +24,22 @@ Reply::~Reply() {
   }
 }
 
+Reply::Reply(const Reply & that) {
+  *this = that;
+}
+
+Reply & Reply::operator=(const Reply & that) {
+  if (this != &that) {
+    this->file->close();
+    this->file    = that.file;
+    this->content = that.content;
+    this->buffers = that.buffers;
+    this->headers = that.headers;
+    this->status  = that.status;
+  }
+  return *this;
+}
+
 /**
  * @brief Set the HTTP status of the reply
  *
@@ -82,7 +98,6 @@ void Reply::setContent(MemoryMapped * contentFile) {
 const std::vector<asio::const_buffer> & Reply::getBuffers() {
   // If the buffers vector is empty, populate first
   if (buffers.empty()) {
-    bytesRemaining = 0;
     buffers.clear();
     buffers.push_back(statusToBuffer());
     buffers.push_back(asio::buffer(STRING_CRLF));
@@ -101,38 +116,6 @@ const std::vector<asio::const_buffer> & Reply::getBuffers() {
           asio::buffer(file->getData(), static_cast<size_t>(file->size())));
   }
   return buffers;
-}
-
-/**
- * @brief Removes the data that has been written, checks if there are remaining
- * bytes to send
- *
- * @param bytesWritten in the previous read
- * @return true if one or more bytes have yet to be written
- * @return false if all bytes have been written
- */
-bool Reply::updateBuffers(size_t bytesWritten) {
-  std::vector<asio::const_buffer>::iterator i   = buffers.begin();
-  std::vector<asio::const_buffer>::iterator end = buffers.end();
-  while (i != end && bytesWritten > 0) {
-    asio::const_buffer & buffer = *i;
-    if (bytesWritten >= buffer.size()) {
-      // This buffer has been written, remove from the queue and decrement
-      // bytesWritten
-      bytesWritten -= buffer.size();
-      i = buffers.erase(i);
-    } else {
-      // This buffer has not been fully written, increment its pointer
-      buffer += bytesWritten;
-      return true;
-    }
-  }
-  if (buffers.empty() && file != nullptr) {
-    file->close();
-    delete file;
-    file = nullptr;
-  }
-  return false;
 }
 
 /**

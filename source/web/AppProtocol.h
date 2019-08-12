@@ -23,7 +23,7 @@ public:
    * @brief Destroy the App Protocol object
    *
    */
-  ~AppProtocol() {}
+  virtual ~AppProtocol() {}
 
   /**
    * @brief Process a received buffer, could be the entire message or a fragment

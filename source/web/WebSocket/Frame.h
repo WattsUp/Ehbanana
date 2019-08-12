@@ -50,6 +50,7 @@ private:
   Opcode_t    opcode        = Opcode_t::CONTINUATION;
   uint64_t    payloadLength = 0;
   uint32_t    maskingKey    = 0;
+  bool        fin           = false;
   std::string data;
 };
 
