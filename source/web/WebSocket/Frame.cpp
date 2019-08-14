@@ -9,26 +9,69 @@ namespace WebSocket {
  * @brief Construct a new Frame:: Frame object
  *
  */
-Frame::Frame() {}
+Frame::Frame() {
+  this->dataFile = nullptr;
+}
 
 /**
  * @brief Destroy the Frame:: Frame object
  *
  */
-Frame::~Frame() {}
+Frame::~Frame() {
+  if (dataFile != nullptr)
+    fclose(dataFile);
+}
+
+/**
+ * @brief Copy constructor
+ *
+ * @param that to copy
+ */
+Frame::Frame(const Frame & that) {
+  *this = that;
+}
+
+/**
+ * @brief Assignment operator
+ *
+ * @param that to assign
+ * @return Frame& this
+ */
+Frame & Frame::operator=(const Frame & that) {
+  if (this != &that) {
+    this->buffer.clear();
+    this->buffer = that.buffer;
+
+    this->data = that.data;
+    this->data.shrink_to_fit();
+
+    if (this->dataFile != nullptr)
+      fclose(this->dataFile);
+    this->dataFile = that.dataFile;
+
+    this->fin           = that.fin;
+    this->maskingKey    = that.maskingKey;
+    this->opcode        = that.opcode;
+    this->state         = that.state;
+    this->payloadLength = that.payloadLength;
+  }
+  return *this;
+}
 
 /**
  * @brief Decode a frame from a character string and populate the appropriate
  * fields
+ * String may contain a fragment of the frame, a fragment frame, or multiple
+ * frames
  *
  * @param begin character
  * @param length of buffer
  * @return Result error code
  */
-Result Frame::decode(const uint8_t * begin, size_t length) {
+Result Frame::decode(const uint8_t *& begin, size_t & length) {
   Result result;
 
-  while (length > 0) {
+  while (length > 0 && state != DecodeState_t::COMPLETE) {
     result = decode(*begin);
     if (!result)
       return result + "WebSocket frame decode";
@@ -38,6 +81,9 @@ Result Frame::decode(const uint8_t * begin, size_t length) {
 
   if (state != DecodeState_t::COMPLETE)
     return ResultCode_t::INCOMPLETE;
+
+  if (dataFile != nullptr)
+    rewind(dataFile);
 
   return ResultCode_t::SUCCESS;
 }
@@ -52,9 +98,15 @@ Result Frame::decode(const uint8_t c) {
   switch (state) {
     case DecodeState_t::HEADER_OP_CODE:
       fin = (c & 0x80) == 0x80;
-      if ((c & 0xF) != static_cast<uint8_t>(Opcode_t::CONTINUATION))
+      if ((c & 0xF) != static_cast<uint8_t>(Opcode_t::CONTINUATION)) {
         // Set the op code if not a continuation
         opcode = static_cast<Opcode_t>(c & 0x0F);
+        if (opcode == Opcode_t::BINARY) {
+          // Generate a temporary file name
+          if (tmpfile_s(&dataFile) != 0)
+            return ResultCode_t::OPEN_FAILED + "Websocket frame temp file";
+        }
+      }
       state = DecodeState_t::HEADER_PAYLOAD_LEN;
       break;
     case DecodeState_t::HEADER_PAYLOAD_LEN:
@@ -87,8 +139,13 @@ Result Frame::decode(const uint8_t c) {
       maskingKey = (maskingKey << 8) | static_cast<uint32_t>(c);
       break;
     case DecodeState_t::DATA: {
+      // TODO, if binary, write to a temporary file instead
       uint8_t key = maskingKey >> 24; // MSB
-      data.push_back(static_cast<char>(c ^ key));
+      if (dataFile != nullptr) {
+        if (fputc(c ^ key, dataFile) == EOF)
+          return ResultCode_t::WRITE_FAULT + "Websocket temp file";
+      } else
+        data.push_back(static_cast<char>(c ^ key));
       maskingKey = (maskingKey << 8) | key; // Circularly shift to the next byte
       --payloadLength;
       if (payloadLength == 0) {
@@ -136,12 +193,21 @@ const Opcode_t Frame::getOpcode() const {
 }
 
 /**
- * @brief Get the data of the frame
+ * @brief Get the data of the frame, opcode must be text
  *
  * @return const std::string&
  */
 const std::string & Frame::getData() const {
   return data;
+}
+
+/**
+ * @brief Get the data file of the frame, opcode must be binary
+ *
+ * @return FILE *
+ */
+FILE * Frame::getDataFile() const {
+  return dataFile;
 }
 
 /**

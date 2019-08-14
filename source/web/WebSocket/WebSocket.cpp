@@ -34,7 +34,8 @@ Result WebSocket::processReceiveBuffer(const uint8_t * begin, size_t length) {
       spdlog::debug("WebSocket received text: \"{}\"", frame.getData());
       break;
     case Opcode_t::BINARY:
-      spdlog::debug("WebSocket received binary: \"{}\"", frame.getData());
+      fseek(frame.getDataFile(), 0L, SEEK_END);
+      spdlog::debug("WebSocket received binary of length: {}", ftell(frame.getDataFile()));
       break;
     case Opcode_t::PING:
       spdlog::debug("WebSocket received ping");
@@ -56,6 +57,12 @@ Result WebSocket::processReceiveBuffer(const uint8_t * begin, size_t length) {
 
   // Frame is done, do something
   frame = Frame();
+
+  // If the receive buffer has more data (multiple frames in the buffer),
+  // recursively process them
+  if (length != 0) {
+    return processReceiveBuffer(begin, length);
+  }
 
   return ResultCode_t::INCOMPLETE;
 }

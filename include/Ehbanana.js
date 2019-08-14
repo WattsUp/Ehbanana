@@ -28,20 +28,16 @@ function startWebsocket() {
 
 /**
  * Listen to an input event and send the results to the WebSocket
- * @param {InputEvent} event 
+ * @param {InputEvent} event
  */
 function listenerInput(event) {
   var jsonEvent = {name: event.target.name, value: event.target.value};
-  if(event.target.type == "checkbox")
-      jsonEvent.checked = event.target.checked;
-  else if (event.target.type == "file"){
-    var fileReader = new FileReader();
-    fileReader.onload = function(file) {
-      var fileJSONEvent = {name: event.target.name, value: event.target.value};
-      fileJSONEvent.file = file.target.result;
-      webSocket.send(JSON.stringify(fileJSONEvent));
-    };
-    fileReader.readAsDataURL(event.target.files[0]);
+  if (event.target.type == "checkbox")
+    jsonEvent.checked = event.target.checked;
+  else if (event.target.type == "file") {
+    jsonEvent.fileSize = event.target.files[0].size;
+    webSocket.send(JSON.stringify(jsonEvent));
+    webSocket.send(event.target.files[0]); // Sent as binary
     return;
   }
   webSocket.send(JSON.stringify(jsonEvent));
