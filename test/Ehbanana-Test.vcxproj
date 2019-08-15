@@ -38,9 +38,11 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="source\**\*.cpp" />
+    <ClCompile Include="..\lib\FruitBowl\include\**\*.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="source\**\*.h" />
+    <ClInclude Include="..\lib\FruitBowl\include\**\*.h" />
   </ItemGroup>
   <Target Name="CopyFiles">
     <Copy SourceFiles="$(OutDir)\Ehbanana-Test.exe" DestinationFiles="$(SolutionDir)\..\bin\Ehbanana-Test.exe"/>

@@ -11,11 +11,12 @@ namespace Web {
  * @param socket to read from and write to
  * @param endpoint socket is connected to
  * @param now current timestamp
+ * @param gui that owns this server
  */
 Connection::Connection(asio::ip::tcp::socket * socket, std::string endpoint,
-    const std::chrono::time_point<std::chrono::system_clock> & now) :
+    const std::chrono::time_point<std::chrono::system_clock> & now, EBGUI_t gui) :
   socket(socket),
-  endpoint(endpoint) {
+  endpoint(endpoint), gui(gui) {
   this->timeoutTime = now + TIMEOUT;
 
   socket->non_blocking(true);
@@ -82,7 +83,7 @@ Result Connection::update(
         return ResultCode_t::INCOMPLETE;
       case AppProtocol_t::WEBSOCKET:
         delete protocol;
-        protocol = new WebSocket::WebSocket();
+        protocol = new WebSocket::WebSocket(gui);
         return ResultCode_t::INCOMPLETE;
       case AppProtocol_t::NONE:
         return ResultCode_t::SUCCESS;

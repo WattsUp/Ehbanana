@@ -2,6 +2,7 @@
 #define _WEB_CONNECTION_H_
 
 #include "AppProtocol.h"
+#include "Ehbanana.h"
 #include "HTTP/HTTP.h"
 #include "WebSocket/WebSocket.h"
 
@@ -21,7 +22,8 @@ public:
   Connection & operator=(const Connection &) = delete;
 
   Connection(asio::ip::tcp::socket * socket, std::string endpoint,
-      const std::chrono::time_point<std::chrono::system_clock> & now);
+      const std::chrono::time_point<std::chrono::system_clock> & now,
+      EBGUI_t                                                    gui);
   ~Connection();
 
   Result update(const std::chrono::time_point<std::chrono::system_clock> & now);
@@ -40,6 +42,8 @@ private:
   std::chrono::time_point<std::chrono::system_clock> timeoutTime;
 
   const std::chrono::seconds TIMEOUT {10};
+
+  EBGUI_t gui;
 };
 
 } // namespace Web

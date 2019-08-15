@@ -10,7 +10,8 @@
         "${workspaceFolder}/lib/spdlog/include/**",
         "${workspaceFolder}/lib/FruitBowl/include/**",
         "${workspaceFolder}/lib/digestpp/**",
-        "${workspaceFolder}/lib/cpp-base64/**"
+        "${workspaceFolder}/lib/cpp-base64/**",
+        "${workspaceFolder}/lib/rapidjson/include/**"
       ],
       "defines": [
         "DEBUG",

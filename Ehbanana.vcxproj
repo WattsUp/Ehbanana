@@ -19,14 +19,14 @@
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
-      <AdditionalIncludeDirectories>$(SolutionDir)\include;$(SolutionDir)\source;$(SolutionDir)\lib\MemoryMapping;$(SolutionDir)\lib\asio\asio\include;$(SolutionDir)\lib\spdlog\include;$(SolutionDir)\lib\FruitBowl\include;$(SolutionDir)\lib\digestpp;$(SolutionDir)\lib\cpp-base64;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)\include;$(SolutionDir)\source;$(SolutionDir)\lib\MemoryMapping;$(SolutionDir)\lib\asio\asio\include;$(SolutionDir)\lib\spdlog\include;$(SolutionDir)\lib\FruitBowl\include;$(SolutionDir)\lib\digestpp;$(SolutionDir)\lib\cpp-base64;$(SolutionDir)\lib\rapidjson\include;</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>DEBUG;COMPILING_DLL;WIN32_LEAN_AND_MEAN;_WIN32_WINNT=_WIN32_WINNT_WIN10;ASIO_DISABLE_IOCP;_WINSOCK_DEPRECATED_NO_WARNINGS;%(PreprocessorDefinitions);</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
-      <AdditionalIncludeDirectories>$(SolutionDir)\include;$(SolutionDir)\source;$(SolutionDir)\lib\MemoryMapping;$(SolutionDir)\lib\asio\asio\include;$(SolutionDir)\lib\spdlog\include;$(SolutionDir)\lib\FruitBowl\include;$(SolutionDir)\lib\digestpp;$(SolutionDir)\lib\cpp-base64;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)\include;$(SolutionDir)\source;$(SolutionDir)\lib\MemoryMapping;$(SolutionDir)\lib\asio\asio\include;$(SolutionDir)\lib\spdlog\include;$(SolutionDir)\lib\FruitBowl\include;$(SolutionDir)\lib\digestpp;$(SolutionDir)\lib\cpp-base64;$(SolutionDir)\lib\rapidjson\include;</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>COMPILING_DLL;WIN32_LEAN_AND_MEAN;_WIN32_WINNT=_WIN32_WINNT_WIN10;ASIO_DISABLE_IOCP;_WINSOCK_DEPRECATED_NO_WARNINGS;%(PreprocessorDefinitions);</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
@@ -44,7 +44,8 @@
     <ClInclude Include="lib\asio\asio\include\**\*.*pp" />
     <ClInclude Include="lib\FruitBowl\include\**\*.h" />
     <ClInclude Include="lib\digestpp\**\*.hpp" />
-    <ClInclude Include="lib\cpp-base64\base64." />
+    <ClInclude Include="lib\cpp-base64\base64.h" />
+    <ClInclude Include="lib\rapidjson\include\**\*.h" />
   </ItemGroup>
   <Target Name="CopyFiles">
     <Copy SourceFiles="$(OutDir)\Ehbanana.lib" DestinationFiles="$(SolutionDir)\include\Ehbanana.lib"/>

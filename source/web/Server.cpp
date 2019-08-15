@@ -138,7 +138,7 @@ void Server::run() {
       std::string endpointString = endpoint.address().to_string() + ":" +
                                    std::to_string(endpoint.port());
       spdlog::info("Opening connection to {}", endpointString);
-      connections.push_back(new Connection(socket, endpointString, now));
+      connections.push_back(new Connection(socket, endpointString, now, gui));
       socket       = nullptr;
       didSomething = true;
     } else if (errorCode != asio::error::would_block) {
@@ -184,7 +184,6 @@ void Server::run() {
       }
       if (now > timeoutTime) {
         // Server had no connections for the timeout time
-        running = false;
         EBEnqueueMessage({gui, EBMSGType_t::SHUTDOWN});
         EBEnqueueMessage({gui, EBMSGType_t::QUIT});
       }

@@ -16,13 +16,12 @@ ResultCode_t __stdcall guiProcess(const EBMessage_t & msg) {
     case EBMSGType_t::SHUTDOWN:
       EBLogInfo("Server shutting down");
       break;
-    case EBMSGType_t::INPUT_FORM:
-      if (msg.htmlID.empty())
+    case EBMSGType_t::INPUT:
+      if (msg.htmlID.getString().empty())
         return ResultCode_t::INVALID_DATA;
-      EBLogInfo(("Received input from #" + msg.htmlID).c_str());
-      if (msg.htmlID.compare("Exit")) {
-        return EBEnqueueQuitMessage(msg.gui);
-      }
+      EBLogInfo(("Received input from #" + msg.htmlID.getString() +
+                 " value: \"" + msg.htmlValue.getString() + "\"")
+                    .c_str());
       break;
     default:
       return EBDefaultGUIProcess(msg);

@@ -2,6 +2,7 @@
 #define _WEB_WEBSOCKET_WEBSOCKET_H_
 
 #include "..\AppProtocol.h"
+#include "Ehbanana.h"
 #include "Frame.h"
 
 namespace Web {
@@ -12,7 +13,7 @@ public:
   WebSocket(const WebSocket &) = delete;
   WebSocket & operator=(const WebSocket &) = delete;
 
-  WebSocket();
+  WebSocket(EBGUI_t gui);
   ~WebSocket();
 
   Result processReceiveBuffer(const uint8_t * begin, size_t length);
@@ -21,9 +22,13 @@ public:
   bool sendAliveCheck();
 
 private:
+  Result processFrameText();
+
   Frame frame;
 
   bool pingSent = false;
+
+  EBGUI_t gui;
 };
 
 } // namespace WebSocket

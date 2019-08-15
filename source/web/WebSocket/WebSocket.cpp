@@ -1,5 +1,6 @@
 #include "WebSocket.h"
 
+#include <rapidjson/document.h>
 #include <spdlog/spdlog.h>
 
 namespace Web {
@@ -8,8 +9,9 @@ namespace WebSocket {
 /**
  * @brief Construct a new WebSocket::WebSocket object
  *
+ * @param gui that owns this server
  */
-WebSocket::WebSocket() {}
+WebSocket::WebSocket(EBGUI_t gui) : gui(gui) {}
 
 /**
  * @brief Destroy the WebSocket::WebSocket object
@@ -31,11 +33,14 @@ Result WebSocket::processReceiveBuffer(const uint8_t * begin, size_t length) {
 
   switch (frame.getOpcode()) {
     case Opcode_t::TEXT:
-      spdlog::debug("WebSocket received text: \"{}\"", frame.getData());
+      result = processFrameText();
+      if (!result)
+        return result;
       break;
     case Opcode_t::BINARY:
       fseek(frame.getDataFile(), 0L, SEEK_END);
-      spdlog::debug("WebSocket received binary of length: {}", ftell(frame.getDataFile()));
+      spdlog::debug("WebSocket received binary of length: {}",
+          ftell(frame.getDataFile()));
       break;
     case Opcode_t::PING:
       spdlog::debug("WebSocket received ping");
@@ -65,6 +70,41 @@ Result WebSocket::processReceiveBuffer(const uint8_t * begin, size_t length) {
   }
 
   return ResultCode_t::INCOMPLETE;
+}
+
+/**
+ * @brief Process the current frame as text by parsing the JSON and enqueuing a
+ * message
+ *
+ * @return Result
+ */
+Result WebSocket::processFrameText() {
+  EBMessage_t msg;
+  msg.gui = gui;
+  msg.type = EBMSGType_t::INPUT;
+  // Parse JSON
+  rapidjson::Document d;
+  if (d.Parse(frame.getData().c_str()).HasParseError())
+    return ResultCode_t::READ_FAULT + frame.getData() + "Parsing JSON";
+
+  // Populate message
+  rapidjson::Value::MemberIterator i = d.FindMember("name");
+  if (i == d.MemberEnd() || !i->value.IsString())
+    return ResultCode_t::INVALID_DATA + frame.getData() + "No \"name\"";
+  msg.htmlID.add(i->value.GetString());
+  i = d.FindMember("value");
+  if (i == d.MemberEnd() || !i->value.IsString())
+    return ResultCode_t::INVALID_DATA + frame.getData() + "No \"value\"";
+  msg.htmlValue.add(i->value.GetString());
+  i = d.FindMember("checked");
+  if (i != d.MemberEnd()) {
+    if (!i->value.IsBool())
+      return ResultCode_t::INVALID_DATA + frame.getData() +
+             "\"checked\" is not a bool";
+    msg.checked.add(i->value.GetBool() ? "true" : "false");
+  }
+  EBEnqueueMessage(msg);
+  return ResultCode_t::SUCCESS;
 }
 
 /**
