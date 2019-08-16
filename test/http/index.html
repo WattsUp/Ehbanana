@@ -4,18 +4,20 @@
 <head>
   <meta charset="utf-8">
   <title>Ehbanana</title>
-  <link rel="stylesheet" href="/standardstyle.css">
+  <link rel="stylesheet" href="/style.css">
   <link rel="stylesheet" href="/fonts/fonts.css">
   <meta name="theme-color" content="#FFE135">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <script src="/Ehbanana.js" async></script>
+  <script src="/main.js" async></script>
+  <script src="/Chart.bundle.min.js" async></script>
 </head>
 
 <body>
   <header>
     <h1 class="text-align-center text-title">Ehbanana Hello World</h1>
     <h4 class="text-align-center text-title">Powered by Ehbanana</h4>
-    <h5 class="text-align-center text-body"id="websocket-port">Status: no js yet</h5>
+    <h5 class="text-align-center text-body" id="websocket-status">Status: no javascript yet</h5>
     <hr class="section-break background-quaternary">
   </header>
   <div class="main-text text-body">
@@ -25,87 +27,107 @@
     <h2>Input and Output</h2>
     <p>The various HTML5 inputs generate a message that is sent to the backend for processing. The backend sends back a
       message with a response to output</p>
-    <p>
-      <h5>Text</h5><input type="text" value="" size="30" placeholder="Enter text to reverse it"><input type="text">
-    </p>
-    <p>
-      <h5>Password</h5><input type="password" value="" size="30" placeholder="Enter password"><input type="text">
-    </p>
-    <p>
-      <h5>Button</h5><input type="button" value="What is the meaning of life?">
-    </p>
-    <p>
+    <div class="io-div">
+      <h5>Text</h5>
+      <input type="text" value="" size="30" placeholder="Enter text to reverse it" class="eb-input text-body-bold"
+        name="text-in">
+      <div class="output text-body-bold" id="text-out"></div>
+    </div>
+    <div class="io-div">
+      <h5>Password</h5>
+      <input type="password" value="" size="30" placeholder="Enter password" class="eb-input text-body-bold"
+        id="password-in">
+      <div class="output text-body-bold" id="password-out"></div>
+    </div>
+    <div class="io-div">
+      <h5>Button</h5>
+      <input type="button" value="What is the meaning of life?" name="life-in"
+        class="eb-input text-body-bold button-accent">
+      <div class="output text-body-bold" id="life-out"></div>
+    </div>
+    <div class="io-div">
       <h5>Radio Button</h5>
-      <input type="radio" name="fruit" value="Apple">Apple<br>
-      <input type="radio" name="fruit" value="Banana">Banana<br>
-      <input type="radio" name="fruit" value="Orange">Orange<br>
-    </p>
-    <p>
+      <div>
+        <input type="radio" name="fruit" value="Apple" class="eb-input button-accent">Apple<br>
+        <input type="radio" name="fruit" value="Banana" class="eb-input">Banana<br>
+        <input type="radio" name="fruit" value="Orange" class="eb-input">Orange<br>
+      </div>
+      <div class="output text-body-bold" id="fruit-out"></div>
+    </div>
+    <div class="io-div">
       <h5>Checkbox</h5>
-      <input type="checkbox" value="Apple">Apple<br>
-      <input type="checkbox" value="Banana">Banana<br>
-      <input type="checkbox" value="Orange">Orange<br>
-    </p>
-    <p>
+      <div>
+        <input type="checkbox" name="fruit-checkbox0" value="Apple" class="eb-input">Apple<br>
+        <input type="checkbox" name="fruit-checkbox1" value="Banana" class="eb-input">Banana<br>
+        <input type="checkbox" name="fruit-checkbox2" value="Orange" class="eb-input">Orange<br>
+      </div>
+      <div class="output text-body-bold" id="fruit-check-out"></div>
+    </div>
+    <div class="io-div">
       <h5>Color</h5>
-      <input type="color"> inverted =
-      <input type="color">
-    </p>
-    <p>
+      <input type="color" name="color-in" class="eb-input" style="height: 2rem">
+      <input type="color" id="color-out" style="height: 2rem">
+    </div>
+    <div class="io-div">
       <h5>Date</h5>
-      <input type="date"> + 10 days =
-      <input type="date">
-    </p>
-    <p>
+      <input type="date" name="date-in" class="eb-input">
+      <input type="date" id="date-out">
+    </div>
+    <div class="io-div">
       <h5>Datetime Local</h5>
-      <input type="datetime-local"> + 10 days =
-      <input type="datetime-local">
-    </p>
-    <p>
+      <input type="datetime-local" name="datetime-in" class="eb-input">
+      <input type="datetime-local" id="datetime-out">
+    </div>
+    <div class="io-div">
       <h5>Email</h5>
-      <input type="email">
-      <input type="text">
-    </p>
-    <p>
+      <input type="email" name="email-in" class="eb-input text-body-bold" placeholder="Enter email">
+      <div class="output text-body-bold" id="email-out"></div>
+    </div>
+    <div class="io-div">
       <h5>File</h5>
-      <input type="file">
-      <input type="text">
-    </p>
-    <p>
+      <input type="file" name="file-in" class="eb-input text-body-bold">
+      <div class="output text-body-bold" id="file-out"></div>
+    </div>
+    <div class="io-div">
       <h5>Month</h5>
-      <input type="month"> + 1 month
-      <input type="month">
-    </p>
-    <p>
+      <input type="month" name="month-in" class="eb-input">
+      <input type="month" id="month-out">
+    </div>
+    <div class="io-div">
       <h5>Number</h5>
-      <input type="number"> * 2 =
-      <input type="number">
-    </p>
-    <p>
+      <input type="number" name="number-in" class="eb-input">
+      <div class="output text-body-bold" id="number-out"></div>
+    </div>
+    <div class="io-div">
       <h5>Range</h5>
-      <input type="range"> * 2 =
-      <input type="number">
-    </p>
-    <p>
+      <input type="range" name="range-in" class="eb-input">
+      <div class="output text-body-bold" id="range-out"></div>
+    </div>
+    <div class="io-div">
       <h5>Telephone</h5>
-      <input type="tel">
-    </p>
-    <p>
+      <input type="tel" name="tel-in" class="eb-input">
+      <div class="output text-body-bold" id="tel-out"></div>
+    </div>
+    <div class="io-div">
       <h5>Time</h5>
-      <input type="time"> + 3 minutes =
-      <input type="time">
-    </p>
-    <p>
+      <input type="time" name="time-in" class="eb-input">
+      <input type="time" id="time-out">
+    </div>
+    <div class="io-div">
       <h5>URL</h5>
-      <input type="url">
-    </p>
+      <input type="url" name="url-in" class="eb-input">
+      <div class="output text-body-bold" id="url-out"></div>
+    </div>
     <hr class="section-break background-tertiary">
     <h2>Streaming</h2>
     <p>The backend can push processed data to the GUI</p>
-    <input type="number">
+    <div class="io-div">
+      <div class="text-body-bold">Random number 0-255:</div>
+      <div class="output text-body-bold" id="stream-out" ebcallback="updateChart"></div>
+    </div>
     <p>Which can be presented in any way without affecting the backend. The following uses <a
         href="https://www.chartjs.org">ChartJS</a>.</p>
-    <canvas id="myChart" width="400" height="400"></canvas>
+    <canvas id="stream-out-chart" width="400" height="400"></canvas>
   </div>
 </body>
 

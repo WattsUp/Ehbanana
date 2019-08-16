@@ -68,40 +68,29 @@ ResultCode_t EBCreateGUI(EBGUISettings_t guiSettings, EBGUI_t & gui) {
   }
 
   // Construct a new server and attach it to the EBGUI
-  try {
-    gui->server = new Web::Server(guiSettings.httpRoot, guiSettings.configRoot);
-  } catch (const std::exception & e) {
-    delete gui->server;
-    if (strncmp(e.what(), "[0x10]", 6) == 0) {
-      // Exception was "OPEN_FAILED"
+  gui->server = new Web::Server(gui);
+  result = gui->server->configure(guiSettings.httpRoot, guiSettings.configRoot);
+  if (!result) {
+    if (result == ResultCode_t::OPEN_FAILED) {
       // Most likely: the working directory is not correct
       // Try again with the one folder up
-      try {
-        guiSettings.httpRoot   = "../" + guiSettings.httpRoot;
-        guiSettings.configRoot = "../" + guiSettings.configRoot;
-        gui->server =
-            new Web::Server(guiSettings.httpRoot, guiSettings.configRoot);
-      } catch (const std::exception & e) {
-        // No hope
-        delete gui;
-        return setLastResult(ResultCode_t::EXCEPTION_OCCURED + e.what() +
-                             "Constructing new server");
-      }
-    } else {
-      delete gui;
-      return setLastResult(ResultCode_t::EXCEPTION_OCCURED + e.what() +
-                           "Constructing new server");
-    }
+      spdlog::info("Could not open http and config root, trying one folder up");
+      guiSettings.httpRoot   = "../" + guiSettings.httpRoot;
+      guiSettings.configRoot = "../" + guiSettings.configRoot;
+      result =
+          gui->server->configure(guiSettings.httpRoot, guiSettings.configRoot);
+      if (!result) // No hope
+        return setLastResult(result + "Configuring new server");
+    } else
+      return setLastResult(result + "Configuring new server");
   }
 
-  result = gui->server->initialize("127.0.0.1", guiSettings.httpPort);
+  result = gui->server->initializeSocket("127.0.0.1", guiSettings.httpPort);
   if (!result) {
     delete gui->server;
     delete gui;
-    return setLastResult(result + "Initializing server");
+    return setLastResult(result + "Initializing server's socket");
   }
-
-  gui->server->setGUIPort(guiSettings.guiPort);
 
   gui->server->start();
 
@@ -189,8 +178,14 @@ ResultCode_t EBEnqueueMessage(const EBMessage_t & msg) {
 }
 
 ResultCode_t EBDefaultGUIProcess(const EBMessage_t & msg) {
-  std::cout << "GUI sent message of type " << (uint16_t)msg.type << "\n";
-  return setLastResult(ResultCode_t::NOT_SUPPORTED + "DefaultGUIProcess");
+  switch (msg.type) {
+    case EBMSGType_t::OUTPUT:
+      msg.gui->server->enqueueOutput(msg);
+      break;
+    default:
+      return setLastResult(ResultCode_t::NOT_SUPPORTED + "Default GUI process");
+  }
+  return setLastResult(ResultCode_t::SUCCESS);
 }
 
 ResultCode_t EBConfigureLogging(const char * fileName, bool rotatingLogs,

@@ -1,7 +1,7 @@
 #ifndef _EHBANANA_H_
 #define _EHBANANA_H_
 
-#include <ResultCode.h>
+#include <FruitBowl.h>
 
 #include <Windows.h>
 #include <string>
@@ -16,23 +16,33 @@ struct EBGUI;
 typedef EBGUI * EBGUI_t;
 
 enum class EBMSGType_t : uint16_t {
-  NONE,       // There is no message
-  STARTUP,    // The web server has started up
-  SHUTDOWN,   // The web server is about to shutdown
-  QUIT,       // The web server has quit
-  INPUT_FORM, // input from a form element has changed
+  NONE,     // There is no message
+  STARTUP,  // The web server has started up
+  SHUTDOWN, // The web server is about to shutdown
+  QUIT,     // The web server has quit
+  INPUT,    // An input element has changed
+  OUTPUT,   // An output element is going to change
 };
 
 /**
  * @brief Message between front end and back end
  *
+ * @param gui object to alert
  * @param type of the message
- * @param htmlID string tag of the sender or recipient html element
+ * @param htmlID of source or destination element
+ * @param htmlValue of source or destination element
+ * @param checked is non empty when element is a checkbox, "true" or "false"
+ * @param file handle when element is a file
+ * @param fileSize if handle is valid
  */
 struct EBMessage_t {
   EBGUI_t     gui;
   EBMSGType_t type;
-  std::string htmlID;
+  Hash        htmlID;
+  Hash        htmlValue;
+  Hash        checked;
+  FILE *      file;
+  size_t      fileSize;
 };
 
 /**
@@ -50,14 +60,12 @@ typedef ResultCode_t(__stdcall * EBGUIProcess_t)(const EBMessage_t &);
  * @param configRoot directory containing configuration files
  * @param httpRoot directory containing HTTP top level
  * @param httpPort http server will attempt to open to
- * @param guiPort gui server will attempt to open to
  */
 struct EBGUISettings_t {
   EBGUIProcess_t guiProcess = nullptr;
   std::string    configRoot;
   std::string    httpRoot;
   uint16_t       httpPort = 0;
-  uint16_t       guiPort  = 0;
 };
 
 namespace Web {
@@ -114,7 +122,7 @@ extern "C" EHBANANA_API ResultCode_t EBDestroyGUI(EBGUI_t gui);
  * Returns ResultCode_tCode_t::SUCCESS when the message type is QUIT
  * Returns ResultCode_tCode_t::NO_OPERATION when the queue is empty
  * Returns ResultCode_tCode_t::INCOMPLETE when the message type is not quit and
- * no other errors occured
+ * no other errors occurred
  *
  * @param msg to write into
  * @return ResultCode_t error code

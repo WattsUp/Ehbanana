@@ -10,14 +10,16 @@ namespace Web {
  *
  * @param socket to read from and write to
  * @param endpoint socket is connected to
- * @param requestHandler to use to process requests
+ * @param now current timestamp
+ * @param gui that owns this server
  */
-Connection::Connection(asio::ip::tcp::socket * socket,
-    asio::ip::tcp::endpoint endpoint, RequestHandler * requestHandler) :
-  request(endpoint) {
-  this->socket         = socket;
-  this->endpoint       = endpoint;
-  this->requestHandler = requestHandler;
+Connection::Connection(asio::ip::tcp::socket * socket, std::string endpoint,
+    const std::chrono::time_point<std::chrono::system_clock> & now,
+    EBGUI_t                                                    gui) :
+  socket(socket),
+  endpoint(endpoint), gui(gui) {
+  this->timeoutTime = now + TIMEOUT;
+
   socket->non_blocking(true);
 
   asio::socket_base::keep_alive option(true);
@@ -33,7 +35,7 @@ Connection::~Connection() {
 }
 
 /**
- * @brief Update the current operation, read or write
+ * @brief Update the current operation based on the protocol
  *
  * Returns ResultCode_t::INCOMPLETE if more operations are required
  * Returns ResultCode_t::NO_OPERATION if nothing happenend this update
@@ -44,63 +46,69 @@ Connection::~Connection() {
  */
 Result Connection::update(
     const std::chrono::time_point<std::chrono::system_clock> & now) {
-  Result result;
-  switch (state) {
-    case State_t::IDLE:
-      reply.stockReply(HTTPStatus_t::OK);
-      state       = State_t::READING;
-      timeoutTime = now + TIMEOUT;
-      // Fall through
-    case State_t::READING:
-      result = read();
-      if (result)
-        state = State_t::READING_DONE;
-      else if (result == ResultCode_t::INCOMPLETE)
-        return ResultCode_t::INCOMPLETE;
-      else if (result == ResultCode_t::NO_OPERATION)
-        return (now < timeoutTime)
-                   ? ResultCode_t::NO_OPERATION
-                   : ResultCode_t::TIMEOUT + "Reading connection";
-      else {
-        // An error occurred while reading the request, generate the appropriate
-        // stock reply
-        spdlog::warn(result.getMessage());
-        reply.stockReply(result);
-        state = State_t::WRITING;
-      }
-      break;
-    case State_t::READING_DONE:
-      result = requestHandler->handle(request, reply);
-      if (!result) {
-        // An error occurred while reading the request, generate the appropriate
-        // stock reply
-        spdlog::warn(result.getMessage());
-        reply.stockReply(result);
-      }
-
-      reply.setKeepAlive(request.isKeepAlive());
-      state = State_t::WRITING;
-      break;
-    case State_t::WRITING:
-      result = write();
-      if (!result)
-        return result + "Writing connection";
-      state = State_t::WRITING_DONE;
-      break;
-    case State_t::WRITING_DONE:
-      if (request.isKeepAlive()) {
-        reply.reset();
-        request.reset();
-        state = State_t::IDLE;
-      } else
-        state = State_t::COMPLETE;
-      break;
-    case State_t::COMPLETE:
-      return ResultCode_t::SUCCESS;
-    default:
-      return ResultCode_t::INVALID_STATE + "During connection update";
+  Result           result;
+  asio::error_code errorCode;
+  size_t           length = socket->available(errorCode);
+  if (errorCode) {
+    return ResultCode_t::READ_FAULT + errorCode.message() +
+           ("Checking available bytes for " + endpoint);
   }
+  if (length != 0) {
+    timeoutTime = now + TIMEOUT;
+    // Bytes available to read.
+    length = socket->read_some(asio::buffer(bufferReceive), errorCode);
+    if (!errorCode) {
+      result = protocol->processReceiveBuffer(bufferReceive.data(), length);
+      if (!result)
+        return result;
+    } else
+      return ResultCode_t::READ_FAULT + errorCode.message() + endpoint;
+  }
+  if (protocol->hasTransmitBuffers()) {
+    timeoutTime = now + TIMEOUT;
+    length      = socket->write_some(protocol->getTransmitBuffers(), errorCode);
+    if (errorCode == asio::error::would_block) {
+      return ResultCode_t::INCOMPLETE;
+    } else if (!errorCode) {
+      if (protocol->updateTransmitBuffers(length)) {
+        return ResultCode_t::INCOMPLETE;
+      }
+    } else
+      return ResultCode_t::WRITE_FAULT + errorCode.message() + endpoint;
+  }
+  if (protocol->isDone()) {
+    switch (protocol->getChangeRequest()) {
+      case AppProtocol_t::HTTP:
+        delete protocol;
+        protocol = new HTTP::HTTP();
+        return ResultCode_t::INCOMPLETE;
+      case AppProtocol_t::WEBSOCKET:
+        delete protocol;
+        protocol = new WebSocket::WebSocket(gui);
+        return ResultCode_t::INCOMPLETE;
+      case AppProtocol_t::NONE:
+        return ResultCode_t::SUCCESS;
+      default:
+        return ResultCode_t::INVALID_STATE +
+               ("Connection AppProtocol change to: " +
+                   std::to_string(
+                       static_cast<uint8_t>(protocol->getChangeRequest())));
+    }
+  }
+  if (now > timeoutTime && protocol->sendAliveCheck())
+    return ResultCode_t::TIMEOUT;
   return ResultCode_t::NO_OPERATION;
+}
+
+/**
+ * @brief Add a message to the protocol to transmit out if available
+ * returns ResultCode_t::NOT_SUPPORTED if not compatible with the protocol
+ *
+ * @param msg to add
+ * @return Result
+ */
+Result Connection::addMessage(const EBMessage_t & msg) {
+  return protocol->addMessage(msg);
 }
 
 /**
@@ -115,6 +123,8 @@ void Connection::stop() {
   }
   delete socket;
   socket = nullptr;
+  delete protocol;
+  protocol = nullptr;
 }
 
 /**
@@ -122,49 +132,8 @@ void Connection::stop() {
  *
  * @return const std::string & endpoint string
  */
-std::string Connection::getEndpointString() const {
-  std::ostringstream os;
-  os << endpoint;
-  return os.str();
-}
-
-/**
- * @brief Read data from the socket into a request and process if reading is
- * complete
- *
- * Returns ResultCode_t::INCOMPLETE if more reading is required
- * Returns ResultCode_t::NO_OPERATION if nothing was read and nothing was
- * expected
- *
- * @return Result error code
- */
-Result Connection::read() {
-  asio::error_code errorCode;
-  size_t           length = socket->read_some(asio::buffer(buffer), errorCode);
-  if (!errorCode) {
-    return request.parse(buffer.data(), buffer.data() + length);
-  } else if (errorCode == asio::error::would_block)
-    return request.isParsing() ? ResultCode_t::INCOMPLETE
-                               : ResultCode_t::NO_OPERATION;
-  return ResultCode_t::READ_FAULT;
-}
-
-/**
- * @brief Write data to the socket from a reply
- *
- * Returns ResultCode_t::INCOMPLETE if more writing is required
- *
- * @return Result error code
- */
-Result Connection::write() {
-  asio::error_code errorCode;
-  size_t           length = socket->write_some(reply.getBuffers(), errorCode);
-  if (reply.updateBuffers(length)) {
-    if (!errorCode || errorCode == asio::error::would_block)
-      return ResultCode_t::INCOMPLETE;
-  } else if (!errorCode)
-    return ResultCode_t::SUCCESS;
-  return ResultCode_t::WRITE_FAULT;
+const std::string & Connection::getEndpoint() const {
+  return endpoint;
 }
 
 } // namespace Web

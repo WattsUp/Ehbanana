@@ -1,8 +1,6 @@
 #ifndef _WEB_REPLY_H_
 #define _WEB_REPLY_H_
 
-#include "Header.h"
-
 #include <FruitBowl.h>
 #include <MemoryMapped.h>
 #include <asio.hpp>
@@ -12,8 +10,10 @@
 #include <vector>
 
 namespace Web {
+namespace HTTP {
 
-enum class HTTPStatus_t : uint16_t {
+enum class Status_t : uint16_t {
+  SWITCHING_PROTOCOLS   = 101,
   OK                    = 200,
   CREATED               = 201,
   ACCEPTED              = 202,
@@ -32,8 +32,9 @@ enum class HTTPStatus_t : uint16_t {
   SERVICE_UNAVAILABLE   = 503
 };
 
-namespace HTTPStatusString {
+namespace StatusString {
 // clang-format off
+const std::string SWITCHING_PROTOCOLS   = "HTTP/1.0 101 Switching Protocols";
 const std::string OK                    = "HTTP/1.0 200 OK";
 const std::string CREATED               = "HTTP/1.0 201 Created";
 const std::string ACCEPTED              = "HTTP/1.0 202 Accepted";
@@ -51,9 +52,9 @@ const std::string NOT_IMPLEMENTED       = "HTTP/1.0 501 Not Implemented";
 const std::string BAD_GATEWAY           = "HTTP/1.0 502 Bad Gateway";
 const std::string SERVICE_UNAVAILABLE   = "HTTP/1.0 503 Service Unavailable";
 // clang-format on
-} // namespace HTTPStatusString
+} // namespace StatusString
 
-namespace HTTPStockResponse {
+namespace StockReply {
 // clang-format off
 const std::string OK =
     "<html>"
@@ -136,22 +137,24 @@ const std::string SERVICE_UNAVAILABLE =
     "<body><h1>503 Service Unavailable</h1></body>"
     "</html>";
 // clang-format on
-} // namespace HTTPStockResponse
+} // namespace StockReply
 
 const std::string STRING_CRLF                 = "\r\n";
 const std::string STRING_NAME_VALUE_SEPARATOR = ": ";
 
+struct Header_t {
+  std::string name;
+  std::string value;
+};
+
 class Reply {
 public:
-  Reply(const Reply &) = delete;
-  Reply & operator=(const Reply &) = delete;
-
   Reply();
   ~Reply();
+  Reply(const Reply & that);
+  Reply & operator=(const Reply & that);
 
-  void reset();
-
-  void setStatus(HTTPStatus_t httpStatus);
+  void setStatus(Status_t httpStatus);
   void setKeepAlive(bool keepAlive);
   void addHeader(const std::string & name, const std::string & value);
   void appendContent(std::string string);
@@ -159,10 +162,8 @@ public:
 
   const std::vector<asio::const_buffer> & getBuffers();
 
-  bool updateBuffers(size_t bytesWritten = 0);
-
-  void stockReply(HTTPStatus_t httpStatus);
-  void stockReply(Result result);
+  static Reply stockReply(Status_t httpStatus);
+  static Reply stockReply(Result result);
 
 private:
   asio::const_buffer statusToBuffer();
@@ -171,10 +172,10 @@ private:
   std::string                     content;
   std::vector<asio::const_buffer> buffers;
   std::vector<Header_t>           headers;
-  size_t                          bytesRemaining = 0;
-  HTTPStatus_t                    status;
+  Status_t                        status         = Status_t::OK;
 };
 
+} // namespace HTTP
 } // namespace Web
 
 #endif /* _WEB_REPLY_H_ */

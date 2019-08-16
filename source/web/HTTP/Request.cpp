@@ -4,42 +4,30 @@
 #include <sstream>
 
 namespace Web {
+namespace HTTP {
 
 /**
  * @brief Construct a new Request:: Request object
  *
- * @param endpoint that sourced this request
  */
-Request::Request(asio::ip::tcp::endpoint endpoint) {
-  this->endpoint = endpoint;
-}
+Request::Request() {}
 
 /**
- * @brief Reset all fields to their default state
+ * @brief Destroy the Request:: Request object
  *
  */
-void Request::reset() {
-  state         = ParsingState_t::IDLE;
-  method        = Hash();
-  uri           = Hash();
-  httpVersion   = Hash();
-  contentLength = 0;
-  keepAlive     = false;
-  body.clear();
-  headers.clear();
-  queries.clear();
-}
+Request::~Request() {}
 
 /**
  * @brief Parse a string and add its contents to the request
  *
- * The string may be a portion of the entire request
+ * The string may be a fragment of the entire request
  *
  * @param begin character pointer
  * @param end character pointer
  * @return Result error code
  */
-Result Request::parse(char * begin, char * end) {
+Result Request::parse(const uint8_t * begin, const uint8_t * end) {
   Result result;
   // For every character in the array, add it to the appropriate field based on
   // the current parsing state
@@ -50,9 +38,9 @@ Result Request::parse(char * begin, char * end) {
     }
     ++begin;
   }
-  if (state == ParsingState_t::BODY && contentLength == body.size())
+  if (state == State_t::BODY && headers.getContentLength() == body.size())
     return ResultCode_t::SUCCESS;
-  else if (body.size() > contentLength)
+  else if (body.size() > headers.getContentLength())
     return ResultCode_t::BUFFER_OVERFLOW +
            "Request body size is longer than content length";
   else
@@ -65,49 +53,49 @@ Result Request::parse(char * begin, char * end) {
  * @param c character to parse
  * @return Result error code
  */
-Result Request::parse(char c) {
+Result Request::parse(uint8_t c) {
   Result result;
   switch (state) {
-    case ParsingState_t::IDLE:
-      state = ParsingState_t::METHOD;
+    case State_t::IDLE:
+      state = State_t::METHOD;
       // Fall through
-    case ParsingState_t::METHOD:
+    case State_t::METHOD:
       if (c == ' ') {
-        state  = ParsingState_t::URI;
+        state  = State_t::URI;
         result = validateMethod();
         if (!result)
           return result + "Validating request method";
       } else
         method.add(c);
       break;
-    case ParsingState_t::URI:
+    case State_t::URI:
       if (c == ' ') {
-        state  = ParsingState_t::HTTP_VERSION;
+        state  = State_t::HTTP_VERSION;
         result = decodeURI(uri);
         if (!result)
           return result + "Decoding request URI";
       } else if (c == '?') {
-        state  = ParsingState_t::QUERY_NAME;
+        state  = State_t::QUERY_NAME;
         result = decodeURI(uri);
         if (!result)
           return result + "Decoding request URI";
       } else
         uri.add(c);
       break;
-    case ParsingState_t::QUERY_NAME: {
+    case State_t::QUERY_NAME: {
       // If there are no queries or the last query is already complete, add a
       // new one
       if (queries.empty() || queries.back().value.isDone())
         queries.push_back(HeaderHash_t());
       HeaderHash_t & query = queries.back();
       if (c == '=') {
-        state  = ParsingState_t::QUERY_VALUE;
+        state  = State_t::QUERY_VALUE;
         result = decodeURI(query.name);
         if (!result)
           return result + "Decoding request URI of query name";
       } else if (c == ' ') {
         // Valueless query
-        state  = ParsingState_t::HTTP_VERSION;
+        state  = State_t::HTTP_VERSION;
         result = decodeURI(query.name);
         if (!result)
           return result + "Decoding request URI of query name";
@@ -115,76 +103,63 @@ Result Request::parse(char c) {
         query.name.add(c);
 
     } break;
-    case ParsingState_t::QUERY_VALUE: {
+    case State_t::QUERY_VALUE: {
       HeaderHash_t & query = queries.back();
       if (c == ' ') {
-        state  = ParsingState_t::HTTP_VERSION;
+        state  = State_t::HTTP_VERSION;
         result = decodeURI(query.value);
         query.value.setDone(true);
         if (!result)
           return result + "Decoding request URI of query value";
       } else if (c == '&') {
-        state  = ParsingState_t::QUERY_NAME;
+        state  = State_t::QUERY_NAME;
         result = decodeURI(query.value);
         if (!result)
           return result + "Decoding request URI of query value";
       } else
         query.value.add(c);
     } break;
-    case ParsingState_t::HTTP_VERSION:
+    case State_t::HTTP_VERSION:
       if (c == '\n') {
-        state  = ParsingState_t::HEADER_NAME;
+        state  = State_t::HEADER_NAME;
         result = validateHTTPVersion();
         if (!result)
           return result + "Validating request HTTP version";
       } else if (c != '\r')
         httpVersion.add(c);
       break;
-    case ParsingState_t::HEADER_NAME: {
+    case State_t::HEADER_NAME: {
       if (c == '\r') {
-        state = ParsingState_t::BODY_NEWLINE;
+        state = State_t::BODY_NEWLINE;
         break;
       }
       // If there are no headers or the last header is already complete, add a
       // new one
-      if (headers.empty() || headers.back().value.isDone())
-        headers.push_back(HeaderHash_t());
-      HeaderHash_t & header = headers.back();
       if (c == ' ') {
-        state = ParsingState_t::HEADER_VALUE;
+        state = State_t::HEADER_VALUE;
       } else if (c != ':')
-        header.name.add(c);
+        currentHeader.name.add(c);
     } break;
-    case ParsingState_t::HEADER_VALUE: {
-      HeaderHash_t & header = headers.back();
+    case State_t::HEADER_VALUE: {
       if (c == '\n') {
-        state = ParsingState_t::HEADER_NAME;
-        header.value.setDone(true);
-        if (header.name.get() == Hash::calculateHash("Content-Length")) {
-          contentLength =
-              static_cast<size_t>(std::stoll(header.value.getString()));
-          body.reserve(contentLength);
-        } else if (header.name.get() == Hash::calculateHash("Connection")) {
-          if (header.value.get() == Hash::calculateHash("keep-alive"))
-            keepAlive = true;
-          else if (header.value.get() == Hash::calculateHash("close"))
-            keepAlive = false;
-          else
-            return ResultCode_t::BAD_COMMAND +
-                   ("Request's Connection is " + header.value.getString());
-        }
+        state  = State_t::HEADER_NAME;
+        result = headers.addHeader(currentHeader);
+        if (!result)
+          return result + "Adding request header";
+        currentHeader = HeaderHash_t();
       } else if (c != '\r')
-        header.value.add(c);
+        currentHeader.value.add(c);
     } break;
-    case ParsingState_t::BODY_NEWLINE:
+    case State_t::BODY_NEWLINE:
       if (c == '\n') {
-        state = ParsingState_t::BODY;
+        state = State_t::BODY;
+        body.reserve(headers.getContentLength());
       } else
         return ResultCode_t::BAD_COMMAND +
                "Request is missing a blank new line after header";
       break;
-    case ParsingState_t::BODY:
-      if (contentLength == 0) {
+    case State_t::BODY:
+      if (headers.getContentLength() == 0) {
         spdlog::debug("Tried to add '{}' (0x{:02X}) to body", c, c);
         return ResultCode_t::BAD_COMMAND +
                "Request has body but zero content length";
@@ -240,13 +215,12 @@ Result Request::validateHTTPVersion() {
 }
 
 /**
- * @brief Get the keep alive status
+ * @brief Get the headers of the request
  *
- * @return true if keep alive was requested
- * @return false otherwise
+ * @return const RequestHeaders&
  */
-bool Request::isKeepAlive() {
-  return keepAlive;
+const RequestHeaders & Request::getHeaders() const {
+  return headers;
 }
 
 /**
@@ -256,8 +230,8 @@ bool Request::isKeepAlive() {
  * @return false otherwise
  */
 bool Request::isParsing() {
-  return state != ParsingState_t::IDLE &&
-         (state != ParsingState_t::BODY || contentLength != body.size());
+  return state != State_t::IDLE &&
+         (state != State_t::BODY || headers.getContentLength() != body.size());
 }
 
 /**
@@ -287,17 +261,6 @@ const Hash & Request::getURI() const {
  */
 const std::vector<HeaderHash_t> & Request::getQueries() const {
   return queries;
-}
-
-/**
- * @brief Get the endpoint of the request as a string
- *
- * @return const std::string & endpoint string
- */
-std::string Request::getEndpointString() const {
-  std::ostringstream os;
-  os << endpoint;
-  return os.str();
 }
 
 /**
@@ -372,4 +335,5 @@ Result Request::decodeHex(const std::string & hex, uint32_t & value) {
   return ResultCode_t::SUCCESS;
 }
 
+} // namespace HTTP
 } // namespace Web

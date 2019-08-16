@@ -1,5 +1,8 @@
 #include "Server.h"
 
+#include "HTTP/CacheControl.h"
+#include "HTTP/MIMETypes.h"
+
 #include <spdlog/spdlog.h>
 #include <string>
 
@@ -8,11 +11,9 @@ namespace Web {
 /**
  * @brief Construct a new Server:: Server object
  *
- * @param httpRoot directory to serve http pages
- * @param configRoot containing the configuration files
+ * @param gui that owns this server
  */
-Server::Server(const std::string & httpRoot, const std::string & configRoot) :
-  ioContext(1), acceptor(ioContext), requestHandler(httpRoot, configRoot) {}
+Server::Server(EBGUI_t gui) : ioContext(1), acceptor(ioContext), gui(gui) {}
 
 /**
  * @brief Destroy the Server:: Server object
@@ -20,6 +21,29 @@ Server::Server(const std::string & httpRoot, const std::string & configRoot) :
  */
 Server::~Server() {
   stop();
+}
+
+/**
+ * @brief Configure settings of the server, folder directories
+ *
+ * @param httpRoot directory to serve http pages
+ * @param configRoot containing the configuration files
+ * @return Result error code
+ */
+Result Server::configure(
+    const std::string & httpRoot, const std::string & configRoot) {
+  Result result;
+
+  HTTP::HTTP::setRoot(httpRoot);
+  result =
+      HTTP::CacheControl::Instance()->populateList(configRoot + "/cache.xml");
+  if (!result)
+    return result + "Configuring server's cache control";
+  result =
+      HTTP::MIMETypes::Instance()->populateList(configRoot + "/mime.types");
+  if (!result)
+    return result + "Configuring server's mime types";
+  return ResultCode_t::SUCCESS;
 }
 
 /**
@@ -32,7 +56,7 @@ Server::~Server() {
  * @param port to bind to
  * @return Result error code
  */
-Result Server::initialize(const std::string & addr, uint16_t port) {
+Result Server::initializeSocket(const std::string & addr, uint16_t port) {
   asio::ip::tcp::endpoint endpoint;
   try {
     asio::ip::address address = asio::ip::make_address(addr);
@@ -97,8 +121,12 @@ void Server::run() {
   asio::ip::tcp::endpoint endpoint;
   asio::error_code        errorCode;
   Result                  result;
-  bool                    didSomething = false;
-  auto                    now          = std::chrono::system_clock::now();
+  bool                    didSomething            = false;
+  bool                    outputMessageDispatched = false;
+
+  auto now         = std::chrono::system_clock::now();
+  auto timeoutTime = std::chrono::time_point<std::chrono::system_clock>::min();
+
   while (running) {
     didSomething = false;
     now          = std::chrono::system_clock::now();
@@ -108,7 +136,10 @@ void Server::run() {
       socket = new asio::ip::tcp::socket(ioContext);
     acceptor.accept(*socket, endpoint, errorCode);
     if (!errorCode) {
-      connections.push_back(new Connection(socket, endpoint, &requestHandler));
+      std::string endpointString = endpoint.address().to_string() + ":" +
+                                   std::to_string(endpoint.port());
+      spdlog::info("Opening connection to {}", endpointString);
+      connections.push_back(new Connection(socket, endpointString, now, gui));
       socket       = nullptr;
       didSomething = true;
     } else if (errorCode != asio::error::would_block) {
@@ -120,8 +151,17 @@ void Server::run() {
     // Process current connections
     std::list<Connection *>::iterator i   = connections.begin();
     std::list<Connection *>::iterator end = connections.end();
+    outputMessageDispatched               = false;
     while (i != end) {
       Connection * connection = *i;
+
+      // Add the next output message if available
+      if (!outputMessages.empty()) {
+        result = connection->addMessage(outputMessages.front());
+        if (result)
+          outputMessageDispatched = true;
+      }
+
       // Remove the connection and delete if update returns the connection is
       // complete
       result = connection->update(now);
@@ -132,17 +172,37 @@ void Server::run() {
         ++i;
       else {
         if (result == ResultCode_t::TIMEOUT)
-          spdlog::warn(result.getMessage());
+          spdlog::info(
+              "Closing connection to {} - Timeout", connection->getEndpoint());
         else if (!result)
-          spdlog::error(result.getMessage());
+          spdlog::error("Closing connection to {} - {}",
+              connection->getEndpoint(), result.getMessage());
+        else
+          spdlog::info(
+              "Closing connection to {} - Operations completed successfully",
+              connection->getEndpoint());
 
-        spdlog::debug(
-            "Closing connection to {}", connection->getEndpointString());
         connection->stop();
         delete connection;
         i = connections.erase(i);
       }
     }
+    if (connections.empty()) {
+      if (timeoutTime ==
+          std::chrono::time_point<std::chrono::system_clock>::min()) {
+        timeoutTime = now + TIMEOUT_NO_CONNECTIONS;
+      }
+      if (now > timeoutTime) {
+        // Server had no connections for the timeout time
+        EBEnqueueMessage({gui, EBMSGType_t::SHUTDOWN});
+        EBEnqueueMessage({gui, EBMSGType_t::QUIT});
+      }
+    } else {
+      timeoutTime = std::chrono::time_point<std::chrono::system_clock>::min();
+    }
+
+    if (outputMessageDispatched)
+      outputMessages.pop_front();
 
     // If nothing was processed this loop, sleep until the next to save CPU
     // usage
@@ -178,12 +238,12 @@ void Server::stop() {
 }
 
 /**
- * @brief Set the port used by the GUI
+ * @brief Enqueue a message to output to connected websockets
  *
- * @param port to set
+ * @param msg to enqueue
  */
-void Server::setGUIPort(uint16_t port) {
-  requestHandler.setGUIPort(port);
+void Server::enqueueOutput(const EBMessage_t & msg) {
+  outputMessages.push_back(msg);
 }
 
 /**

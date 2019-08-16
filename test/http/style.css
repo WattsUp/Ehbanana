@@ -1,9 +1,11 @@
 :root {
   --color-primary: #FFE135;
   --color-secondary: #F28123;
-  --color-tertiary: #D34E24;
+  --color-secondary-l50: #f9c091;
+  --color-tertiary: hsl(14, 71%, 48%);
   --color-quaternary: #563F1B;
   --color-accent: #38726C;
+  --color-accent-l50: #9cb9b6;
   --color-light: #FFFFFF;
   --color-dark: #282828;
 }
@@ -34,6 +36,20 @@
 
 body {
   min-height: 100vh;
+}
+
+.button-accent {
+  background: var(--color-accent-l50);
+  transition: color 0.3s, background 0.3s;
+}
+
+.button-accent:hover {
+  background: var(--color-accent);
+}
+
+.button-accent:active {
+  background: var(--color-dark);
+  color: var(--color-accent-l50);
 }
 
 h1 {
@@ -70,15 +86,19 @@ h5 {
   h1 {
     font-size: 3rem;
   }
+
   h2 {
     font-size: 2.5rem;
   }
+
   h3 {
     font-size: 2rem;
   }
+
   h4 {
     font-size: 1.5rem;
   }
+
   h5 {
     font-size: 1.25rem;
   }
@@ -100,6 +120,44 @@ html {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   text-size-adjust: 100%;
+}
+
+.io-div {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-evenly;
+  margin-bottom: 1rem;
+}
+
+.io-div>h5 {
+  width: 100%;
+}
+
+.io-div>input,
+.io-div>div {
+  width: 45%;
+}
+
+.io-div input,
+.io-div div {
+  font-size: 1rem;
+  border-width: 1px;
+  padding: 1px;
+  border-color: transparent;
+  border-style: solid;
+}
+
+.io-div input:not([type=button]) {
+  border-color: var(--color-accent);
+}
+
+.io-div input[type=color] {
+  background: var(--color-accent);
+}
+
+.io-div .output {
+  background: #f9c091;
+  background: var(--color-secondary-l50);
 }
 
 .main-text {
@@ -125,6 +183,11 @@ p {
 
 .text-body {
   font-family: quicksand;
+}
+
+.text-body-bold {
+  font-family: quicksand;
+  font-weight: bold;
 }
 
 .text-body-dash {
