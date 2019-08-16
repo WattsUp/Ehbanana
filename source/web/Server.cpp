@@ -121,7 +121,8 @@ void Server::run() {
   asio::ip::tcp::endpoint endpoint;
   asio::error_code        errorCode;
   Result                  result;
-  bool                    didSomething = false;
+  bool                    didSomething            = false;
+  bool                    outputMessageDispatched = false;
 
   auto now         = std::chrono::system_clock::now();
   auto timeoutTime = std::chrono::time_point<std::chrono::system_clock>::min();
@@ -150,8 +151,17 @@ void Server::run() {
     // Process current connections
     std::list<Connection *>::iterator i   = connections.begin();
     std::list<Connection *>::iterator end = connections.end();
+    outputMessageDispatched               = false;
     while (i != end) {
       Connection * connection = *i;
+
+      // Add the next output message if available
+      if (!outputMessages.empty()) {
+        result = connection->addMessage(outputMessages.front());
+        if (result)
+          outputMessageDispatched = true;
+      }
+
       // Remove the connection and delete if update returns the connection is
       // complete
       result = connection->update(now);
@@ -191,6 +201,9 @@ void Server::run() {
       timeoutTime = std::chrono::time_point<std::chrono::system_clock>::min();
     }
 
+    if (outputMessageDispatched)
+      outputMessages.pop_front();
+
     // If nothing was processed this loop, sleep until the next to save CPU
     // usage
     if (!didSomething)
@@ -222,6 +235,15 @@ void Server::stop() {
     delete connection;
   }
   connections.clear();
+}
+
+/**
+ * @brief Enqueue a message to output to connected websockets
+ *
+ * @param msg to enqueue
+ */
+void Server::enqueueOutput(const EBMessage_t & msg) {
+  outputMessages.push_back(msg);
 }
 
 /**

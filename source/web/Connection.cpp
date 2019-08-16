@@ -14,7 +14,8 @@ namespace Web {
  * @param gui that owns this server
  */
 Connection::Connection(asio::ip::tcp::socket * socket, std::string endpoint,
-    const std::chrono::time_point<std::chrono::system_clock> & now, EBGUI_t gui) :
+    const std::chrono::time_point<std::chrono::system_clock> & now,
+    EBGUI_t                                                    gui) :
   socket(socket),
   endpoint(endpoint), gui(gui) {
   this->timeoutTime = now + TIMEOUT;
@@ -97,6 +98,17 @@ Result Connection::update(
   if (now > timeoutTime && protocol->sendAliveCheck())
     return ResultCode_t::TIMEOUT;
   return ResultCode_t::NO_OPERATION;
+}
+
+/**
+ * @brief Add a message to the protocol to transmit out if available
+ * returns ResultCode_t::NOT_SUPPORTED if not compatible with the protocol
+ *
+ * @param msg to add
+ * @return Result
+ */
+Result Connection::addMessage(const EBMessage_t & msg) {
+  return protocol->addMessage(msg);
 }
 
 /**

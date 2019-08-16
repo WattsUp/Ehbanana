@@ -21,6 +21,7 @@ enum class EBMSGType_t : uint16_t {
   SHUTDOWN, // The web server is about to shutdown
   QUIT,     // The web server has quit
   INPUT,    // An input element has changed
+  OUTPUT,   // An output element is going to change
 };
 
 /**
@@ -31,6 +32,8 @@ enum class EBMSGType_t : uint16_t {
  * @param htmlID of source or destination element
  * @param htmlValue of source or destination element
  * @param checked is non empty when element is a checkbox, "true" or "false"
+ * @param file handle when element is a file
+ * @param fileSize if handle is valid
  */
 struct EBMessage_t {
   EBGUI_t     gui;
@@ -38,6 +41,8 @@ struct EBMessage_t {
   Hash        htmlID;
   Hash        htmlValue;
   Hash        checked;
+  FILE *      file;
+  size_t      fileSize;
 };
 
 /**

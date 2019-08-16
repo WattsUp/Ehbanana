@@ -19,7 +19,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
-      <AdditionalIncludeDirectories>$(SolutionDir)\..\include;$(SolutionDir)\..\lib\FruitBowl\include;$(SolutionDir)\source\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)\..\include;$(SolutionDir)\..\lib\FruitBowl\include;$(SolutionDir)\..\lib\digestpp;$(SolutionDir)\..\lib\cpp-base64;$(SolutionDir)\source\</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>DEBUG;%(PreprocessorDefinitions);</PreprocessorDefinitions>
     </ClCompile>
     <Link>
@@ -29,7 +29,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
-      <AdditionalIncludeDirectories>$(SolutionDir)\..\include;$(SolutionDir)\..\lib\FruitBowl\include;$(SolutionDir)\source\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)\..\include;$(SolutionDir)\..\lib\FruitBowl\include;$(SolutionDir)\..\lib\digestpp;$(SolutionDir)\..\lib\cpp-base64;$(SolutionDir)\source\</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>%(PreprocessorDefinitions);</PreprocessorDefinitions>
     </ClCompile>
     <Link>
@@ -39,9 +39,12 @@
   <ItemGroup>
     <ClCompile Include="source\**\*.cpp" />
     <ClCompile Include="..\lib\FruitBowl\include\**\*.cpp" />
+    <ClCompile Include="..\lib\cpp-base64\base64.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="source\**\*.h" />
+    <ClInclude Include="..\lib\digestpp\**\*.hpp" />
+    <ClInclude Include="..\lib\cpp-base64\base64.h" />
     <ClInclude Include="..\lib\FruitBowl\include\**\*.h" />
   </ItemGroup>
   <Target Name="CopyFiles">

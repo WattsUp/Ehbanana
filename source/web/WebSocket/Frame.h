@@ -29,7 +29,7 @@ public:
 
   const Opcode_t      getOpcode() const;
   const std::string & getData() const;
-  FILE *              getDataFile() const;
+  FILE *              getDataFile(bool takeOwnership = false);
   asio::const_buffer  toBuffer();
 
   void addData(const std::string & string);

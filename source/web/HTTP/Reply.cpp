@@ -26,7 +26,7 @@ Reply::~Reply() {
 
 /**
  * @brief Copy constructor
- * 
+ *
  * @param that to copy
  */
 Reply::Reply(const Reply & that) {
@@ -35,13 +35,14 @@ Reply::Reply(const Reply & that) {
 
 /**
  * @brief Assignment operator
- * 
+ *
  * @param that to assign
- * @return Reply& 
+ * @return Reply&
  */
 Reply & Reply::operator=(const Reply & that) {
   if (this != &that) {
-    this->file->close();
+    if (this->file != nullptr)
+      this->file->close();
     this->file    = that.file;
     this->content = that.content;
     this->buffers = that.buffers;

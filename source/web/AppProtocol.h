@@ -1,6 +1,8 @@
 #ifndef _WEB_APP_PROTOCOL_H_
 #define _WEB_APP_PROTOCOL_H_
 
+#include "Ehbanana.h"
+
 #include <FruitBowl.h>
 #include <asio.hpp>
 
@@ -51,7 +53,7 @@ public:
    * @return true when the transmit buffers are not empty
    * @return false when the transmit buffers are empty
    */
-  bool hasTransmitBuffers() {
+  virtual bool hasTransmitBuffers() {
     return !buffersTransmit.empty();
   }
 
@@ -109,6 +111,17 @@ public:
    */
   virtual bool sendAliveCheck() {
     return true;
+  }
+
+  /**
+   * @brief Add a message to transmit out if available
+   * returns ResultCode_t::NOT_SUPPORTED if not compatible
+   *
+   * @param msg to add
+   * @return Result
+   */
+  virtual Result addMessage(const EBMessage_t &) {
+    return ResultCode_t::NOT_SUPPORTED;
   }
 
 protected:

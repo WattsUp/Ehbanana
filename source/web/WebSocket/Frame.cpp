@@ -204,10 +204,15 @@ const std::string & Frame::getData() const {
 /**
  * @brief Get the data file of the frame, opcode must be binary
  *
+ * @param takeOwnership will set dataFile to null afterwards, preventing the
+ * file from closing on destruction
  * @return FILE *
  */
-FILE * Frame::getDataFile() const {
-  return dataFile;
+FILE * Frame::getDataFile(bool takeOwnership) {
+  FILE * file = dataFile;
+  if (takeOwnership)
+    dataFile = nullptr;
+  return file;
 }
 
 /**

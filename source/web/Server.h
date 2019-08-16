@@ -24,10 +24,13 @@ public:
   Server(EBGUI_t gui);
   ~Server();
 
-  Result configure(const std::string & httpRoot, const std::string & configRoot);
+  Result configure(
+      const std::string & httpRoot, const std::string & configRoot);
   Result initializeSocket(const std::string & addr, uint16_t port = PORT_AUTO);
   void   start();
   void   stop();
+
+  void enqueueOutput(const EBMessage_t & msg);
 
   const std::string & getDomainName() const;
 
@@ -46,6 +49,7 @@ private:
   std::string domainName;
 
   std::list<Connection *> connections;
+  std::list<EBMessage_t>  outputMessages;
 
   EBGUI_t gui;
 

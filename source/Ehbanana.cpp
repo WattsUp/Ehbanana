@@ -178,8 +178,14 @@ ResultCode_t EBEnqueueMessage(const EBMessage_t & msg) {
 }
 
 ResultCode_t EBDefaultGUIProcess(const EBMessage_t & msg) {
-  std::cout << "GUI sent message of type " << (uint16_t)msg.type << "\n";
-  return setLastResult(ResultCode_t::NOT_SUPPORTED + "DefaultGUIProcess");
+  switch (msg.type) {
+    case EBMSGType_t::OUTPUT:
+      msg.gui->server->enqueueOutput(msg);
+      break;
+    default:
+      return setLastResult(ResultCode_t::NOT_SUPPORTED + "Default GUI process");
+  }
+  return setLastResult(ResultCode_t::SUCCESS);
 }
 
 ResultCode_t EBConfigureLogging(const char * fileName, bool rotatingLogs,

@@ -3,7 +3,18 @@
  * @param {WebSocket event} event
  */
 function webSocketMessage(event) {
-  console.log(event.data);
+  jsonEvent = JSON.parse(event.data);
+  obj       = document.getElementById(jsonEvent.name);
+  switch (obj.nodeName) {
+    case "DIV":
+      obj.innerHTML = jsonEvent.value;
+      break;
+    case "INPUT":
+      obj.value = jsonEvent.value;
+      break;
+    default:
+      console.log(obj.nodeName);
+  }
 }
 
 /**
