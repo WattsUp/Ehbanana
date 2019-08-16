@@ -200,7 +200,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
   while ((result = EBGetMessage(msg)) == ResultCode_t::INCOMPLETE ||
          result == ResultCode_t::NO_OPERATION) {
     if (std::chrono::steady_clock::now() > nextUpdate) {
-      nextUpdate += std::chrono::milliseconds(1000);
+      nextUpdate += std::chrono::milliseconds(500);
       EBMessage_t streamUpdate;
       streamUpdate.gui  = gui;
       streamUpdate.type = EBMSGType_t::OUTPUT;

@@ -15,6 +15,11 @@ function webSocketMessage(event) {
     default:
       console.log(obj.nodeName);
   }
+  if (obj.hasAttribute("ebcallback")) {
+    var func = window[obj.getAttribute("ebcallback")];
+    if (typeof func == "function")
+      func(jsonEvent.value);
+  }
 }
 
 /**
