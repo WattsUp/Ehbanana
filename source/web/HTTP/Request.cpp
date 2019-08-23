@@ -144,7 +144,9 @@ Result Request::parse(uint8_t c) {
       if (c == '\n') {
         state  = State_t::HEADER_NAME;
         result = headers.addHeader(currentHeader);
-        if (!result)
+        if(result == ResultCode_t::UNKNOWN_HASH)
+          spdlog::warn(result.getMessage());
+        else if (!result)
           return result + "Adding request header";
         currentHeader = HeaderHash_t();
       } else if (c != '\r')
