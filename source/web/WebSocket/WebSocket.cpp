@@ -94,9 +94,9 @@ Result WebSocket::processFrameText() {
     return ResultCode_t::READ_FAULT + frameIn.getData() + "Parsing JSON";
 
   // Populate message
-  rapidjson::Value::MemberIterator i = doc.FindMember("name");
+  rapidjson::Value::MemberIterator i = doc.FindMember("id");
   if (i == doc.MemberEnd() || !i->value.IsString())
-    return ResultCode_t::INVALID_DATA + frameIn.getData() + "No \"name\"";
+    return ResultCode_t::INVALID_DATA + frameIn.getData() + "No \"id\"";
   msg.htmlID.add(i->value.GetString());
   i = doc.FindMember("value");
   if (i == doc.MemberEnd() || !i->value.IsString())
@@ -181,7 +181,7 @@ Result WebSocket::addMessage(const EBMessage_t & msg) {
 
   rapidjson::Value value;
   value = rapidjson::StringRef(msg.htmlID.getString().c_str());
-  doc.AddMember("name", value, doc.GetAllocator());
+  doc.AddMember("id", value, doc.GetAllocator());
 
   value = rapidjson::StringRef(msg.htmlValue.getString().c_str());
   doc.AddMember("value", value, doc.GetAllocator());
@@ -207,9 +207,9 @@ Result WebSocket::addMessage(const EBMessage_t & msg) {
  * @return false when the transmit buffers are empty
  */
 bool WebSocket::hasTransmitBuffers() {
-  if(AppProtocol::hasTransmitBuffers())
+  if (AppProtocol::hasTransmitBuffers())
     return true;
-  if(!framesOut.empty()){
+  if (!framesOut.empty()) {
     addTransmitBuffer(framesOut.front()->toBuffer());
     framesOut.pop_front();
     return true;

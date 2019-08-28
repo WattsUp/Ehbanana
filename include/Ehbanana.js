@@ -4,7 +4,7 @@
  */
 function webSocketMessage(event) {
   jsonEvent = JSON.parse(event.data);
-  obj       = document.getElementById(jsonEvent.name);
+  obj       = document.getElementById(jsonEvent.id);
   switch (obj.nodeName) {
     case "DIV":
     case "SPAN":
@@ -16,7 +16,9 @@ function webSocketMessage(event) {
     case "TIME":
       var date = new Date(parseInt(jsonEvent.value));
       console.log(jsonEvent.value);
-      obj.innerHTML = date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds();
+      obj.innerHTML = date.getHours() + ":" +
+                      ("0" + date.getMinutes()).slice(-2) + ":" +
+                      ("0" + date.getSeconds()).slice(-2);
     default:
       console.log(obj.nodeName);
   }
@@ -64,7 +66,7 @@ function startWebsocket() {
  * @param {InputEvent} event
  */
 function listenerInput(event) {
-  var jsonEvent = {name: event.target.name, value: event.target.value};
+  var jsonEvent = {id: event.target.id, value: event.target.value};
   if (event.target.type == "checkbox")
     jsonEvent.checked = event.target.checked;
   else if (event.target.type == "file") {
@@ -82,17 +84,29 @@ function listenerInput(event) {
 function attachListeners() {
   var elementsInput = document.getElementsByClassName("eb-input");
   for (var i = 0; i < elementsInput.length; i++) {
-    if (elementsInput[i].getAttribute("name") == null) {
-      if (elementsInput[i].getAttribute("id") == null) {
+    if (elementsInput[i].getAttribute("id") == null) {
+      if (elementsInput[i].getAttribute("name") == null) {
         console.log("No name nor id for eb-input:", elementsInput[i]);
         continue;
       }
-      elementsInput[i].setAttribute("name", elementsInput[i].id);
+      elementsInput[i].setAttribute("is", elementsInput[i].name);
     }
     if (elementsInput[i].getAttribute("type") == "button")
       elementsInput[i].addEventListener("click", listenerInput);
     else
       elementsInput[i].addEventListener("input", listenerInput);
+  }
+  var elementsOnload = document.getElementsByClassName("eb-onload");
+  for (var i = 0; i < elementsOnload.length; i++) {
+    if (elementsOnload[i].getAttribute("id") == null) {
+      if (elementsOnload[i].getAttribute("name") == null) {
+        console.log("No name nor id for eb-onload:", elementsOnload[i]);
+        continue;
+      }
+      elementsOnload[i].setAttribute("id", elementsOnload[i].name);
+    }
+    var jsonEvent = {id: elementsOnload[i].id, value: "on-load-update"};
+    webSocket.send(JSON.stringify(jsonEvent));
   }
 }
 

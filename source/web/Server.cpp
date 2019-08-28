@@ -79,8 +79,10 @@ Result Server::initializeSocket(const std::string & addr, uint16_t port) {
     acceptor.bind(endpoint, errorCode);
     if (!errorCode)
       attemptComplete = true;
-    else if (errorCode.value() != asio::error::address_in_use)
+    else if (errorCode.value() != asio::error::address_in_use &&
+             errorCode.value() != asio::error::access_denied)
       return ResultCode_t::BIND_FAILED +
+             (errorCode.message() + " #" + std::to_string(errorCode.value())) +
              ("Server acceptor bind to " + endpoint.address().to_string() +
                  ":" + std::to_string(port));
     // else address already in use, try the next one
