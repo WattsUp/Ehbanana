@@ -2,9 +2,15 @@
 #define _EHBANANA_H_
 
 #include <FruitBowl.h>
+#include <rapidjson/document.h>
 
 #include <Windows.h>
+#include <memory>
 #include <string>
+
+#ifdef GetObject
+#undef GetObject
+#endif
 
 #ifdef COMPILING_DLL
 #define EHBANANA_API __declspec(dllexport)
@@ -29,20 +35,18 @@ enum class EBMSGType_t : uint16_t {
  *
  * @param gui object to alert
  * @param type of the message
- * @param htmlID of source or destination element
- * @param htmlValue of source or destination element
- * @param checked is non empty when element is a checkbox, "true" or "false"
+ * @param href URL of the webpage sender or receiver
+ * @param body JSON message
  * @param file handle when element is a file
  * @param fileSize if handle is valid
  */
 struct EBMessage_t {
   EBGUI_t     gui;
   EBMSGType_t type;
-  Hash        htmlID;
-  Hash        htmlValue;
-  Hash        checked;
   FILE *      file;
   size_t      fileSize;
+
+  std::shared_ptr<rapidjson::Document> body;
 };
 
 /**

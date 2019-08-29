@@ -3,29 +3,19 @@
  * @param {WebSocket event} event
  */
 function webSocketMessage(event) {
-  jsonEvent = JSON.parse(event.data);
-  obj       = document.getElementById(jsonEvent.id);
-  switch (obj.nodeName) {
-    case "DIV":
-    case "SPAN":
-      obj.innerHTML = jsonEvent.value;
-      break;
-    case "INPUT":
-      obj.value = jsonEvent.value;
-      break;
-    case "TIME":
-      var date = new Date(parseInt(jsonEvent.value));
-      console.log(jsonEvent.value);
-      obj.innerHTML = date.getHours() + ":" +
-                      ("0" + date.getMinutes()).slice(-2) + ":" +
-                      ("0" + date.getSeconds()).slice(-2);
-    default:
-      console.log(obj.nodeName);
-  }
-  if (obj.hasAttribute("ebcallback")) {
-    var func = window[obj.getAttribute("ebcallback")];
-    if (typeof func == "function")
-      func(jsonEvent.value);
+  var jsonEvent = JSON.parse(event.data);
+  if (jsonEvent.href != window.location.pathname && jsonEvent.href != "")
+    return;
+  for (var id in jsonEvent.elements) {
+    var obj = document.getElementById(id);
+    for (var key in jsonEvent.elements[id]) {
+      obj[key] = jsonEvent.elements[id][key];
+    }
+    if (obj.hasAttribute("ebcallback")) {
+      var func = window[obj.getAttribute("ebcallback")];
+      if (typeof func == "function")
+        func(jsonEvent.elements[id]);
+    }
   }
 }
 
@@ -66,16 +56,25 @@ function startWebsocket() {
  * @param {InputEvent} event
  */
 function listenerInput(event) {
-  var jsonEvent = {id: event.target.id, value: event.target.value};
+  var jsonData = {value: event.target.value};
+
+  // populate data with appropriate information
   if (event.target.type == "checkbox")
-    jsonEvent.checked = event.target.checked;
-  else if (event.target.type == "file") {
+    jsonData.checked = event.target.checked;
+
+  var jsonEvent      = {href: window.location.pathname};
+  jsonEvent.elements = {};
+
+  if (event.target.type == "file") {
     jsonEvent.fileSize = event.target.files[0].size;
-    webSocket.send(JSON.stringify(jsonEvent));
-    webSocket.send(event.target.files[0]); // Sent as binary
-    return;
   }
+
+  jsonEvent.elements[event.target.id] = jsonData;
   webSocket.send(JSON.stringify(jsonEvent));
+
+  if (event.target.type == "file") {
+    webSocket.send(event.target.files[0]); // Sent as binary
+  }
 }
 
 /**

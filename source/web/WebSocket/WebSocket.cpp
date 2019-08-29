@@ -88,29 +88,14 @@ Result WebSocket::processFrameText() {
   EBMessage_t msg;
   msg.gui  = gui;
   msg.type = EBMSGType_t::INPUT;
+  msg.body = std::make_shared<rapidjson::Document>();
+
   // Parse JSON
-  rapidjson::Document doc;
-  if (doc.Parse(frameIn.getData().c_str()).HasParseError())
+  if (msg.body->Parse(frameIn.getData().c_str()).HasParseError())
     return ResultCode_t::READ_FAULT + frameIn.getData() + "Parsing JSON";
 
-  // Populate message
-  rapidjson::Value::MemberIterator i = doc.FindMember("id");
-  if (i == doc.MemberEnd() || !i->value.IsString())
-    return ResultCode_t::INVALID_DATA + frameIn.getData() + "No \"id\"";
-  msg.htmlID.add(i->value.GetString());
-  i = doc.FindMember("value");
-  if (i == doc.MemberEnd() || !i->value.IsString())
-    return ResultCode_t::INVALID_DATA + frameIn.getData() + "No \"value\"";
-  msg.htmlValue.add(i->value.GetString());
-  i = doc.FindMember("checked");
-  if (i != doc.MemberEnd()) {
-    if (!i->value.IsBool())
-      return ResultCode_t::INVALID_DATA + frameIn.getData() +
-             "\"checked\" is not a bool";
-    msg.checked.add(i->value.GetBool() ? "true" : "false");
-  }
-  i = doc.FindMember("fileSize");
-  if (i != doc.MemberEnd()) {
+  auto i = msg.body->FindMember("fileSize");
+  if (i != msg.body->MemberEnd()) {
     if (!i->value.IsInt())
       return ResultCode_t::INVALID_DATA + frameIn.getData() +
              "\"fileSize\" is not an int";
@@ -118,6 +103,7 @@ Result WebSocket::processFrameText() {
     msgAwaitingFile = msg;
     return ResultCode_t::SUCCESS;
   }
+
   EBEnqueueMessage(msg);
   return ResultCode_t::SUCCESS;
 }
@@ -176,22 +162,24 @@ bool WebSocket::sendAliveCheck() {
  * @return Result
  */
 Result WebSocket::addMessage(const EBMessage_t & msg) {
-  rapidjson::Document doc;
-  doc.SetObject();
+  // rapidjson::Document doc;
+  // doc.SetObject();
 
-  rapidjson::Value value;
-  value = rapidjson::StringRef(msg.htmlID.getString().c_str());
-  doc.AddMember("id", value, doc.GetAllocator());
+  // rapidjson::Value value;
+  // value = rapidjson::StringRef(msg.htmlID.getString().c_str());
+  // doc.AddMember("id", value, doc.GetAllocator());
 
-  value = rapidjson::StringRef(msg.htmlValue.getString().c_str());
-  doc.AddMember("value", value, doc.GetAllocator());
+  // value = rapidjson::StringRef(msg.htmlValue.getString().c_str());
+  // doc.AddMember("value", value, doc.GetAllocator());
 
-  value = rapidjson::StringRef(msg.checked.getString().c_str());
-  doc.AddMember("checked", value, doc.GetAllocator());
+  // value = rapidjson::StringRef(msg.checked.getString().c_str());
+  // doc.AddMember("checked", value, doc.GetAllocator());
+  if(!msg.body)
+    return ResultCode_t::INVALID_DATA + "Message body is nullptr";
 
   rapidjson::StringBuffer                          sb;
   rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(sb);
-  doc.Accept(writer);
+  msg.body->Accept(writer);
   Frame * frame = new Frame();
   frame->setOpcode(Opcode_t::TEXT);
   frame->addData(sb.GetString());
