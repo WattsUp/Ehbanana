@@ -89,7 +89,7 @@ function attachListeners() {
         console.log("No name nor id for eb-input:", elementsInput[i]);
         continue;
       }
-      elementsInput[i].setAttribute("is", elementsInput[i].name);
+      elementsInput[i].setAttribute("id", elementsInput[i].name);
     }
     if (elementsInput[i].getAttribute("type") == "button")
       elementsInput[i].addEventListener("click", listenerInput);
