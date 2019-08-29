@@ -43,6 +43,9 @@ Result RequestHeaders::addHeader(HeaderHash_t header) {
     case Hash::calculateHash("Pragma"):
     case Hash::calculateHash("Origin"):
     case Hash::calculateHash("Sec-WebSocket-Extensions"):
+    case Hash::calculateHash("Sec-Fetch-Mode"):
+    case Hash::calculateHash("Sec-Fetch-User"):
+    case Hash::calculateHash("Sec-Fetch-Site"):
       // Ignoring
       break;
     default:
