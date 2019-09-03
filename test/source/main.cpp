@@ -1,36 +1,14 @@
 #include <Ehbanana.h>
-#include <algorithm/sha1.hpp>
-#include <base64.h>
 #include <chrono>
-#include <rapidjson/document.h>
-#include <rapidjson/prettywriter.h>
 #include <thread>
-
-bool appleSelected  = false;
-bool bananaSelected = false;
-bool orangeSelected = false;
 
 /**
  * @brief Handle an input message
  *
  * @param msg
- * @return ResultCode_t
+ * @return Result
  */
-ResultCode_t handleInput(const EBMessage_t & msg) {
-  rapidjson::StringBuffer                          sb;
-  rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(sb);
-  msg.body->Accept(writer);
-  EBLogInfo(sb.GetString());
-  // if (msg.htmlID.getString().empty())
-  //   return ResultCode_t::INVALID_DATA;
-  // EBLogInfo(("Received input from #" + msg.htmlID.getString() + " value: \""
-  // +
-  //            msg.htmlValue.getString() + "\"")
-  //               .c_str());
-
-  EBMessage_t msgOut;
-  msgOut.gui  = msg.gui;
-  msgOut.type = EBMSGType_t::OUTPUT;
+Result handleInput(const EBMessage_t & msg) {
   // switch (msg.htmlID.get()) {
   //   case Hash::calculateHash("text-in"): {
   //     std::string temp(msg.htmlValue.getString());
@@ -150,7 +128,9 @@ ResultCode_t handleInput(const EBMessage_t & msg) {
   //   default:
   //     return ResultCode_t::UNKNOWN_HASH;
   // }
-  EBEnqueueMessage(msgOut);
+  EBLogInfo((msg.href.getString() + "|" + msg.id.getString() + "|" +
+             msg.value.getString())
+                .c_str());
   return ResultCode_t::SUCCESS;
 }
 
@@ -161,6 +141,7 @@ ResultCode_t handleInput(const EBMessage_t & msg) {
  * @return ResultCode_t error code
  */
 ResultCode_t __stdcall guiProcess(const EBMessage_t & msg) {
+  Result result;
   switch (msg.type) {
     case EBMSGType_t::STARTUP:
       EBLogInfo("Server starting up");
@@ -169,7 +150,10 @@ ResultCode_t __stdcall guiProcess(const EBMessage_t & msg) {
       EBLogInfo("Server shutting down");
       break;
     case EBMSGType_t::INPUT:
-      return handleInput(msg);
+      result = handleInput(msg);
+      if (!result)
+        EBLogError(result.getMessage());
+      break;
     default:
       return EBDefaultGUIProcess(msg);
   }
@@ -208,20 +192,26 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
          result == ResultCode_t::NO_OPERATION) {
     if (std::chrono::steady_clock::now() > nextUpdate) {
       nextUpdate += std::chrono::milliseconds(500);
-      EBMessage_t streamUpdate;
-      streamUpdate.gui  = gui;
-      streamUpdate.type = EBMSGType_t::OUTPUT;
-      streamUpdate.body = std::make_shared<rapidjson::Document>();
-      streamUpdate.body->SetObject();
-      streamUpdate.body->AddMember("href", rapidjson::StringRef(""), streamUpdate.body->GetAllocator());
-      rapidjson::Value elements;
-      elements.SetObject();
-      rapidjson::Value streamOut;
-      streamOut.SetObject();
-      streamOut.AddMember("innerHTML", rapidjson::StringRef(std::to_string(rand() & 0xFF).c_str()), streamUpdate.body->GetAllocator());
-      elements.AddMember("stream-out", streamOut, streamUpdate.body->GetAllocator());
-      streamUpdate.body->AddMember("elements", elements, streamUpdate.body->GetAllocator());
-      EBEnqueueMessage(streamUpdate);
+      // EBMessage_t streamUpdate;
+      // streamUpdate.gui  = gui;
+      // streamUpdate.type = EBMSGType_t::OUTPUT;
+      // streamUpdate.body = std::make_shared<rapidjson::Document>();
+      // streamUpdate.body->SetObject();
+      // streamUpdate.body->AddMember(
+      //     "href", rapidjson::StringRef(""),
+      //     streamUpdate.body->GetAllocator());
+      // rapidjson::Value elements;
+      // elements.SetObject();
+      // rapidjson::Value streamOut;
+      // streamOut.SetObject();
+      // streamOut.AddMember("innerHTML",
+      //     rapidjson::StringRef(std::to_string(rand() & 0xFF).c_str()),
+      //     streamUpdate.body->GetAllocator());
+      // elements.AddMember(
+      //     "stream-out", streamOut, streamUpdate.body->GetAllocator());
+      // streamUpdate.body->AddMember(
+      //     "elements", elements, streamUpdate.body->GetAllocator());
+      // EBEnqueueMessage(streamUpdate);
     }
     // If no messages were processed, wait a bit to save CPU
     if (result == ResultCode_t::NO_OPERATION) {

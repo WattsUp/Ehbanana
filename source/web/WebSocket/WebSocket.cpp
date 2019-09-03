@@ -88,14 +88,29 @@ Result WebSocket::processFrameText() {
   EBMessage_t msg;
   msg.gui  = gui;
   msg.type = EBMSGType_t::INPUT;
-  msg.body = std::make_shared<rapidjson::Document>();
+  rapidjson::Document doc;
 
   // Parse JSON
-  if (msg.body->Parse(frameIn.getData().c_str()).HasParseError())
+  if (doc.Parse(frameIn.getData().c_str()).HasParseError())
     return ResultCode_t::READ_FAULT + frameIn.getData() + "Parsing JSON";
 
-  auto i = msg.body->FindMember("fileSize");
-  if (i != msg.body->MemberEnd()) {
+  auto i = doc.FindMember("href");
+  if (i == doc.MemberEnd() || !i->value.IsString())
+    return ResultCode_t::INVALID_DATA + "No 'href'";
+  msg.href.add(i->value.GetString());
+
+  i = doc.FindMember("id");
+  if (i == doc.MemberEnd() || !i->value.IsString())
+    return ResultCode_t::INVALID_DATA + "No 'id'";
+  msg.id.add(i->value.GetString());
+
+  i = doc.FindMember("value");
+  if (i == doc.MemberEnd() || !i->value.IsString())
+    return ResultCode_t::INVALID_DATA + "No 'value'";
+  msg.value.add(i->value.GetString());
+
+  i = doc.FindMember("fileSize");
+  if (i != doc.MemberEnd()) {
     if (!i->value.IsInt())
       return ResultCode_t::INVALID_DATA + frameIn.getData() +
              "\"fileSize\" is not an int";
@@ -174,17 +189,17 @@ Result WebSocket::addMessage(const EBMessage_t & msg) {
 
   // value = rapidjson::StringRef(msg.checked.getString().c_str());
   // doc.AddMember("checked", value, doc.GetAllocator());
-  if(!msg.body)
-    return ResultCode_t::INVALID_DATA + "Message body is nullptr";
+  // if(!msg.body)
+  //   return ResultCode_t::INVALID_DATA + "Message body is nullptr";
 
-  rapidjson::StringBuffer                          sb;
-  rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(sb);
-  msg.body->Accept(writer);
-  Frame * frame = new Frame();
-  frame->setOpcode(Opcode_t::TEXT);
-  frame->addData(sb.GetString());
-  framesOut.push_back(frame);
-  return ResultCode_t::SUCCESS;
+  // rapidjson::StringBuffer                          sb;
+  // rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(sb);
+  // msg.body->Accept(writer);
+  // Frame * frame = new Frame();
+  // frame->setOpcode(Opcode_t::TEXT);
+  // frame->addData(sb.GetString());
+  // framesOut.push_back(frame);
+  return ResultCode_t::NOT_SUPPORTED;
 }
 
 /**

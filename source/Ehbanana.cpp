@@ -178,14 +178,7 @@ ResultCode_t EBEnqueueMessage(const EBMessage_t & msg) {
 }
 
 ResultCode_t EBDefaultGUIProcess(const EBMessage_t & msg) {
-  switch (msg.type) {
-    case EBMSGType_t::OUTPUT:
-      msg.gui->server->enqueueOutput(msg);
-      break;
-    default:
-      return setLastResult(ResultCode_t::NOT_SUPPORTED + "Default GUI process");
-  }
-  return setLastResult(ResultCode_t::SUCCESS);
+  return setLastResult(ResultCode_t::NOT_SUPPORTED + "Default GUI process");
 }
 
 ResultCode_t EBConfigureLogging(const char * fileName, bool rotatingLogs,

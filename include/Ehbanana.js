@@ -56,20 +56,20 @@ function startWebsocket() {
  * @param {InputEvent} event
  */
 function listenerInput(event) {
-  var jsonData = {value: event.target.value};
+  var jsonEvent = {
+    href: window.location.pathname,
+    id: event.target.id,
+    value: "" + event.target.value
+  };
 
   // populate data with appropriate information
   if (event.target.type == "checkbox")
-    jsonData.checked = event.target.checked;
-
-  var jsonEvent      = {href: window.location.pathname};
-  jsonEvent.elements = {};
+    jsonEvent.value = "" + event.target.checked;
 
   if (event.target.type == "file") {
     jsonEvent.fileSize = event.target.files[0].size;
   }
 
-  jsonEvent.elements[event.target.id] = jsonData;
   webSocket.send(JSON.stringify(jsonEvent));
 
   if (event.target.type == "file") {

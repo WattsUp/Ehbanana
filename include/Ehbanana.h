@@ -2,7 +2,6 @@
 #define _EHBANANA_H_
 
 #include <FruitBowl.h>
-#include <rapidjson/document.h>
 
 #include <Windows.h>
 #include <memory>
@@ -27,26 +26,28 @@ enum class EBMSGType_t : uint16_t {
   SHUTDOWN, // The web server is about to shutdown
   QUIT,     // The web server has quit
   INPUT,    // An input element has changed
-  OUTPUT,   // An output element is going to change
 };
 
 /**
- * @brief Message between front end and back end
+ * @brief Message from front end to back end
  *
  * @param gui object to alert
  * @param type of the message
  * @param href URL of the webpage sender or receiver
- * @param body JSON message
+ * @param id of the originating html element
+ * @param value of the originating html element
  * @param file handle when element is a file
  * @param fileSize if handle is valid
  */
 struct EBMessage_t {
   EBGUI_t     gui;
   EBMSGType_t type;
-  FILE *      file;
-  size_t      fileSize;
 
-  std::shared_ptr<rapidjson::Document> body;
+  Hash   href;
+  Hash   id;
+  Hash   value;
+  FILE * file;
+  size_t fileSize;
 };
 
 /**
