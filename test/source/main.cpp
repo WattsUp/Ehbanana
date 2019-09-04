@@ -128,9 +128,8 @@ Result handleInput(const EBMessage_t & msg) {
   //   default:
   //     return ResultCode_t::UNKNOWN_HASH;
   // }
-  EBLogInfo((msg.href.getString() + "|" + msg.id.getString() + "|" +
-             msg.value.getString())
-                .c_str());
+  EBLogInfo(msg.href.getString() + "|" + msg.id.getString() + "|" +
+            msg.value.getString());
   return ResultCode_t::SUCCESS;
 }
 
@@ -190,34 +189,38 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
   auto        nextUpdate = std::chrono::steady_clock::now();
   while ((result = EBGetMessage(msg)) == ResultCode_t::INCOMPLETE ||
          result == ResultCode_t::NO_OPERATION) {
-    if (std::chrono::steady_clock::now() > nextUpdate) {
-      nextUpdate += std::chrono::milliseconds(500);
-      // EBMessage_t streamUpdate;
-      // streamUpdate.gui  = gui;
-      // streamUpdate.type = EBMSGType_t::OUTPUT;
-      // streamUpdate.body = std::make_shared<rapidjson::Document>();
-      // streamUpdate.body->SetObject();
-      // streamUpdate.body->AddMember(
-      //     "href", rapidjson::StringRef(""),
-      //     streamUpdate.body->GetAllocator());
-      // rapidjson::Value elements;
-      // elements.SetObject();
-      // rapidjson::Value streamOut;
-      // streamOut.SetObject();
-      // streamOut.AddMember("innerHTML",
-      //     rapidjson::StringRef(std::to_string(rand() & 0xFF).c_str()),
-      //     streamUpdate.body->GetAllocator());
-      // elements.AddMember(
-      //     "stream-out", streamOut, streamUpdate.body->GetAllocator());
-      // streamUpdate.body->AddMember(
-      //     "elements", elements, streamUpdate.body->GetAllocator());
-      // EBEnqueueMessage(streamUpdate);
-    }
     // If no messages were processed, wait a bit to save CPU
     if (result == ResultCode_t::NO_OPERATION) {
       std::this_thread::sleep_for(std::chrono::milliseconds(1));
     } else {
       result = EBDispatchMessage(msg);
+      if (!result) {
+        EBLogError(EBGetLastResultMessage());
+        return static_cast<int>(result);
+      }
+    }
+    if (std::chrono::steady_clock::now() > nextUpdate) {
+      nextUpdate += std::chrono::milliseconds(500);
+      result = EBMessageOutCreate(gui);
+      if (!result) {
+        EBLogError(EBGetLastResultMessage());
+        return static_cast<int>(result);
+      }
+
+      result = EBMessageOutSetHref(gui, "/");
+      if (!result) {
+        EBLogError(EBGetLastResultMessage());
+        return static_cast<int>(result);
+      }
+
+      result = EBMessageOutSetProp(
+          gui, "stream-out", "innerHTML", std::to_string(rand() & 0xFF));
+      if (!result) {
+        EBLogError(EBGetLastResultMessage());
+        return static_cast<int>(result);
+      }
+
+      result = EBMessageOutEnqueue(gui);
       if (!result) {
         EBLogError(EBGetLastResultMessage());
         return static_cast<int>(result);

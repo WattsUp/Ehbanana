@@ -3,6 +3,7 @@
  * @param {WebSocket event} event
  */
 function webSocketMessage(event) {
+  console.log(event.data);
   var jsonEvent = JSON.parse(event.data);
   if (jsonEvent.href != window.location.pathname && jsonEvent.href != "")
     return;

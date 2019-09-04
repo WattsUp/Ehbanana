@@ -1,7 +1,6 @@
 #include "WebSocket.h"
 
 #include <rapidjson/document.h>
-#include <rapidjson/prettywriter.h>
 #include <spdlog/spdlog.h>
 
 namespace Web {
@@ -176,30 +175,12 @@ bool WebSocket::sendAliveCheck() {
  * @param msg to add
  * @return Result
  */
-Result WebSocket::addMessage(const EBMessage_t & msg) {
-  // rapidjson::Document doc;
-  // doc.SetObject();
-
-  // rapidjson::Value value;
-  // value = rapidjson::StringRef(msg.htmlID.getString().c_str());
-  // doc.AddMember("id", value, doc.GetAllocator());
-
-  // value = rapidjson::StringRef(msg.htmlValue.getString().c_str());
-  // doc.AddMember("value", value, doc.GetAllocator());
-
-  // value = rapidjson::StringRef(msg.checked.getString().c_str());
-  // doc.AddMember("checked", value, doc.GetAllocator());
-  // if(!msg.body)
-  //   return ResultCode_t::INVALID_DATA + "Message body is nullptr";
-
-  // rapidjson::StringBuffer                          sb;
-  // rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(sb);
-  // msg.body->Accept(writer);
-  // Frame * frame = new Frame();
-  // frame->setOpcode(Opcode_t::TEXT);
-  // frame->addData(sb.GetString());
-  // framesOut.push_back(frame);
-  return ResultCode_t::NOT_SUPPORTED;
+Result WebSocket::addMessage(const std::string & msg) {
+  Frame * frame = new Frame();
+  frame->setOpcode(Opcode_t::TEXT);
+  frame->addData(msg);
+  framesOut.push_back(frame);
+  return ResultCode_t::SUCCESS;
 }
 
 /**

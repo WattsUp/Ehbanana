@@ -107,7 +107,7 @@ Result Connection::update(
  * @param msg to add
  * @return Result
  */
-Result Connection::addMessage(const EBMessage_t & msg) {
+Result Connection::addMessage(const std::string & msg) {
   return protocol->addMessage(msg);
 }
 

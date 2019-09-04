@@ -77,6 +77,8 @@ namespace Web {
 class Server;
 }
 
+class MessageOut;
+
 /**
  * @brief GUI object
  *
@@ -85,7 +87,8 @@ class Server;
  */
 struct EBGUI {
   EBGUISettings_t settings;
-  Web::Server *   server;
+  Web::Server *   server            = nullptr;
+  MessageOut *    currentMessageOut = nullptr;
 };
 
 /**
@@ -165,6 +168,69 @@ extern "C" EHBANANA_API ResultCode_t EBDefaultGUIProcess(
  */
 #define EBEnqueueQuitMessage(gui) (EBEnqueueMessage({gui, EBMSGType_t::QUIT}))
 
+/**
+ * @brief Create an outgoing message for the GUI
+ *
+ * @param gui to create the message for
+ * @return ResultCode_t
+ */
+extern "C" EHBANANA_API ResultCode_t EBMessageOutCreate(EBGUI_t gui);
+
+/**
+ * @brief Set the href for the current outgoing message for the GUI
+ *
+ * @param gui to set the href for
+ * @param href string to set
+ * @return ResultCode_t
+ */
+extern "C" EHBANANA_API ResultCode_t EBMessageOutSetHref(
+    EBGUI_t gui, const char * href);
+
+/**
+ * @brief Set the href for the current outgoing message for the GUI
+ *
+ * @param gui to set the href for
+ * @param href string to set
+ * @return ResultCode_t
+ */
+inline ResultCode_t EBMessageOutSetHref(EBGUI_t gui, std::string href) {
+  return EBMessageOutSetHref(gui, href.c_str());
+}
+
+/**
+ * @brief Set a property for the current outgoing message for the GUI
+ *
+ * @param gui to set the property for
+ * @param id of the HTML element
+ * @param name of the property
+ * @param value of the property
+ * @return ResultCode_t
+ */
+extern "C" EHBANANA_API ResultCode_t EBMessageOutSetProp(
+    EBGUI_t gui, const char * id, const char * name, const char * value);
+
+/**
+ * @brief Set a property for the current outgoing message for the GUI
+ *
+ * @param gui to set the property for
+ * @param id of the HTML element
+ * @param name of the property
+ * @param value of the property
+ * @return ResultCode_t
+ */
+inline ResultCode_t EBMessageOutSetProp(
+    EBGUI_t gui, std::string id, std::string name, std::string value) {
+  return EBMessageOutSetProp(gui, id.c_str(), name.c_str(), value.c_str());
+}
+
+/**
+ * @brief Enqueue the current outgoing message for the GUI
+ *
+ * @param gui to enqueue the message for
+ * @return ResultCode_t
+ */
+extern "C" EHBANANA_API ResultCode_t EBMessageOutEnqueue(EBGUI_t gui);
+
 #define EB_LOG_LEVEL_DEBUG 0
 #define EB_LOG_LEVEL_INFO 1
 #define EB_LOG_LEVEL_WARN 2
@@ -192,11 +258,29 @@ extern "C" EHBANANA_API ResultCode_t EBConfigureLogging(const char * fileName,
 extern "C" EHBANANA_API void EBLogDebug(const char * string);
 
 /**
+ * @brief Log a message with debug level
+ *
+ * @param string to log
+ */
+inline void EBLogDebug(std::string string) {
+  EBLogDebug(string.c_str());
+}
+
+/**
  * @brief Log a message with info level
  *
  * @param string to log
  */
 extern "C" EHBANANA_API void EBLogInfo(const char * string);
+
+/**
+ * @brief Log a message with info level
+ *
+ * @param string to log
+ */
+inline void EBLogInfo(std::string string) {
+  EBLogInfo(string.c_str());
+}
 
 /**
  * @brief Log a message with warning level
@@ -206,6 +290,15 @@ extern "C" EHBANANA_API void EBLogInfo(const char * string);
 extern "C" EHBANANA_API void EBLogWarning(const char * string);
 
 /**
+ * @brief Log a message with warning level
+ *
+ * @param string to log
+ */
+inline void EBLogWarning(std::string string) {
+  EBLogWarning(string.c_str());
+}
+
+/**
  * @brief Log a message with error level
  *
  * @param string to log
@@ -213,10 +306,28 @@ extern "C" EHBANANA_API void EBLogWarning(const char * string);
 extern "C" EHBANANA_API void EBLogError(const char * string);
 
 /**
+ * @brief Log a message with error level
+ *
+ * @param string to log
+ */
+inline void EBLogError(std::string string) {
+  EBLogError(string.c_str());
+}
+
+/**
  * @brief Log a message with critical level
  *
  * @param string to log
  */
 extern "C" EHBANANA_API void EBLogCritical(const char * string);
+
+/**
+ * @brief Log a message with critical level
+ *
+ * @param string to log
+ */
+inline void EBLogCritical(std::string string) {
+  EBLogCritical(string.c_str());
+}
 
 #endif /* _EHBANANA_H_ */

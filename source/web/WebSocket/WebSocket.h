@@ -6,6 +6,7 @@
 #include "Frame.h"
 
 #include <list>
+#include <string>
 
 namespace Web {
 namespace WebSocket {
@@ -23,7 +24,7 @@ public:
   bool   hasTransmitBuffers();
   bool   isDone();
   bool   sendAliveCheck();
-  Result addMessage(const EBMessage_t & msg);
+  Result addMessage(const std::string & msg);
 
 private:
   Result processFrameText();
