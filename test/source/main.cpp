@@ -1,6 +1,12 @@
 #include <Ehbanana.h>
+#include <algorithm/sha1.hpp>
+#include <base64.h>
 #include <chrono>
 #include <thread>
+
+bool appleSelected  = false;
+bool bananaSelected = false;
+bool orangeSelected = false;
 
 /**
  * @brief Handle an input message
@@ -9,127 +15,146 @@
  * @return Result
  */
 Result handleInput(const EBMessage_t & msg) {
-  // switch (msg.htmlID.get()) {
-  //   case Hash::calculateHash("text-in"): {
-  //     std::string temp(msg.htmlValue.getString());
-  //     std::reverse(temp.begin(), temp.end());
-  //     msgOut.htmlID.add("text-out");
-  //     msgOut.htmlValue.add(temp);
-  //   } break;
-  //   case Hash::calculateHash("password-in"): {
-  //     digestpp::sha1 sha;
-  //     sha.absorb(msg.htmlValue.getString());
-  //     uint8_t buf[20];
-  //     sha.digest(buf, 20);
-  //     msgOut.htmlID.add("password-out");
-  //     msgOut.htmlValue.add(base64_encode(buf, 20));
-  //   } break;
-  //   case Hash::calculateHash("life-in"):
-  //     msgOut.htmlID.add("life-out");
-  //     msgOut.htmlValue.add("42");
-  //     break;
-  //   case Hash::calculateHash("fruit"):
-  //     msgOut.htmlID.add("fruit-out");
-  //     if (msg.htmlValue.get() == Hash::calculateHash("Banana"))
-  //       msgOut.htmlValue.add("You have chosen <i>wisely</i>");
-  //     else if (msg.htmlValue.get() == Hash::calculateHash("Apple"))
-  //       msgOut.htmlValue.add("You have chosen <i>wrong</i>");
-  //     else
-  //       msgOut.htmlValue.add("You have chosen <i>poorly</i>");
-  //     break;
-  //   case Hash::calculateHash("fruit-checkbox0"):
-  //     msgOut.htmlID.add("fruit-check-out");
-  //     msgOut.htmlValue.add("I have a ");
-  //     appleSelected = msg.checked.get() == Hash::calculateHash("true");
-  //     if (appleSelected)
-  //       msgOut.htmlValue.add("apple ");
-  //     if (bananaSelected)
-  //       msgOut.htmlValue.add("banana ");
-  //     if (orangeSelected)
-  //       msgOut.htmlValue.add("orange ");
-  //     break;
-  //   case Hash::calculateHash("fruit-checkbox1"):
-  //     msgOut.htmlID.add("fruit-check-out");
-  //     msgOut.htmlValue.add("I have a ");
-  //     bananaSelected = msg.checked.get() == Hash::calculateHash("true");
-  //     if (appleSelected)
-  //       msgOut.htmlValue.add("apple ");
-  //     if (bananaSelected)
-  //       msgOut.htmlValue.add("banana ");
-  //     if (orangeSelected)
-  //       msgOut.htmlValue.add("orange ");
-  //     break;
-  //   case Hash::calculateHash("fruit-checkbox2"):
-  //     msgOut.htmlID.add("fruit-check-out");
-  //     msgOut.htmlValue.add("I have a ");
-  //     orangeSelected = msg.checked.get() == Hash::calculateHash("true");
-  //     if (appleSelected)
-  //       msgOut.htmlValue.add("apple ");
-  //     if (bananaSelected)
-  //       msgOut.htmlValue.add("banana ");
-  //     if (orangeSelected)
-  //       msgOut.htmlValue.add("orange ");
-  //     break;
-  //   case Hash::calculateHash("color-in"):
-  //     msgOut.htmlID.add("color-out");
-  //     msgOut.htmlValue.add(msg.htmlValue.getString());
-  //     break;
-  //   case Hash::calculateHash("date-in"):
-  //     msgOut.htmlID.add("date-out");
-  //     msgOut.htmlValue.add(msg.htmlValue.getString());
-  //     break;
-  //   case Hash::calculateHash("datetime-in"):
-  //     msgOut.htmlID.add("datetime-out");
-  //     msgOut.htmlValue.add(msg.htmlValue.getString());
-  //     break;
-  //   case Hash::calculateHash("email-in"):
-  //     msgOut.htmlID.add("email-out");
-  //     msgOut.htmlValue.add(msg.htmlValue.getString());
-  //     break;
-  //   case Hash::calculateHash("file-in"): {
-  //     msgOut.htmlID.add("file-out");
-  //     if (msg.file == nullptr)
-  //       return ResultCode_t::INVALID_DATA;
-  //     digestpp::sha1 sha;
-  //     int            i;
-  //     while ((i = fgetc(msg.file)) != EOF){
-  //       char c = static_cast<char>(i);
-  //       sha.absorb(&c, 1);
-  //     }
-  //     fclose(msg.file);
-  //     uint8_t shaBuf[20];
-  //     sha.digest(shaBuf, 20);
-  //     msgOut.htmlValue.add(base64_encode(shaBuf, 20));
-  //   } break;
-  //   case Hash::calculateHash("month-in"):
-  //     msgOut.htmlID.add("month-out");
-  //     msgOut.htmlValue.add(msg.htmlValue.getString());
-  //     break;
-  //   case Hash::calculateHash("number-in"):
-  //     msgOut.htmlID.add("number-out");
-  //     msgOut.htmlValue.add(msg.htmlValue.getString());
-  //     break;
-  //   case Hash::calculateHash("range-in"):
-  //     msgOut.htmlID.add("range-out");
-  //     msgOut.htmlValue.add(msg.htmlValue.getString());
-  //     break;
-  //   case Hash::calculateHash("tel-in"):
-  //     msgOut.htmlID.add("tel-out");
-  //     msgOut.htmlValue.add(msg.htmlValue.getString());
-  //     break;
-  //   case Hash::calculateHash("time-in"):
-  //     msgOut.htmlID.add("time-out");
-  //     msgOut.htmlValue.add(msg.htmlValue.getString());
-  //     break;
-  //   case Hash::calculateHash("url-in"):
-  //     msgOut.htmlID.add("url-out");
-  //     msgOut.htmlValue.add(msg.htmlValue.getString());
-  //     break;
-  //   default:
-  //     return ResultCode_t::UNKNOWN_HASH;
-  // }
+  Result result;
+  result = EBMessageOutCreate(msg.gui);
+  if (!result)
+    return result;
+
+  result = EBMessageOutSetHref(msg.gui, msg.href.getString());
+  if (!result)
+    return result;
+
   EBLogInfo(msg.href.getString() + "|" + msg.id.getString() + "|" +
             msg.value.getString());
+
+  switch (msg.id.get()) {
+    case Hash::calculateHash("text-in"): {
+      std::string temp(msg.value.getString());
+      std::reverse(temp.begin(), temp.end());
+      result = EBMessageOutSetProp(msg.gui, "text-out", "innerHTML", temp);
+    } break;
+    case Hash::calculateHash("password-in"): {
+      digestpp::sha1 sha;
+      sha.absorb(msg.value.getString());
+      uint8_t buf[20];
+      sha.digest(buf, 20);
+      result = EBMessageOutSetProp(
+          msg.gui, "password-out", "innerHTML", base64_encode(buf, 20));
+    } break;
+    case Hash::calculateHash("life-in"):
+      result = EBMessageOutSetProp(msg.gui, "life-out", "innerHTML", "42");
+      break;
+    case Hash::calculateHash("fruit"):
+      if (msg.value.get() == Hash::calculateHash("Banana"))
+        result = EBMessageOutSetProp(
+            msg.gui, "fruit-out", "innerHTML", "You have chosen <i>wisely</i>");
+      else if (msg.value.get() == Hash::calculateHash("Apple"))
+        result = EBMessageOutSetProp(
+            msg.gui, "fruit-out", "innerHTML", "You have chosen <i>wrong</i>");
+      else
+        result = EBMessageOutSetProp(
+            msg.gui, "fruit-out", "innerHTML", "You have chosen <i>poorly</i>");
+      break;
+    case Hash::calculateHash("fruit-checkbox0"): {
+      std::string temp = "I have a";
+      appleSelected    = msg.value.get() == Hash::calculateHash("true");
+      if (appleSelected)
+        temp += "n apple";
+      if (bananaSelected)
+        temp += " banana";
+      if (orangeSelected)
+        temp += " orange";
+      result =
+          EBMessageOutSetProp(msg.gui, "fruit-check-out", "innerHTML", temp);
+    } break;
+    case Hash::calculateHash("fruit-checkbox1"): {
+      std::string temp = "I have a";
+      bananaSelected   = msg.value.get() == Hash::calculateHash("true");
+      if (appleSelected)
+        temp += "n apple";
+      if (bananaSelected)
+        temp += " banana";
+      if (orangeSelected)
+        temp += " orange";
+      result =
+          EBMessageOutSetProp(msg.gui, "fruit-check-out", "innerHTML", temp);
+    } break;
+    case Hash::calculateHash("fruit-checkbox2"): {
+      std::string temp = "I have a";
+      orangeSelected   = msg.value.get() == Hash::calculateHash("true");
+      if (appleSelected)
+        temp += "n apple";
+      if (bananaSelected)
+        temp += " banana";
+      if (orangeSelected)
+        temp += " orange";
+      result =
+          EBMessageOutSetProp(msg.gui, "fruit-check-out", "innerHTML", temp);
+    } break;
+    case Hash::calculateHash("color-in"):
+      result = EBMessageOutSetProp(
+          msg.gui, "color-out", "value", msg.value.getString());
+      break;
+    case Hash::calculateHash("date-in"):
+      result = EBMessageOutSetProp(
+          msg.gui, "date-out", "value", msg.value.getString());
+      break;
+    case Hash::calculateHash("datetime-in"):
+      result = EBMessageOutSetProp(
+          msg.gui, "datetime-out", "value", msg.value.getString());
+      break;
+    case Hash::calculateHash("email-in"):
+      result = EBMessageOutSetProp(
+          msg.gui, "email-out", "innerHTML", msg.value.getString());
+      break;
+    case Hash::calculateHash("file-in"): {
+      if (msg.file == nullptr)
+        return ResultCode_t::INVALID_DATA;
+      digestpp::sha1 sha;
+      int            i;
+      while ((i = fgetc(msg.file)) != EOF) {
+        char c = static_cast<char>(i);
+        sha.absorb(&c, 1);
+      }
+      fclose(msg.file);
+      uint8_t shaBuf[20];
+      sha.digest(shaBuf, 20);
+      result = EBMessageOutSetProp(
+          msg.gui, "file-out", "innerHTML", base64_encode(shaBuf, 20));
+    } break;
+    case Hash::calculateHash("month-in"):
+      result = EBMessageOutSetProp(
+          msg.gui, "month-out", "value", msg.value.getString());
+      break;
+    case Hash::calculateHash("number-in"):
+      result = EBMessageOutSetProp(
+          msg.gui, "number-out", "innerHTML", msg.value.getString());
+      break;
+    case Hash::calculateHash("range-in"):
+      result = EBMessageOutSetProp(
+          msg.gui, "range-out", "innerHTML", msg.value.getString());
+      break;
+    case Hash::calculateHash("tel-in"):
+      result = EBMessageOutSetProp(
+          msg.gui, "tel-out", "innerHTML", msg.value.getString());
+      break;
+    case Hash::calculateHash("time-in"):
+      result = EBMessageOutSetProp(
+          msg.gui, "time-out", "value", msg.value.getString());
+      break;
+    case Hash::calculateHash("url-in"):
+      result = EBMessageOutSetProp(
+          msg.gui, "url-out", "innerHTML", msg.value.getString());
+      break;
+    default:
+      return ResultCode_t::UNKNOWN_HASH;
+  }
+  if (!result)
+    return result;
+
+  result = EBMessageOutEnqueue(msg.gui);
+  if (!result)
+    return result;
   return ResultCode_t::SUCCESS;
 }
 
