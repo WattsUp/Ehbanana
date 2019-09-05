@@ -13,9 +13,7 @@ var config = {
   options: {
     responsive: true,
     title: {display: true, text: "Chart.js Line Chart Streaming"},
-    tooltips: {
-      mode: "x"
-    },
+    tooltips: {mode: "x"},
     hover: {mode: "x"},
     scales: {
       xAxes:
@@ -34,8 +32,8 @@ function setupChart() {
   chart       = new Chart(context, config);
 }
 
-function updateChart(number) {
-  config.data.datasets[0].data.push(number);
+function updateChart(element) {
+  config.data.datasets[0].data.push(element.innerHTML);
   if (config.data.labels.length < 20) {
     config.data.labels.unshift(index);
     index--;

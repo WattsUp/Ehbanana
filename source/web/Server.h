@@ -30,7 +30,7 @@ public:
   void   start();
   void   stop();
 
-  void enqueueOutput(const EBMessage_t & msg);
+  void enqueueOutput(const std::string & msg);
 
   const std::string & getDomainName() const;
 
@@ -49,7 +49,7 @@ private:
   std::string domainName;
 
   std::list<Connection *> connections;
-  std::list<EBMessage_t>  outputMessages;
+  std::list<std::string>  outputMessages;
 
   EBGUI_t gui;
 

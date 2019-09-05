@@ -29,7 +29,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
-      <AdditionalIncludeDirectories>$(SolutionDir)\..\include;$(SolutionDir)\..\lib\FruitBowl\include;$(SolutionDir)\..\lib\digestpp;$(SolutionDir)\..\lib\cpp-base64;$(SolutionDir)\source\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)\..\include;$(SolutionDir)\..\lib\FruitBowl\include;$(SolutionDir)\..\lib\digestpp;$(SolutionDir)\..\lib\cpp-base64;$(SolutionDir)\source\;</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>%(PreprocessorDefinitions);</PreprocessorDefinitions>
     </ClCompile>
     <Link>

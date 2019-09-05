@@ -244,7 +244,7 @@ void Server::stop() {
  *
  * @param msg to enqueue
  */
-void Server::enqueueOutput(const EBMessage_t & msg) {
+void Server::enqueueOutput(const std::string & msg) {
   outputMessages.push_back(msg);
 }
 

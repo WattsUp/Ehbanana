@@ -120,7 +120,7 @@ public:
    * @param msg to add
    * @return Result
    */
-  virtual Result addMessage(const EBMessage_t &) {
+  virtual Result addMessage(const std::string &) {
     return ResultCode_t::NOT_SUPPORTED;
   }
 

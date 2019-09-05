@@ -27,7 +27,7 @@ public:
   ~Connection();
 
   Result update(const std::chrono::time_point<std::chrono::system_clock> & now);
-  Result addMessage(const EBMessage_t & msg);
+  Result addMessage(const std::string & msg);
   void   stop();
 
   const std::string & getEndpoint() const;

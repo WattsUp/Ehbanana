@@ -1,5 +1,6 @@
 #include "Ehbanana.h"
 
+#include "MessageOut.h"
 #include "web/Server.h"
 
 #include <FruitBowl.h>
@@ -168,8 +169,8 @@ ResultCode_t EBGetMessage(EBMessage_t & msg) {
 }
 
 ResultCode_t EBDispatchMessage(const EBMessage_t & msg) {
-  return setLastResult(
-      (msg.gui->settings.guiProcess)(msg) + "Dispatched message to guiProcess");
+  Result result = (msg.gui->settings.guiProcess)(msg);
+  return setLastResult(result + "Dispatched message to guiProcess");
 }
 
 ResultCode_t EBEnqueueMessage(const EBMessage_t & msg) {
@@ -178,14 +179,7 @@ ResultCode_t EBEnqueueMessage(const EBMessage_t & msg) {
 }
 
 ResultCode_t EBDefaultGUIProcess(const EBMessage_t & msg) {
-  switch (msg.type) {
-    case EBMSGType_t::OUTPUT:
-      msg.gui->server->enqueueOutput(msg);
-      break;
-    default:
-      return setLastResult(ResultCode_t::NOT_SUPPORTED + "Default GUI process");
-  }
-  return setLastResult(ResultCode_t::SUCCESS);
+  return setLastResult(ResultCode_t::NOT_SUPPORTED + "Default GUI process");
 }
 
 ResultCode_t EBConfigureLogging(const char * fileName, bool rotatingLogs,
@@ -247,6 +241,40 @@ ResultCode_t EBConfigureLogging(const char * fileName, bool rotatingLogs,
       break;
   }
 
+  return setLastResult(ResultCode_t::SUCCESS);
+}
+
+ResultCode_t EBMessageOutCreate(EBGUI_t gui) {
+  if (gui->currentMessageOut == nullptr)
+    delete gui->currentMessageOut;
+
+  gui->currentMessageOut = new MessageOut();
+  return setLastResult(ResultCode_t::SUCCESS);
+}
+
+ResultCode_t EBMessageOutSetHref(EBGUI_t gui, const char * href) {
+  if (gui->currentMessageOut == nullptr)
+    return setLastResult(
+        ResultCode_t::INVALID_DATA + "currentMessageOut is nullptr");
+  Result result = gui->currentMessageOut->setHref(href);
+  return setLastResult(result + "Setting message out href");
+}
+
+ResultCode_t EBMessageOutSetProp(
+    EBGUI_t gui, const char * id, const char * name, const char * value) {
+  if (gui->currentMessageOut == nullptr)
+    return setLastResult(
+        ResultCode_t::INVALID_DATA + "currentMessageOut is nullptr");
+  Result result = gui->currentMessageOut->setProperty(id, name, value);
+  return setLastResult(result + "Setting message out property");
+}
+
+ResultCode_t EBMessageOutEnqueue(EBGUI_t gui) {
+  if (gui->currentMessageOut == nullptr)
+    return setLastResult(
+        ResultCode_t::INVALID_DATA + "currentMessageOut is nullptr");
+  if (!gui->currentMessageOut->isEnqueued())
+    gui->server->enqueueOutput(gui->currentMessageOut->getString());
   return setLastResult(ResultCode_t::SUCCESS);
 }
 

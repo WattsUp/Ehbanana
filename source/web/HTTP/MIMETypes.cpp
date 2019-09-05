@@ -95,7 +95,7 @@ const std::string & MIMETypes::getType(const std::string & fileName) {
  *
  */
 void MIMETypes::sortList() {
-  for (uint8_t i = 0; i < 16; i++) {
+  for (uint8_t i = 0; i < 16; ++i) {
     std::list<MIMEType_t> & typeBucket = typeBuckets[i];
     typeBucket.sort(std::greater<MIMEType_t>());
   }

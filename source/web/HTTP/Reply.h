@@ -172,7 +172,7 @@ private:
   std::string                     content;
   std::vector<asio::const_buffer> buffers;
   std::vector<Header_t>           headers;
-  Status_t                        status         = Status_t::OK;
+  Status_t                        status = Status_t::OK;
 };
 
 } // namespace HTTP
