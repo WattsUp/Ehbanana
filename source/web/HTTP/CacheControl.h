@@ -1,6 +1,8 @@
 #ifndef _WEB_CACHE_CONTROL_H_
 #define _WEB_CACHE_CONTROL_H_
 
+#include "Ehbanana.h"
+
 #include <FruitBowl.h>
 #include <MemoryMapped.h>
 
@@ -9,6 +11,7 @@
 #include <stdint.h>
 #include <string>
 
+namespace Ehbanana {
 namespace Web {
 namespace HTTP {
 
@@ -53,5 +56,6 @@ private:
 
 } // namespace HTTP
 } // namespace Web
+} // namespace Ehbanana
 
 #endif /* _WEB_CACHE_CONTROL_H_ */

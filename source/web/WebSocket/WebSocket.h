@@ -8,6 +8,7 @@
 #include <list>
 #include <string>
 
+namespace Ehbanana {
 namespace Web {
 namespace WebSocket {
 
@@ -43,5 +44,6 @@ private:
 
 } // namespace WebSocket
 } // namespace Web
+} // namespace Ehbanana
 
 #endif /* _WEB_WEBSOCKET_WEBSOCKET_H_ */

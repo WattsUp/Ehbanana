@@ -1,8 +1,10 @@
 #include "WebSocket.h"
 
-#include <rapidjson/document.h>
-#include <spdlog/spdlog.h>
+#include "EhbananaLog.h"
 
+#include <rapidjson/document.h>
+
+namespace Ehbanana {
 namespace Web {
 namespace WebSocket {
 
@@ -46,7 +48,7 @@ Result WebSocket::processReceiveBuffer(const uint8_t * begin, size_t length) {
         return result;
       break;
     case Opcode_t::PING: {
-      spdlog::debug("WebSocket received ping");
+      debug("WebSocket received ping");
       // Send pong
       Frame * frame = new Frame();
       frame->addData(frameIn.getData());
@@ -55,11 +57,11 @@ Result WebSocket::processReceiveBuffer(const uint8_t * begin, size_t length) {
       return ResultCode_t::INCOMPLETE;
     }
     case Opcode_t::PONG:
-      spdlog::debug("WebSocket received pong");
+      debug("WebSocket received pong");
       pingSent = false;
       break;
     case Opcode_t::CLOSE:
-      spdlog::debug("WebSocket received close");
+      debug("WebSocket received close");
       // Echo the close back
       addTransmitBuffer(frameIn.toBuffer());
       return ResultCode_t::SUCCESS;
@@ -203,3 +205,4 @@ bool WebSocket::hasTransmitBuffers() {
 
 } // namespace WebSocket
 } // namespace Web
+} // namespace Ehbanana

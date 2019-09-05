@@ -1,11 +1,12 @@
 #include "Server.h"
 
+#include "EhbananaLog.h"
 #include "HTTP/CacheControl.h"
 #include "HTTP/MIMETypes.h"
 
-#include <spdlog/spdlog.h>
 #include <string>
 
+namespace Ehbanana {
 namespace Web {
 
 /**
@@ -140,7 +141,7 @@ void Server::run() {
     if (!errorCode) {
       std::string endpointString = endpoint.address().to_string() + ":" +
                                    std::to_string(endpoint.port());
-      spdlog::info("Opening connection to {}", endpointString);
+      info("Opening connection to " + endpointString);
       connections.push_back(new Connection(socket, endpointString, now, gui));
       socket       = nullptr;
       didSomething = true;
@@ -174,15 +175,14 @@ void Server::run() {
         ++i;
       else {
         if (result == ResultCode_t::TIMEOUT)
-          spdlog::info(
-              "Closing connection to {} - Timeout", connection->getEndpoint());
+          info("Closing connection to " + connection->getEndpoint() +
+               " - Timeout");
         else if (!result)
-          spdlog::error("Closing connection to {} - {}",
-              connection->getEndpoint(), result.getMessage());
+          error("Closing connection to " + connection->getEndpoint() + " - " +
+                result.getMessage());
         else
-          spdlog::info(
-              "Closing connection to {} - Operations completed successfully",
-              connection->getEndpoint());
+          info("Closing connection to " + connection->getEndpoint() +
+               " - Operations completed successfully");
 
         connection->stop();
         delete connection;
@@ -258,3 +258,4 @@ const std::string & Server::getDomainName() const {
 }
 
 } // namespace Web
+} // namespace Ehbanana

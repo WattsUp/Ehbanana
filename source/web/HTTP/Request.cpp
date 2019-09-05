@@ -1,8 +1,10 @@
 #include "Request.h"
 
-#include <spdlog/spdlog.h>
+#include "EhbananaLog.h"
+
 #include <sstream>
 
+namespace Ehbanana {
 namespace Web {
 namespace HTTP {
 
@@ -145,7 +147,7 @@ Result Request::parse(uint8_t c) {
         state  = State_t::HEADER_NAME;
         result = headers.addHeader(currentHeader);
         if (result == ResultCode_t::UNKNOWN_HASH)
-          spdlog::warn(result.getMessage());
+          warn(result.getMessage());
         else if (!result)
           return result + "Adding request header";
         currentHeader = HeaderHash_t();
@@ -162,7 +164,7 @@ Result Request::parse(uint8_t c) {
       break;
     case State_t::BODY:
       if (headers.getContentLength() == 0) {
-        spdlog::debug("Tried to add '{}' (0x{:02X}) to body", c, c);
+        log(EBLogLevel_t::EB_DEBUG, "Tried to add '%c' (0x%02X) to body", c, c);
         return ResultCode_t::BAD_COMMAND +
                "Request has body but zero content length";
       }
@@ -339,3 +341,4 @@ Result Request::decodeHex(const std::string & hex, uint32_t & value) {
 
 } // namespace HTTP
 } // namespace Web
+} // namespace Ehbanana

@@ -1,7 +1,6 @@
 #include "Frame.h"
 
-#include <spdlog/spdlog.h>
-
+namespace Ehbanana {
 namespace Web {
 namespace WebSocket {
 
@@ -251,3 +250,4 @@ asio::const_buffer Frame::toBuffer() {
 
 } // namespace WebSocket
 } // namespace Web
+} // namespace Ehbanana

@@ -1,7 +1,8 @@
 #include "MIMETypes.h"
 
-#include <spdlog/spdlog.h>
+#include "EhbananaLog.h"
 
+namespace Ehbanana {
 namespace Web {
 namespace HTTP {
 
@@ -17,7 +18,7 @@ Result MIMETypes::populateList(const std::string & fileName) {
   MemoryMapped file(fileName, 0, MemoryMapped::SequentialScan);
   if (!file.isValid())
     return ResultCode_t::OPEN_FAILED + ("Opening MIME types from: " + fileName);
-  spdlog::info("Loading MIME types from \"{}\"", fileName);
+  info("Loading MIME types from \"" + fileName + "\"");
 
   size_t                fileSize = static_cast<size_t>(file.size());
   const unsigned char * data     = file.getData();
@@ -86,7 +87,7 @@ const std::string & MIMETypes::getType(const std::string & fileName) {
       return type.type;
     }
   }
-  spdlog::warn("Could not find MIME type for \"{}\"", fileExtension);
+  warn("Could not find MIME type for \"" + fileExtension + "\"");
   return UNKNOWN_MIME_TYPE;
 }
 
@@ -114,3 +115,4 @@ bool operator>(const MIMEType_t & left, const MIMEType_t & right) {
 
 } // namespace HTTP
 } // namespace Web
+} // namespace Ehbanana

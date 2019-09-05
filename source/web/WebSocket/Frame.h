@@ -4,6 +4,7 @@
 #include <FruitBowl.h>
 #include <asio.hpp>
 
+namespace Ehbanana {
 namespace Web {
 namespace WebSocket {
 
@@ -60,5 +61,6 @@ private:
 
 } // namespace WebSocket
 } // namespace Web
+} // namespace Ehbanana
 
 #endif /* _WEB_WEBSOCKET_FRAME_H_ */

@@ -14,6 +14,7 @@
 #include <stdint.h>
 #include <string>
 
+namespace Ehbanana {
 namespace Web {
 
 class Connection {
@@ -48,5 +49,6 @@ private:
 };
 
 } // namespace Web
+} // namespace Ehbanana
 
 #endif /* _WEB_CONNECTION_H_ */

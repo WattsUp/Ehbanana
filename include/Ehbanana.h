@@ -73,11 +73,15 @@ struct EBGUISettings_t {
   uint16_t       httpPort = 0;
 };
 
+namespace Ehbanana {
+
 namespace Web {
 class Server;
 }
 
 class MessageOut;
+
+} // namespace Ehbanana
 
 /**
  * @brief GUI object
@@ -86,9 +90,9 @@ class MessageOut;
  * @param server that executes the GUI
  */
 struct EBGUI {
-  EBGUISettings_t settings;
-  Web::Server *   server            = nullptr;
-  MessageOut *    currentMessageOut = nullptr;
+  EBGUISettings_t         settings;
+  Ehbanana::Web::Server * server            = nullptr;
+  Ehbanana::MessageOut *  currentMessageOut = nullptr;
 };
 
 /**

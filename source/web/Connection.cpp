@@ -1,8 +1,8 @@
 #include "Connection.h"
 
-#include <spdlog/spdlog.h>
 #include <sstream>
 
+namespace Ehbanana {
 namespace Web {
 
 /**
@@ -137,3 +137,4 @@ const std::string & Connection::getEndpoint() const {
 }
 
 } // namespace Web
+} // namespace Ehbanana

@@ -1,7 +1,8 @@
 #include "CacheControl.h"
 
-#include <spdlog/spdlog.h>
+#include "EhbananaLog.h"
 
+namespace Ehbanana {
 namespace Web {
 namespace HTTP {
 
@@ -18,7 +19,7 @@ Result CacheControl::populateList(const std::string & fileName) {
   if (!file.isValid())
     return ResultCode_t::OPEN_FAILED +
            ("Opening cache control from: " + fileName);
-  spdlog::info("Loading cache control from \"{}\"", fileName);
+  info("Loading cache control from \"" + fileName + "\"");
 
   size_t                fileSize = static_cast<size_t>(file.size());
   const unsigned char * data     = file.getData();
@@ -114,9 +115,10 @@ std::string CacheControl::getCacheControl(const std::string & fileName) {
       return filesMatch.cacheControlHeader;
     }
   }
-  spdlog::warn("Could not find cache control for \"{}\"", fileName);
+  warn("Could not find cache control for \"" + fileName + "\"");
   return DEFAULT;
 }
 
 } // namespace HTTP
 } // namespace Web
+} // namespace Ehbanana

@@ -1,5 +1,6 @@
 #include "Ehbanana.h"
 
+#include "EhbananaLog.h"
 #include "MessageOut.h"
 #include "web/Server.h"
 
@@ -11,141 +12,9 @@
 #include <string>
 
 namespace Ehbanana {
+
 static std::list<EBMessage_t> MessageQueue;
 static Result                 lastResult;
-
-/**
- * @brief Logger callback
- * Prints the message string to the destination stream, default: stdout
- *
- * @param EBLogLevel_t log level
- * @param char * string
- */
-void __stdcall defaultLogger(const EBLogLevel_t, const char * string) {
-  printf(string);
-}
-
-static EBLogger_t logger = defaultLogger;
-
-/**
- * @brief Log a message with debug level
- *
- * @param string
- */
-void debug(const char * string) {
-  logger(EBLogLevel_t::EB_DEBUG, string);
-}
-
-/**
- * @brief Log a message with debug level
- *
- * @param string
- */
-inline void debug(const std::string & string) {
-  debug(string.c_str());
-}
-
-/**
- * @brief Log a message with info level
- *
- * @param string
- */
-void info(const char * string) {
-  logger(EBLogLevel_t::EB_INFO, string);
-}
-
-/**
- * @brief Log a message with info level
- *
- * @param string
- */
-inline void info(const std::string & string) {
-  info(string.c_str());
-}
-
-/**
- * @brief Log a message with warning level
- *
- * @param string
- */
-void warn(const char * string) {
-  logger(EBLogLevel_t::EB_WARNING, string);
-}
-
-/**
- * @brief Log a message with warn level
- *
- * @param string
- */
-inline void warn(const std::string & string) {
-  warn(string.c_str());
-}
-
-/**
- * @brief Log a message with error level
- *
- * @param string
- */
-void error(const char * string) {
-  logger(EBLogLevel_t::EB_ERROR, string);
-}
-
-/**
- * @brief Log a message with error level
- *
- * @param string
- */
-inline void error(const std::string & string) {
-  error(string.c_str());
-}
-
-/**
- * @brief Log a message with critical level
- *
- * @param string
- */
-void crit(const char * string) {
-  logger(EBLogLevel_t::EB_CRITICAL, string);
-}
-
-/**
- * @brief Log a message with critical level
- *
- * @param string
- */
-inline void crit(const std::string & string) {
-  crit(string.c_str());
-}
-
-/**
- * @brief Log a message using format specifier
- *
- * @param level to log at
- * @param format string
- * @param ... args
- */
-void log(EBLogLevel_t level, const char * format, ...) {
-  int     bufLen = 128;
-  char *  buf    = new char[bufLen];
-  va_list args;
-  va_start(args, format);
-  int n = vsnprintf(buf, bufLen, format, args);
-  if (n > bufLen) {
-    delete buf;
-    bufLen = n + 1;
-    buf    = new char[bufLen];
-    n      = vsnprintf(buf, bufLen, format, args);
-    if (n > bufLen) {
-      crit("Could not print format string");
-      va_end(args);
-      delete buf;
-      return;
-    }
-  }
-  va_end(args);
-  logger(level, buf);
-  delete buf;
-}
 
 } // namespace Ehbanana
 
@@ -191,14 +60,14 @@ ResultCode_t EBCreateGUI(EBGUISettings_t guiSettings, EBGUI_t & gui) {
   }
 
   // Construct a new server and attach it to the EBGUI
-  gui->server = new Web::Server(gui);
+  gui->server = new Ehbanana::Web::Server(gui);
   result = gui->server->configure(guiSettings.httpRoot, guiSettings.configRoot);
   if (!result) {
     if (result == ResultCode_t::OPEN_FAILED) {
       // Most likely: the working directory is not correct
       // Try again with the one folder up
-      // spdlog::info("Could not open http and config root, trying one folder
-      // up");
+      Ehbanana::info(
+          "Could not open http and config root, trying one folder up");
       result = gui->server->configure("../" + std::string(guiSettings.httpRoot),
           "../" + std::string(guiSettings.configRoot));
       if (!result) {
@@ -254,12 +123,12 @@ ResultCode_t EBShowGUI(EBGUI_t gui) {
       "\"C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe\"";
   command += " --app=\"" + URL + "\"";
   if (!EBCreateProcess(command, &browser)) {
-    // spdlog::warn("Chrome not found at default installation");
+    Ehbanana::warn("Chrome not found at default installation");
     // Try app data next
     command = "\"%LocalAppData%\\Google\\Chrome\\Application\\chrome.exe\"";
     command += " --app=\"" + URL + "\"";
     if (!EBCreateProcess(command, &browser)) {
-      // spdlog::warn("Chrome not found in app data");
+      Ehbanana::warn("Chrome not found in app data");
       // Use default browser last
       command = "cmd /c start " + URL;
       if (!EBCreateProcess(command, &browser)) {
@@ -276,7 +145,7 @@ ResultCode_t EBShowGUI(EBGUI_t gui) {
   CloseHandle(browser.hProcess);
   CloseHandle(browser.hThread);
 
-  // spdlog::info("Web browser opened to {}", URL);
+  Ehbanana::info("Web browser opened to " + URL);
 
   return ResultCode_t::SUCCESS;
 }
@@ -326,7 +195,7 @@ ResultCode_t EBMessageOutCreate(EBGUI_t gui) {
   if (gui->currentMessageOut == nullptr)
     delete gui->currentMessageOut;
 
-  gui->currentMessageOut = new MessageOut();
+  gui->currentMessageOut = new Ehbanana::MessageOut();
   return ResultCode_t::SUCCESS;
 }
 
@@ -374,5 +243,5 @@ ResultCode_t EBMessageOutEnqueue(EBGUI_t gui) {
 }
 
 void EBSetLogger(const EBLogger_t logger) {
-  Ehbanana::logger = logger;
+  Ehbanana::Logger::Instance()->set(logger);
 }

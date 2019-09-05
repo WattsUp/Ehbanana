@@ -6,6 +6,7 @@
 #include <FruitBowl.h>
 #include <asio.hpp>
 
+namespace Ehbanana {
 namespace Web {
 
 enum class AppProtocol_t : uint8_t { NONE, HTTP, WEBSOCKET };
@@ -149,5 +150,6 @@ private:
 };
 
 } // namespace Web
+} // namespace Ehbanana
 
 #endif /* _WEB_APP_PROTOCOL_H_ */
