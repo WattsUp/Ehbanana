@@ -185,6 +185,33 @@ ResultCode_t __stdcall guiProcess(const EBMessage_t & msg) {
   return ResultCode_t::SUCCESS;
 }
 
+/**
+ * @brief Logger callback
+ * Prints the message string to the destination stream, default: stdout
+ *
+ * @param EBLogLevel_t log level
+ * @param char * string
+ */
+void __stdcall logEhbanana(const EBLogLevel_t level, const char * string) {
+  switch (level) {
+    case EBLogLevel_t::EB_DEBUG:
+      printf("[Debug] %s\n", string);
+      break;
+    case EBLogLevel_t::EB_INFO:
+      printf("[Info] %s\n", string);
+      break;
+    case EBLogLevel_t::EB_WARNING:
+      printf("[Warn] %s\n", string);
+      break;
+    case EBLogLevel_t::EB_ERROR:
+      printf("[Error] %s\n", string);
+      break;
+    case EBLogLevel_t::EB_CRITICAL:
+      printf("[Critical] %s\n", string);
+      break;
+  }
+}
+
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
   if (AllocConsole()) {
     HWND hwnd = GetConsoleWindow();
@@ -202,6 +229,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
   printf("Ehbanana test starting\n");
 
+  EBSetLogger(logEhbanana);
+
   EBGUISettings_t settings;
   settings.guiProcess = guiProcess;
   settings.configRoot = "test/config";
@@ -209,16 +238,12 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
   EBGUI_t      gui    = nullptr;
   ResultCode_t result = EBCreateGUI(settings, gui);
-  if (!result) {
-    printf(EBGetLastResultMessage());
+  if (!result)
     return static_cast<int>(result);
-  }
 
   result = EBShowGUI(gui);
-  if (!result) {
-    printf(EBGetLastResultMessage());
+  if (!result)
     return static_cast<int>(result);
-  }
 
   EBMessage_t msg;
   auto        nextUpdate = std::chrono::steady_clock::now();
@@ -229,50 +254,36 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
       std::this_thread::sleep_for(std::chrono::milliseconds(1));
     } else {
       result = EBDispatchMessage(msg);
-      if (!result) {
-        printf(EBGetLastResultMessage());
+      if (!result)
         return static_cast<int>(result);
-      }
     }
     if (std::chrono::steady_clock::now() > nextUpdate) {
       nextUpdate += std::chrono::milliseconds(500);
       result = EBMessageOutCreate(gui);
-      if (!result) {
-        printf(EBGetLastResultMessage());
+      if (!result)
         return static_cast<int>(result);
-      }
 
       result = EBMessageOutSetHref(gui, "/");
-      if (!result) {
-        printf(EBGetLastResultMessage());
+      if (!result)
         return static_cast<int>(result);
-      }
 
       result = EBMessageOutSetProp(
           gui, "stream-out", "innerHTML", std::to_string(rand() & 0xFF));
-      if (!result) {
-        printf(EBGetLastResultMessage());
+      if (!result)
         return static_cast<int>(result);
-      }
 
       result = EBMessageOutEnqueue(gui);
-      if (!result) {
-        printf(EBGetLastResultMessage());
+      if (!result)
         return static_cast<int>(result);
-      }
     }
   }
 
-  if (!result) {
-    printf(EBGetLastResultMessage());
+  if (!result)
     return static_cast<int>(result);
-  }
 
   result = EBDestroyGUI(gui);
-  if (!result) {
-    printf(EBGetLastResultMessage());
+  if (!result)
     return static_cast<int>(result);
-  }
 
   printf("Ehbanana test complete");
   return static_cast<int>(ResultCode_t::SUCCESS);

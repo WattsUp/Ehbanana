@@ -110,13 +110,6 @@ extern "C" EHBANANA_API ResultCode_t EBCreateGUI(
 extern "C" EHBANANA_API ResultCode_t EBShowGUI(EBGUI_t gui);
 
 /**
- * @brief Get the last error's message produced by Ehbanana
- *
- * @return const char * string
- */
-extern "C" EHBANANA_API const char * EBGetLastResultMessage();
-
-/**
  * @brief Destroy a GUI
  *
  * @param gui to destroy
@@ -247,10 +240,10 @@ enum class EBLogLevel_t : uint8_t {
  * @brief Logger callback
  * Prints the message string to the destination stream, default: stdout
  *
- * @param char * string
  * @param EBLogLevel_t log level
+ * @param char * string
  */
-typedef void(__stdcall * EBLogger)(
+typedef void(__stdcall * EBLogger_t)(
     const EBLogLevel_t level, const char * string);
 
 /**
@@ -258,6 +251,6 @@ typedef void(__stdcall * EBLogger)(
  *
  * If unset: stdout, no filtering
  */
-extern "C" EHBANANA_API void EBSetLogger(const EBLogger logger);
+extern "C" EHBANANA_API void EBSetLogger(const EBLogger_t logger);
 
 #endif /* _EHBANANA_H_ */
