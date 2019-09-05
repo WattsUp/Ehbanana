@@ -3,9 +3,9 @@
 
 #include <FruitBowl.h>
 
-#include <Windows.h>
-#include <memory>
+#ifdef EB_USE_STD_STRING
 #include <string>
+#endif
 
 #ifdef GetObject
 #undef GetObject
@@ -20,7 +20,7 @@
 struct EBGUI;
 typedef EBGUI * EBGUI_t;
 
-enum class EBMSGType_t : uint16_t {
+enum class EBMSGType_t : uint8_t {
   NONE,     // There is no message
   STARTUP,  // The web server has started up
   SHUTDOWN, // The web server is about to shutdown
@@ -68,8 +68,8 @@ typedef ResultCode_t(__stdcall * EBGUIProcess_t)(const EBMessage_t &);
  */
 struct EBGUISettings_t {
   EBGUIProcess_t guiProcess = nullptr;
-  std::string    configRoot;
-  std::string    httpRoot;
+  char *         configRoot;
+  char *         httpRoot;
   uint16_t       httpPort = 0;
 };
 
@@ -186,6 +186,7 @@ extern "C" EHBANANA_API ResultCode_t EBMessageOutCreate(EBGUI_t gui);
 extern "C" EHBANANA_API ResultCode_t EBMessageOutSetHref(
     EBGUI_t gui, const char * href);
 
+#ifdef EB_USE_STD_STRING
 /**
  * @brief Set the href for the current outgoing message for the GUI
  *
@@ -196,6 +197,7 @@ extern "C" EHBANANA_API ResultCode_t EBMessageOutSetHref(
 inline ResultCode_t EBMessageOutSetHref(EBGUI_t gui, std::string href) {
   return EBMessageOutSetHref(gui, href.c_str());
 }
+#endif
 
 /**
  * @brief Set a property for the current outgoing message for the GUI
@@ -209,6 +211,7 @@ inline ResultCode_t EBMessageOutSetHref(EBGUI_t gui, std::string href) {
 extern "C" EHBANANA_API ResultCode_t EBMessageOutSetProp(
     EBGUI_t gui, const char * id, const char * name, const char * value);
 
+#ifdef EB_USE_STD_STRING
 /**
  * @brief Set a property for the current outgoing message for the GUI
  *
@@ -222,6 +225,7 @@ inline ResultCode_t EBMessageOutSetProp(
     EBGUI_t gui, std::string id, std::string name, std::string value) {
   return EBMessageOutSetProp(gui, id.c_str(), name.c_str(), value.c_str());
 }
+#endif
 
 /**
  * @brief Enqueue the current outgoing message for the GUI
@@ -231,103 +235,29 @@ inline ResultCode_t EBMessageOutSetProp(
  */
 extern "C" EHBANANA_API ResultCode_t EBMessageOutEnqueue(EBGUI_t gui);
 
-#define EB_LOG_LEVEL_DEBUG 0
-#define EB_LOG_LEVEL_INFO 1
-#define EB_LOG_LEVEL_WARN 2
-#define EB_LOG_LEVEL_ERROR 3
-#define EB_LOG_LEVEL_CRITICAL 4
+enum class EBLogLevel_t : uint8_t {
+  EB_DEBUG,
+  EB_INFO,
+  EB_WARNING,
+  EB_ERROR,
+  EB_CRITICAL
+};
 
 /**
- * @brief Configure logging of the library
+ * @brief Logger callback
+ * Prints the message string to the destination stream, default: stdout
  *
- * @param fileName of the log file, nullptr for no logging to file
- * @param rotatingLogs will rotate between 3 files and overwrite the oldest if
- * true, or overwrite the single file if false
- * @param showConsole will open a console output window if true
- * @param logLevel sets the minimum level to log
- * @return ResultCode_t error code
+ * @param char * string
+ * @param EBLogLevel_t log level
  */
-extern "C" EHBANANA_API ResultCode_t EBConfigureLogging(const char * fileName,
-    bool rotatingLogs, bool showConsole, uint8_t logLevel);
+typedef void(__stdcall * EBLogger)(
+    const EBLogLevel_t level, const char * string);
 
 /**
- * @brief Log a message with debug level
+ * @brief Set the logger used by Ehbanana
  *
- * @param string to log
+ * If unset: stdout, no filtering
  */
-extern "C" EHBANANA_API void EBLogDebug(const char * string);
-
-/**
- * @brief Log a message with debug level
- *
- * @param string to log
- */
-inline void EBLogDebug(std::string string) {
-  EBLogDebug(string.c_str());
-}
-
-/**
- * @brief Log a message with info level
- *
- * @param string to log
- */
-extern "C" EHBANANA_API void EBLogInfo(const char * string);
-
-/**
- * @brief Log a message with info level
- *
- * @param string to log
- */
-inline void EBLogInfo(std::string string) {
-  EBLogInfo(string.c_str());
-}
-
-/**
- * @brief Log a message with warning level
- *
- * @param string to log
- */
-extern "C" EHBANANA_API void EBLogWarning(const char * string);
-
-/**
- * @brief Log a message with warning level
- *
- * @param string to log
- */
-inline void EBLogWarning(std::string string) {
-  EBLogWarning(string.c_str());
-}
-
-/**
- * @brief Log a message with error level
- *
- * @param string to log
- */
-extern "C" EHBANANA_API void EBLogError(const char * string);
-
-/**
- * @brief Log a message with error level
- *
- * @param string to log
- */
-inline void EBLogError(std::string string) {
-  EBLogError(string.c_str());
-}
-
-/**
- * @brief Log a message with critical level
- *
- * @param string to log
- */
-extern "C" EHBANANA_API void EBLogCritical(const char * string);
-
-/**
- * @brief Log a message with critical level
- *
- * @param string to log
- */
-inline void EBLogCritical(std::string string) {
-  EBLogCritical(string.c_str());
-}
+extern "C" EHBANANA_API void EBSetLogger(const EBLogger logger);
 
 #endif /* _EHBANANA_H_ */

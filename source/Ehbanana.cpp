@@ -6,10 +6,10 @@
 #include <FruitBowl.h>
 #include <iostream>
 #include <list>
-#include <spdlog/sinks/basic_file_sink.h>
-#include <spdlog/sinks/rotating_file_sink.h>
-#include <spdlog/sinks/stdout_sinks.h>
-#include <spdlog/spdlog.h>
+//#include <spdlog/sinks/basic_file_sink.h>
+//#include <spdlog/sinks/rotating_file_sink.h>
+//#include <spdlog/sinks/stdout_sinks.h>
+//#include <spdlog/spdlog.h>
 #include <stdlib.h>
 #include <string>
 
@@ -32,7 +32,7 @@ Result EBCreateProcess(
   strcpy_s(buf, command.size() + 1, command.c_str());
   if (!CreateProcessA(
           NULL, buf, NULL, NULL, FALSE, 0, NULL, NULL, &startupInfo, process)) {
-    spdlog::error("Failed to create process with command \"{}\"", command);
+    // spdlog::error("Failed to create process with command \"{}\"", command);
     delete buf;
     return ResultCode_t::BAD_COMMAND + ("Create process: " + command);
   }
@@ -75,11 +75,10 @@ ResultCode_t EBCreateGUI(EBGUISettings_t guiSettings, EBGUI_t & gui) {
     if (result == ResultCode_t::OPEN_FAILED) {
       // Most likely: the working directory is not correct
       // Try again with the one folder up
-      spdlog::info("Could not open http and config root, trying one folder up");
-      guiSettings.httpRoot   = "../" + guiSettings.httpRoot;
-      guiSettings.configRoot = "../" + guiSettings.configRoot;
-      result =
-          gui->server->configure(guiSettings.httpRoot, guiSettings.configRoot);
+      // spdlog::info("Could not open http and config root, trying one folder
+      // up");
+      result = gui->server->configure("../" + std::string(guiSettings.httpRoot),
+          "../" + std::string(guiSettings.configRoot));
       if (!result) // No hope
         return setLastResult(result + "Configuring new server");
     } else
@@ -123,12 +122,12 @@ ResultCode_t EBShowGUI(EBGUI_t gui) {
       "\"C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe\"";
   command += " --app=\"" + URL + "\"";
   if (!EBCreateProcess(command, &browser)) {
-    spdlog::warn("Chrome not found at default installation");
+    // spdlog::warn("Chrome not found at default installation");
     // Try app data next
     command = "\"%LocalAppData%\\Google\\Chrome\\Application\\chrome.exe\"";
     command += " --app=\"" + URL + "\"";
     if (!EBCreateProcess(command, &browser)) {
-      spdlog::warn("Chrome not found in app data");
+      // spdlog::warn("Chrome not found in app data");
       // Use default browser last
       command = "cmd /c start " + URL;
       if (!EBCreateProcess(command, &browser))
@@ -142,7 +141,7 @@ ResultCode_t EBShowGUI(EBGUI_t gui) {
   CloseHandle(browser.hProcess);
   CloseHandle(browser.hThread);
 
-  spdlog::info("Web browser opened to {}", URL);
+  // spdlog::info("Web browser opened to {}", URL);
 
   return setLastResult(ResultCode_t::SUCCESS);
 }
@@ -182,68 +181,6 @@ ResultCode_t EBDefaultGUIProcess(const EBMessage_t & msg) {
   return setLastResult(ResultCode_t::NOT_SUPPORTED + "Default GUI process");
 }
 
-ResultCode_t EBConfigureLogging(const char * fileName, bool rotatingLogs,
-    bool showConsole, uint8_t logLevel) {
-  std::vector<spdlog::sink_ptr> sinks;
-
-  if (showConsole) {
-    // Create a console and remove its close button
-    if (AllocConsole()) {
-      HWND hwnd = GetConsoleWindow();
-      if (hwnd != NULL) {
-        HMENU hMenu = GetSystemMenu(hwnd, FALSE);
-        if (hMenu != NULL)
-          DeleteMenu(hMenu, SC_CLOSE, MF_BYCOMMAND);
-      }
-    } else {
-      MessageBoxA(NULL, "Log console initialization failed", "Error", MB_OK);
-      std::cout << "Failed to AllocConsole with Win32 error: " << GetLastError()
-                << std::endl;
-      return setLastResult(ResultCode_t::OPEN_FAILED + "AllocConsole");
-    }
-    sinks.push_back(std::make_shared<spdlog::sinks::wincolor_stdout_sink_mt>());
-  }
-
-  if (fileName != nullptr) {
-    try {
-      if (rotatingLogs)
-        sinks.push_back(std::make_shared<spdlog::sinks::rotating_file_sink_mt>(
-            fileName, 5 * 1024 * 1024, 3));
-      else
-        sinks.push_back(
-            std::make_shared<spdlog::sinks::basic_file_sink_mt>(fileName));
-    } catch (const spdlog::spdlog_ex & e) {
-      MessageBoxA(NULL, "Log initialization failed", "Error", MB_OK);
-      std::cout << "Log initialization failed: " << e.what() << std::endl;
-      return setLastResult(ResultCode_t::OPEN_FAILED +
-                           ("Opening log files to " + std::string(fileName)));
-    }
-  }
-
-  std::shared_ptr<spdlog::logger> logger =
-      std::make_shared<spdlog::logger>("", begin(sinks), end(sinks));
-  spdlog::set_default_logger(logger);
-  switch (logLevel) {
-    case EB_LOG_LEVEL_DEBUG:
-      spdlog::set_level(spdlog::level::debug);
-      break;
-    case EB_LOG_LEVEL_INFO:
-      spdlog::set_level(spdlog::level::info);
-      break;
-    case EB_LOG_LEVEL_WARN:
-      spdlog::set_level(spdlog::level::warn);
-      break;
-    case EB_LOG_LEVEL_ERROR:
-      spdlog::set_level(spdlog::level::err);
-      break;
-    case EB_LOG_LEVEL_CRITICAL:
-      spdlog::set_level(spdlog::level::critical);
-      break;
-  }
-
-  return setLastResult(ResultCode_t::SUCCESS);
-}
-
 ResultCode_t EBMessageOutCreate(EBGUI_t gui) {
   if (gui->currentMessageOut == nullptr)
     delete gui->currentMessageOut;
@@ -276,24 +213,4 @@ ResultCode_t EBMessageOutEnqueue(EBGUI_t gui) {
   if (!gui->currentMessageOut->isEnqueued())
     gui->server->enqueueOutput(gui->currentMessageOut->getString());
   return setLastResult(ResultCode_t::SUCCESS);
-}
-
-void EBLogDebug(const char * string) {
-  spdlog::debug(string);
-}
-
-void EBLogInfo(const char * string) {
-  spdlog::info(string);
-}
-
-void EBLogWarning(const char * string) {
-  spdlog::warn(string);
-}
-
-void EBLogError(const char * string) {
-  spdlog::error(string);
-}
-
-void EBLogCritical(const char * string) {
-  spdlog::critical(string);
 }

@@ -6,7 +6,6 @@
       "${workspaceFolder}/source/**",
       "${workspaceFolder}/lib/MemoryMapping/**",
       "${workspaceFolder}/lib/asio/asio/include/**",
-      "${workspaceFolder}/lib/spdlog/include/**",
       "${workspaceFolder}/lib/FruitBowl/include/**",
       "${workspaceFolder}/lib/digestpp/**",
       "${workspaceFolder}/lib/cpp-base64/**",
@@ -14,6 +13,7 @@
     ],
     "defines": [
       "DEBUG",
+      "EB_USE_STD_STRING",
       "COMPILING_DLL",
       "WIN32_LEAN_AND_MEAN",
       "_WIN32_WINNT=_WIN32_WINNT_WIN10",

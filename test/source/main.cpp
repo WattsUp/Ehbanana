@@ -1,4 +1,5 @@
 #include <Ehbanana.h>
+#include <Windows.h>
 #include <algorithm/sha1.hpp>
 #include <base64.h>
 #include <chrono>
@@ -24,8 +25,8 @@ Result handleInput(const EBMessage_t & msg) {
   if (!result)
     return result;
 
-  EBLogInfo(msg.href.getString() + "|" + msg.id.getString() + "|" +
-            msg.value.getString());
+  printf("%s|%s|%s\n", msg.href.getString().c_str(), msg.id.getString().c_str(),
+      msg.value.getString().c_str());
 
   switch (msg.id.get()) {
     case Hash::calculateHash("text-in"): {
@@ -168,15 +169,15 @@ ResultCode_t __stdcall guiProcess(const EBMessage_t & msg) {
   Result result;
   switch (msg.type) {
     case EBMSGType_t::STARTUP:
-      EBLogInfo("Server starting up");
+      printf("Server starting up\n");
       break;
     case EBMSGType_t::SHUTDOWN:
-      EBLogInfo("Server shutting down");
+      printf("Server shutting down\n");
       break;
     case EBMSGType_t::INPUT:
       result = handleInput(msg);
       if (!result)
-        EBLogError(result.getMessage());
+        printf(result.getMessage());
       break;
     default:
       return EBDefaultGUIProcess(msg);
@@ -185,28 +186,37 @@ ResultCode_t __stdcall guiProcess(const EBMessage_t & msg) {
 }
 
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
-  ResultCode_t result =
-      EBConfigureLogging("ehbanana.log", true, true, EB_LOG_LEVEL_DEBUG);
-  if (!result)
-    return static_cast<int>(result);
+  if (AllocConsole()) {
+    HWND hwnd = GetConsoleWindow();
+    if (hwnd != NULL) {
+      HMENU hMenu = GetSystemMenu(hwnd, FALSE);
+      if (hMenu != NULL)
+        DeleteMenu(hMenu, SC_CLOSE, MF_BYCOMMAND);
+    }
+    freopen_s((FILE **)stdout, "CONOUT$", "w", stdout);
+  } else {
+    MessageBoxA(NULL, "Log console initialization failed", "Error", MB_OK);
+    std::cout << "Failed to AllocConsole with Win32 error: " << GetLastError()
+              << std::endl;
+  }
 
-  EBLogInfo("Ehbanana test starting");
+  printf("Ehbanana test starting\n");
 
   EBGUISettings_t settings;
   settings.guiProcess = guiProcess;
   settings.configRoot = "test/config";
   settings.httpRoot   = "test/http";
 
-  EBGUI_t gui = nullptr;
-  result      = EBCreateGUI(settings, gui);
+  EBGUI_t      gui    = nullptr;
+  ResultCode_t result = EBCreateGUI(settings, gui);
   if (!result) {
-    EBLogError(EBGetLastResultMessage());
+    printf(EBGetLastResultMessage());
     return static_cast<int>(result);
   }
 
   result = EBShowGUI(gui);
   if (!result) {
-    EBLogError(EBGetLastResultMessage());
+    printf(EBGetLastResultMessage());
     return static_cast<int>(result);
   }
 
@@ -220,7 +230,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
     } else {
       result = EBDispatchMessage(msg);
       if (!result) {
-        EBLogError(EBGetLastResultMessage());
+        printf(EBGetLastResultMessage());
         return static_cast<int>(result);
       }
     }
@@ -228,42 +238,42 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
       nextUpdate += std::chrono::milliseconds(500);
       result = EBMessageOutCreate(gui);
       if (!result) {
-        EBLogError(EBGetLastResultMessage());
+        printf(EBGetLastResultMessage());
         return static_cast<int>(result);
       }
 
       result = EBMessageOutSetHref(gui, "/");
       if (!result) {
-        EBLogError(EBGetLastResultMessage());
+        printf(EBGetLastResultMessage());
         return static_cast<int>(result);
       }
 
       result = EBMessageOutSetProp(
           gui, "stream-out", "innerHTML", std::to_string(rand() & 0xFF));
       if (!result) {
-        EBLogError(EBGetLastResultMessage());
+        printf(EBGetLastResultMessage());
         return static_cast<int>(result);
       }
 
       result = EBMessageOutEnqueue(gui);
       if (!result) {
-        EBLogError(EBGetLastResultMessage());
+        printf(EBGetLastResultMessage());
         return static_cast<int>(result);
       }
     }
   }
 
   if (!result) {
-    EBLogError(EBGetLastResultMessage());
+    printf(EBGetLastResultMessage());
     return static_cast<int>(result);
   }
 
   result = EBDestroyGUI(gui);
   if (!result) {
-    EBLogError(EBGetLastResultMessage());
+    printf(EBGetLastResultMessage());
     return static_cast<int>(result);
   }
 
-  EBLogInfo("Ehbanana test complete");
+  printf("Ehbanana test complete");
   return static_cast<int>(ResultCode_t::SUCCESS);
 }
