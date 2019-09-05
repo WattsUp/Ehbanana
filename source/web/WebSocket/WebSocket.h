@@ -22,6 +22,7 @@ public:
 
   Result processReceiveBuffer(const uint8_t * begin, size_t length);
 
+  bool   updateTransmitBuffers(size_t bytesWritten);
   bool   hasTransmitBuffers();
   bool   isDone();
   bool   sendAliveCheck();

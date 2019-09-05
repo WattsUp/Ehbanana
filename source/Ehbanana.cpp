@@ -192,7 +192,7 @@ ResultCode_t EBDefaultGUIProcess(const EBMessage_t & msg) {
 }
 
 ResultCode_t EBMessageOutCreate(EBGUI_t gui) {
-  if (gui->currentMessageOut == nullptr)
+  if (gui->currentMessageOut != nullptr)
     delete gui->currentMessageOut;
 
   gui->currentMessageOut = new Ehbanana::MessageOut();
@@ -239,6 +239,8 @@ ResultCode_t EBMessageOutEnqueue(EBGUI_t gui) {
   }
   if (!gui->currentMessageOut->isEnqueued())
     gui->server->enqueueOutput(gui->currentMessageOut->getString());
+  delete gui->currentMessageOut;
+  gui->currentMessageOut = nullptr;
   return ResultCode_t::SUCCESS;
 }
 
