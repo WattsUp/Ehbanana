@@ -1,12 +1,13 @@
 #include "HTTP.h"
 
 #include "CacheControl.h"
+#include "EhbananaLog.h"
 #include "MIMETypes.h"
 
 #include <algorithm/sha1.hpp>
 #include <base64.h>
-#include <spdlog/spdlog.h>
 
+namespace Ehbanana {
 namespace Web {
 namespace HTTP {
 
@@ -42,7 +43,7 @@ Result HTTP::processReceiveBuffer(const uint8_t * begin, size_t length) {
       // Handle request
       result = handleRequest();
       if (!result) {
-        spdlog::warn((result + "Handling HTTP request").getMessage());
+        warn((result + "Handling HTTP request").getMessage());
         reply = Reply::stockReply(result);
       }
       addTransmitBuffer(reply.getBuffers());
@@ -145,14 +146,14 @@ Result HTTP::handleRequest() {
 Result HTTP::handleGET() {
   std::string uri = request.getURI().getString();
   if (request.getQueries().empty())
-    spdlog::info("GET URI: \"{}\"", uri);
+    info("GET URI: \"" + uri + "\"");
   else {
     std::string buffer = "";
     for (HeaderHash_t query : request.getQueries()) {
       buffer += "\n    \"" + query.name.getString() + "\"=\"" +
                 query.value.getString() + "\"";
     }
-    spdlog::info("GET URI: \"{}\" Queries:{}", uri, buffer);
+    info("GET URI: \"" + uri + "\" Queries:" + buffer);
   }
 
   // URI must be absolute
@@ -196,15 +197,15 @@ Result HTTP::handleGET() {
  */
 Result HTTP::handlePOST() {
   if (request.getQueries().empty())
-    spdlog::info("POST URI: \"{}\"", request.getURI().getString());
+    info("POST URI: \"" + request.getURI().getString() + "\"");
   else {
     std::string buffer = "";
     for (HeaderHash_t query : request.getQueries()) {
       buffer += "\n    \"" + query.name.getString() + "\"=\"" +
                 query.value.getString() + "\"";
     }
-    spdlog::info(
-        "POST URI: \"{}\" Queries:{}", request.getURI().getString(), buffer);
+    info("POST URI: \"" + request.getURI().getString() +
+         "\" Queries: " + buffer);
   }
 
   reply.setStatus(Status_t::NOT_IMPLEMENTED);
@@ -250,3 +251,4 @@ Result HTTP::handleUpgrade() {
 
 } // namespace HTTP
 } // namespace Web
+} // namespace Ehbanana

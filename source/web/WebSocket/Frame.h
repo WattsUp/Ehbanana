@@ -4,6 +4,7 @@
 #include <FruitBowl.h>
 #include <asio.hpp>
 
+namespace Ehbanana {
 namespace Web {
 namespace WebSocket {
 
@@ -55,10 +56,11 @@ private:
   uint32_t    maskingKey    = 0;
   bool        fin           = false;
   std::string data;
-  FILE *      dataFile;
+  FILE *      dataFile = nullptr;
 };
 
 } // namespace WebSocket
 } // namespace Web
+} // namespace Ehbanana
 
 #endif /* _WEB_WEBSOCKET_FRAME_H_ */

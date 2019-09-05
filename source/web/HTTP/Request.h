@@ -9,6 +9,7 @@
 #include <string>
 #include <vector>
 
+namespace Ehbanana {
 namespace Web {
 namespace HTTP {
 
@@ -66,5 +67,6 @@ private:
 
 } // namespace HTTP
 } // namespace Web
+} // namespace Ehbanana
 
 #endif /* _WEB_REQUEST_H_ */

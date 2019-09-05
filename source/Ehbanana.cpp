@@ -1,20 +1,22 @@
 #include "Ehbanana.h"
 
+#include "EhbananaLog.h"
 #include "MessageOut.h"
 #include "web/Server.h"
 
 #include <FruitBowl.h>
+#include <Windows.h>
 #include <iostream>
 #include <list>
-#include <spdlog/sinks/basic_file_sink.h>
-#include <spdlog/sinks/rotating_file_sink.h>
-#include <spdlog/sinks/stdout_sinks.h>
-#include <spdlog/spdlog.h>
 #include <stdlib.h>
 #include <string>
 
-static std::list<EBMessage_t> EBMessageQueue;
+namespace Ehbanana {
+
+static std::list<EBMessage_t> MessageQueue;
 static Result                 lastResult;
+
+} // namespace Ehbanana
 
 /**
  * @brief Create a process from the command string
@@ -32,7 +34,8 @@ Result EBCreateProcess(
   strcpy_s(buf, command.size() + 1, command.c_str());
   if (!CreateProcessA(
           NULL, buf, NULL, NULL, FALSE, 0, NULL, NULL, &startupInfo, process)) {
-    spdlog::error("Failed to create process with command \"{}\"", command);
+    Ehbanana::error(
+        "Failed to create process with command \"" + command + "\"");
     delete buf;
     return ResultCode_t::BAD_COMMAND + ("Create process: " + command);
   }
@@ -40,57 +43,50 @@ Result EBCreateProcess(
   return ResultCode_t::SUCCESS;
 }
 
-const char * EBGetLastResultMessage() {
-  return lastResult.getMessage();
-}
-
-/**
- * @brief Set the Last Result
- *
- * @param result to set
- * @return ResultCode_t of that result
- */
-ResultCode_t setLastResult(Result result) {
-  lastResult = result;
-  return lastResult.getCode();
-}
-
 ResultCode_t EBCreateGUI(EBGUISettings_t guiSettings, EBGUI_t & gui) {
   // Construct a new EBGUI object to store settings and the server
   Result result = EBDestroyGUI(gui);
-  if (!result)
-    return setLastResult(result + "Desroying GUI before creating a new one");
+  if (!result) {
+    Ehbanana::error(
+        (result + "Desroying GUI before creating a new one").getMessage());
+    return result.getCode();
+  }
   gui = new EBGUI();
 
   if (guiSettings.guiProcess == nullptr) {
     delete gui;
-    return setLastResult(
-        ResultCode_t::INVALID_PARAMETER + "guiProcess is nullptr");
+    Ehbanana::error((result + "guiProcess is nullptr").getMessage());
+    return result.getCode();
   }
 
   // Construct a new server and attach it to the EBGUI
-  gui->server = new Web::Server(gui);
+  gui->server = new Ehbanana::Web::Server(gui);
   result = gui->server->configure(guiSettings.httpRoot, guiSettings.configRoot);
   if (!result) {
     if (result == ResultCode_t::OPEN_FAILED) {
       // Most likely: the working directory is not correct
       // Try again with the one folder up
-      spdlog::info("Could not open http and config root, trying one folder up");
-      guiSettings.httpRoot   = "../" + guiSettings.httpRoot;
-      guiSettings.configRoot = "../" + guiSettings.configRoot;
-      result =
-          gui->server->configure(guiSettings.httpRoot, guiSettings.configRoot);
-      if (!result) // No hope
-        return setLastResult(result + "Configuring new server");
-    } else
-      return setLastResult(result + "Configuring new server");
+      Ehbanana::info(
+          "Could not open http and config root, trying one folder up");
+      result = gui->server->configure("../" + std::string(guiSettings.httpRoot),
+          "../" + std::string(guiSettings.configRoot));
+      if (!result) {
+        // No hope
+        Ehbanana::error((result + "Configuring new server").getMessage());
+        return result.getCode();
+      }
+    } else {
+      Ehbanana::error((result + "Configuring new server").getMessage());
+      return result.getCode();
+    }
   }
 
   result = gui->server->initializeSocket("127.0.0.1", guiSettings.httpPort);
   if (!result) {
     delete gui->server;
     delete gui;
-    return setLastResult(result + "Initializing server's socket");
+    Ehbanana::error((result + "Initializing server's socket").getMessage());
+    return result.getCode();
   }
 
   gui->server->start();
@@ -99,17 +95,21 @@ ResultCode_t EBCreateGUI(EBGUISettings_t guiSettings, EBGUI_t & gui) {
   if (!result) {
     delete gui->server;
     delete gui;
-    return setLastResult(result + "Enqueueing STARTUP message");
+    Ehbanana::error((result + "Enqueueing STARTUP message").getMessage());
+    return result.getCode();
   }
 
   gui->settings = guiSettings;
-  return setLastResult(ResultCode_t::SUCCESS);
+  return ResultCode_t::SUCCESS;
 }
 
 ResultCode_t EBShowGUI(EBGUI_t gui) {
   // Ensure system calls is available
-  if (!std::system(nullptr))
-    return setLastResult(ResultCode_t::NO_SYSTEM_CALL);
+  if (!std::system(nullptr)) {
+    Ehbanana::error(
+        (ResultCode_t::NO_SYSTEM_CALL + "Showing GUI").getMessage());
+    return ResultCode_t::NO_SYSTEM_CALL;
+  }
 
   PROCESS_INFORMATION browser;
 
@@ -123,17 +123,20 @@ ResultCode_t EBShowGUI(EBGUI_t gui) {
       "\"C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe\"";
   command += " --app=\"" + URL + "\"";
   if (!EBCreateProcess(command, &browser)) {
-    spdlog::warn("Chrome not found at default installation");
+    Ehbanana::warn("Chrome not found at default installation");
     // Try app data next
     command = "\"%LocalAppData%\\Google\\Chrome\\Application\\chrome.exe\"";
     command += " --app=\"" + URL + "\"";
     if (!EBCreateProcess(command, &browser)) {
-      spdlog::warn("Chrome not found in app data");
+      Ehbanana::warn("Chrome not found in app data");
       // Use default browser last
       command = "cmd /c start " + URL;
-      if (!EBCreateProcess(command, &browser))
-        return setLastResult(
-            ResultCode_t::OPEN_FAILED + "Failed to start a web browser");
+      if (!EBCreateProcess(command, &browser)) {
+        Ehbanana::error(
+            (ResultCode_t::OPEN_FAILED + "Failed to start a web browser")
+                .getMessage());
+        return ResultCode_t::NO_SYSTEM_CALL;
+      }
     }
   }
 
@@ -142,158 +145,105 @@ ResultCode_t EBShowGUI(EBGUI_t gui) {
   CloseHandle(browser.hProcess);
   CloseHandle(browser.hThread);
 
-  spdlog::info("Web browser opened to {}", URL);
+  Ehbanana::info("Web browser opened to " + URL);
 
-  return setLastResult(ResultCode_t::SUCCESS);
+  return ResultCode_t::SUCCESS;
 }
 
 ResultCode_t EBDestroyGUI(EBGUI_t gui) {
   if (gui != nullptr)
     delete gui->server;
   delete gui;
-  return setLastResult(ResultCode_t::SUCCESS);
+  return ResultCode_t::SUCCESS;
 }
 
 ResultCode_t EBGetMessage(EBMessage_t & msg) {
-  if (EBMessageQueue.empty()) {
+  if (Ehbanana::MessageQueue.empty()) {
     msg.type = EBMSGType_t::NONE;
-    return setLastResult(ResultCode_t::NO_OPERATION);
+    return ResultCode_t::NO_OPERATION;
   }
-  msg = EBMessageQueue.front();
-  EBMessageQueue.pop_front();
+  msg = Ehbanana::MessageQueue.front();
+  Ehbanana::MessageQueue.pop_front();
   if (msg.type == EBMSGType_t::QUIT) {
     msg.gui->server->stop();
-    return setLastResult(ResultCode_t::SUCCESS);
+    return ResultCode_t::SUCCESS;
   }
-  return setLastResult(ResultCode_t::INCOMPLETE);
+  return ResultCode_t::INCOMPLETE;
 }
 
 ResultCode_t EBDispatchMessage(const EBMessage_t & msg) {
   Result result = (msg.gui->settings.guiProcess)(msg);
-  return setLastResult(result + "Dispatched message to guiProcess");
+  if (!result) {
+    Ehbanana::error((result + "Dispatched message to guiProcess").getMessage());
+    return result.getCode();
+  }
+  return ResultCode_t::SUCCESS;
 }
 
 ResultCode_t EBEnqueueMessage(const EBMessage_t & msg) {
-  EBMessageQueue.push_back(msg);
-  return setLastResult(ResultCode_t::SUCCESS);
+  Ehbanana::MessageQueue.push_back(msg);
+  return ResultCode_t::SUCCESS;
 }
 
 ResultCode_t EBDefaultGUIProcess(const EBMessage_t & msg) {
-  return setLastResult(ResultCode_t::NOT_SUPPORTED + "Default GUI process");
-}
-
-ResultCode_t EBConfigureLogging(const char * fileName, bool rotatingLogs,
-    bool showConsole, uint8_t logLevel) {
-  std::vector<spdlog::sink_ptr> sinks;
-
-  if (showConsole) {
-    // Create a console and remove its close button
-    if (AllocConsole()) {
-      HWND hwnd = GetConsoleWindow();
-      if (hwnd != NULL) {
-        HMENU hMenu = GetSystemMenu(hwnd, FALSE);
-        if (hMenu != NULL)
-          DeleteMenu(hMenu, SC_CLOSE, MF_BYCOMMAND);
-      }
-    } else {
-      MessageBoxA(NULL, "Log console initialization failed", "Error", MB_OK);
-      std::cout << "Failed to AllocConsole with Win32 error: " << GetLastError()
-                << std::endl;
-      return setLastResult(ResultCode_t::OPEN_FAILED + "AllocConsole");
-    }
-    sinks.push_back(std::make_shared<spdlog::sinks::wincolor_stdout_sink_mt>());
-  }
-
-  if (fileName != nullptr) {
-    try {
-      if (rotatingLogs)
-        sinks.push_back(std::make_shared<spdlog::sinks::rotating_file_sink_mt>(
-            fileName, 5 * 1024 * 1024, 3));
-      else
-        sinks.push_back(
-            std::make_shared<spdlog::sinks::basic_file_sink_mt>(fileName));
-    } catch (const spdlog::spdlog_ex & e) {
-      MessageBoxA(NULL, "Log initialization failed", "Error", MB_OK);
-      std::cout << "Log initialization failed: " << e.what() << std::endl;
-      return setLastResult(ResultCode_t::OPEN_FAILED +
-                           ("Opening log files to " + std::string(fileName)));
-    }
-  }
-
-  std::shared_ptr<spdlog::logger> logger =
-      std::make_shared<spdlog::logger>("", begin(sinks), end(sinks));
-  spdlog::set_default_logger(logger);
-  switch (logLevel) {
-    case EB_LOG_LEVEL_DEBUG:
-      spdlog::set_level(spdlog::level::debug);
-      break;
-    case EB_LOG_LEVEL_INFO:
-      spdlog::set_level(spdlog::level::info);
-      break;
-    case EB_LOG_LEVEL_WARN:
-      spdlog::set_level(spdlog::level::warn);
-      break;
-    case EB_LOG_LEVEL_ERROR:
-      spdlog::set_level(spdlog::level::err);
-      break;
-    case EB_LOG_LEVEL_CRITICAL:
-      spdlog::set_level(spdlog::level::critical);
-      break;
-  }
-
-  return setLastResult(ResultCode_t::SUCCESS);
+  Ehbanana::error(
+      (ResultCode_t::NOT_SUPPORTED + "Default GUI process").getMessage());
+  return ResultCode_t::NOT_SUPPORTED;
 }
 
 ResultCode_t EBMessageOutCreate(EBGUI_t gui) {
-  if (gui->currentMessageOut == nullptr)
+  if (gui->currentMessageOut != nullptr)
     delete gui->currentMessageOut;
 
-  gui->currentMessageOut = new MessageOut();
-  return setLastResult(ResultCode_t::SUCCESS);
+  gui->currentMessageOut = new Ehbanana::MessageOut();
+  return ResultCode_t::SUCCESS;
 }
 
 ResultCode_t EBMessageOutSetHref(EBGUI_t gui, const char * href) {
-  if (gui->currentMessageOut == nullptr)
-    return setLastResult(
-        ResultCode_t::INVALID_DATA + "currentMessageOut is nullptr");
+  if (gui->currentMessageOut == nullptr) {
+    Ehbanana::error(
+        (ResultCode_t::INVALID_DATA + "currentMessageOut is nullptr")
+            .getMessage());
+    return ResultCode_t::INVALID_DATA;
+  }
   Result result = gui->currentMessageOut->setHref(href);
-  return setLastResult(result + "Setting message out href");
+  if (!result) {
+    Ehbanana::error((result + "Setting message out href").getMessage());
+    return result.getCode();
+  }
+  return ResultCode_t::SUCCESS;
 }
 
 ResultCode_t EBMessageOutSetProp(
     EBGUI_t gui, const char * id, const char * name, const char * value) {
-  if (gui->currentMessageOut == nullptr)
-    return setLastResult(
-        ResultCode_t::INVALID_DATA + "currentMessageOut is nullptr");
+  if (gui->currentMessageOut == nullptr) {
+    Ehbanana::error(
+        (ResultCode_t::INVALID_DATA + "currentMessageOut is nullptr")
+            .getMessage());
+    return ResultCode_t::INVALID_DATA;
+  }
   Result result = gui->currentMessageOut->setProperty(id, name, value);
-  return setLastResult(result + "Setting message out property");
+  if (!result) {
+    Ehbanana::error((result + "Setting message out property").getMessage());
+    return result.getCode();
+  }
+  return ResultCode_t::SUCCESS;
 }
 
 ResultCode_t EBMessageOutEnqueue(EBGUI_t gui) {
-  if (gui->currentMessageOut == nullptr)
-    return setLastResult(
-        ResultCode_t::INVALID_DATA + "currentMessageOut is nullptr");
+  if (gui->currentMessageOut == nullptr) {
+    Ehbanana::error(
+        (ResultCode_t::INVALID_DATA + "currentMessageOut is nullptr")
+            .getMessage());
+    return ResultCode_t::INVALID_DATA;
+  }
   if (!gui->currentMessageOut->isEnqueued())
     gui->server->enqueueOutput(gui->currentMessageOut->getString());
-  return setLastResult(ResultCode_t::SUCCESS);
+  delete gui->currentMessageOut;
+  gui->currentMessageOut = nullptr;
+  return ResultCode_t::SUCCESS;
 }
 
-void EBLogDebug(const char * string) {
-  spdlog::debug(string);
-}
-
-void EBLogInfo(const char * string) {
-  spdlog::info(string);
-}
-
-void EBLogWarning(const char * string) {
-  spdlog::warn(string);
-}
-
-void EBLogError(const char * string) {
-  spdlog::error(string);
-}
-
-void EBLogCritical(const char * string) {
-  spdlog::critical(string);
+void EBSetLogger(const EBLogger_t logger) {
+  Ehbanana::Logger::Instance()->set(logger);
 }

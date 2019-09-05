@@ -1,8 +1,10 @@
 #include "WebSocket.h"
 
-#include <rapidjson/document.h>
-#include <spdlog/spdlog.h>
+#include "EhbananaLog.h"
 
+#include <rapidjson/document.h>
+
+namespace Ehbanana {
 namespace Web {
 namespace WebSocket {
 
@@ -46,7 +48,7 @@ Result WebSocket::processReceiveBuffer(const uint8_t * begin, size_t length) {
         return result;
       break;
     case Opcode_t::PING: {
-      spdlog::debug("WebSocket received ping");
+      debug("WebSocket received ping");
       // Send pong
       Frame * frame = new Frame();
       frame->addData(frameIn.getData());
@@ -55,12 +57,16 @@ Result WebSocket::processReceiveBuffer(const uint8_t * begin, size_t length) {
       return ResultCode_t::INCOMPLETE;
     }
     case Opcode_t::PONG:
-      spdlog::debug("WebSocket received pong");
+      debug("WebSocket received pong");
       pingSent = false;
       break;
     case Opcode_t::CLOSE:
-      spdlog::debug("WebSocket received close");
+      debug("WebSocket received close");
       // Echo the close back
+      Frame * frame = new Frame();
+      frame->addData(frameIn.getData());
+      frame->setOpcode(Opcode_t::CLOSE);
+      framesOut.push_back(frame);
       addTransmitBuffer(frameIn.toBuffer());
       return ResultCode_t::SUCCESS;
   }
@@ -184,6 +190,25 @@ Result WebSocket::addMessage(const std::string & msg) {
 }
 
 /**
+ * @brief Update the transmit buffers with number of bytes transmitted
+ * Removes buffers that have been completely transmitted. Moves the start
+ * pointer of the next buffer that has not been transmitted.
+ *
+ * @param bytesWritten
+ * @return true when all transmit buffers have been transmitted
+ * @return false when there are more transmit buffers
+ */
+bool WebSocket::updateTransmitBuffers(size_t bytesWritten) {
+  bool result = AppProtocol::updateTransmitBuffers(bytesWritten);
+  if (result) {
+    // Remove the current frame;
+    delete framesOut.front();
+    framesOut.pop_front();
+  }
+  return result;
+}
+
+/**
  * @brief Check if there are buffers in the transmit queue that have not been
  * transmitted
  *
@@ -195,7 +220,6 @@ bool WebSocket::hasTransmitBuffers() {
     return true;
   if (!framesOut.empty()) {
     addTransmitBuffer(framesOut.front()->toBuffer());
-    framesOut.pop_front();
     return true;
   }
   return false;
@@ -203,3 +227,4 @@ bool WebSocket::hasTransmitBuffers() {
 
 } // namespace WebSocket
 } // namespace Web
+} // namespace Ehbanana

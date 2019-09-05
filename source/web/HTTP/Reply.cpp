@@ -1,5 +1,6 @@
 #include "Reply.h"
 
+namespace Ehbanana {
 namespace Web {
 namespace HTTP {
 
@@ -264,3 +265,4 @@ asio::const_buffer Reply::statusToBuffer() {
 
 } // namespace HTTP
 } // namespace Web
+} // namespace Ehbanana

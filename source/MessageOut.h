@@ -4,6 +4,8 @@
 #include <FruitBowl.h>
 #include <rapidjson/document.h>
 
+namespace Ehbanana {
+
 class MessageOut {
 public:
   MessageOut(const MessageOut &) = delete;
@@ -25,5 +27,7 @@ private:
 
   bool enqueued = false;
 };
+
+} // namespace Ehbanana
 
 #endif /* _MESSAGE_OUT_H_ */

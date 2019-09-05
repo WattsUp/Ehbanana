@@ -1,5 +1,6 @@
 #include "RequestHeaders.h"
 
+namespace Ehbanana {
 namespace Web {
 namespace HTTP {
 
@@ -145,3 +146,4 @@ const Hash RequestHeaders::getWebSocketVersion() const {
 
 } // namespace HTTP
 } // namespace Web
+} // namespace Ehbanana

@@ -1,7 +1,8 @@
 #include "MessageOut.h"
 
 #include <rapidjson/prettywriter.h>
-#include <spdlog/spdlog.h>
+
+namespace Ehbanana {
 
 /**
  * @brief Construct a new Message Out:: Message Out object
@@ -87,3 +88,5 @@ const std::string & MessageOut::getString(bool updateEnqueued) {
 bool MessageOut::isEnqueued() const {
   return enqueued;
 }
+
+} // namespace Ehbanana

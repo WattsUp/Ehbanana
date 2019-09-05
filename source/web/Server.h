@@ -14,6 +14,7 @@
 #include <string>
 #include <thread>
 
+namespace Ehbanana {
 namespace Web {
 
 class Server {
@@ -57,5 +58,6 @@ private:
 };
 
 } // namespace Web
+} // namespace Ehbanana
 
 #endif /* _WEB_SERVER_H_ */

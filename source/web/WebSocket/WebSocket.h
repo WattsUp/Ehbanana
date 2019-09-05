@@ -8,6 +8,7 @@
 #include <list>
 #include <string>
 
+namespace Ehbanana {
 namespace Web {
 namespace WebSocket {
 
@@ -21,6 +22,7 @@ public:
 
   Result processReceiveBuffer(const uint8_t * begin, size_t length);
 
+  bool   updateTransmitBuffers(size_t bytesWritten);
   bool   hasTransmitBuffers();
   bool   isDone();
   bool   sendAliveCheck();
@@ -43,5 +45,6 @@ private:
 
 } // namespace WebSocket
 } // namespace Web
+} // namespace Ehbanana
 
 #endif /* _WEB_WEBSOCKET_WEBSOCKET_H_ */
