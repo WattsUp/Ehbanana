@@ -3,20 +3,29 @@
  * @param {WebSocket event} event
  */
 function webSocketMessage(event) {
-  console.log(event.data);
   var jsonEvent = JSON.parse(event.data);
   if (jsonEvent.href != window.location.pathname && jsonEvent.href != "")
     return;
   for (var id in jsonEvent.elements) {
     var obj = document.getElementById(id);
+    if (!obj) {
+      console.log("Ehbanana Message #" + id + " not found");
+      continue;
+    }
     for (var key in jsonEvent.elements[id]) {
       obj[key] = jsonEvent.elements[id][key];
     }
     if (obj.hasAttribute("ebcallback")) {
       var func = window[obj.getAttribute("ebcallback")];
       if (typeof func == "function")
-        func(jsonEvent.elements[id]);
+        func(obj);
     }
+  }
+  obj = document.body;
+  if (obj.hasAttribute("ebmsg-callback")) {
+    var func = window[obj.getAttribute("ebmsg-callback")];
+    if (typeof func == "function")
+      func();
   }
 }
 
@@ -105,7 +114,11 @@ function attachListeners() {
       }
       elementsOnload[i].setAttribute("id", elementsOnload[i].name);
     }
-    var jsonEvent = {id: elementsOnload[i].id, value: "on-load-update"};
+    var jsonEvent = {
+      href: window.location.pathname,
+      id: elementsOnload[i].id,
+      value: "on-load-update"
+    };
     webSocket.send(JSON.stringify(jsonEvent));
   }
 }

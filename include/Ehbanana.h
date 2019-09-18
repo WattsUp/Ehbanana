@@ -222,6 +222,36 @@ inline ResultCode_t EBMessageOutSetProp(
     EBGUI_t gui, std::string id, std::string name, std::string value) {
   return EBMessageOutSetProp(gui, id.c_str(), name.c_str(), value.c_str());
 }
+
+/**
+ * @brief Set a property for the current outgoing message for the GUI
+ *
+ * @param gui to set the property for
+ * @param id of the HTML element
+ * @param name of the property
+ * @param value of the property
+ * @return ResultCode_t
+ */
+inline ResultCode_t EBMessageOutSetProp(
+    EBGUI_t gui, std::string id, std::string name, uint32_t value) {
+  return EBMessageOutSetProp(
+      gui, id.c_str(), name.c_str(), std::to_string(value).c_str());
+}
+
+/**
+ * @brief Set a property for the current outgoing message for the GUI
+ *
+ * @param gui to set the property for
+ * @param id of the HTML element
+ * @param name of the property
+ * @param value of the property
+ * @return ResultCode_t
+ */
+inline ResultCode_t EBMessageOutSetProp(
+    EBGUI_t gui, std::string id, std::string name, double value) {
+  return EBMessageOutSetProp(
+      gui, id.c_str(), name.c_str(), std::to_string(value).c_str());
+}
 #endif
 
 /**
