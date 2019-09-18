@@ -43,7 +43,7 @@ private:
 
   std::chrono::time_point<std::chrono::system_clock> timeoutTime;
 
-  const std::chrono::seconds TIMEOUT {10};
+  const std::chrono::seconds TIMEOUT {1};
 
   EBGUI_t gui;
 };

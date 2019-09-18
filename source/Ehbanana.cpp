@@ -185,7 +185,7 @@ ResultCode_t EBEnqueueMessage(const EBMessage_t & msg) {
   return ResultCode_t::SUCCESS;
 }
 
-ResultCode_t EBDefaultGUIProcess(const EBMessage_t & msg) {
+ResultCode_t EBDefaultGUIProcess(const EBMessage_t &) {
   Ehbanana::error(
       (ResultCode_t::NOT_SUPPORTED + "Default GUI process").getMessage());
   return ResultCode_t::NOT_SUPPORTED;

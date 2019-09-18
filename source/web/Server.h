@@ -54,7 +54,7 @@ private:
 
   EBGUI_t gui;
 
-  const std::chrono::seconds TIMEOUT_NO_CONNECTIONS {3};
+  const std::chrono::seconds TIMEOUT_NO_CONNECTIONS {1};
 };
 
 } // namespace Web

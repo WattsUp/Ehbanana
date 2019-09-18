@@ -156,8 +156,7 @@ extern "C" EHBANANA_API ResultCode_t EBEnqueueMessage(const EBMessage_t & msg);
  * @param msg to process
  * @return ResultCode_t error code
  */
-extern "C" EHBANANA_API ResultCode_t EBDefaultGUIProcess(
-    const EBMessage_t & msg);
+extern "C" EHBANANA_API ResultCode_t EBDefaultGUIProcess(const EBMessage_t &);
 
 /**
  * @brief Add a quit message to the queue

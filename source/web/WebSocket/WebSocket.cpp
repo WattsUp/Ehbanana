@@ -136,7 +136,7 @@ Result WebSocket::processFrameText() {
  */
 Result WebSocket::processFrameBinary() {
   fseek(frameIn.getDataFile(), 0L, SEEK_END);
-  if (msgAwaitingFile.fileSize != ftell(frameIn.getDataFile())) {
+  if (msgAwaitingFile.fileSize != (size_t)ftell(frameIn.getDataFile())) {
     return ResultCode_t::INVALID_DATA +
            "Received file's size does not match preceeding message's";
   }
