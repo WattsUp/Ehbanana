@@ -123,10 +123,10 @@ function attachListeners() {
   }
 }
 
-window.addEventListener("load", startWebsocket);
-
 var webSocket = null;
 var webSocketAddress =
     "ws://" + window.location.hostname + ":" + window.location.port;
 var webSocketStatus = null;
 var bodyElement     = null;
+
+startWebsocket();
