@@ -217,10 +217,11 @@ extern "C" EHBANANA_API ResultCode_t EBMessageOutSetProp(
  * @param value of the property
  * @return ResultCode_t
  */
-inline ResultCode_t EBMessageOutSetProp(
-    EBGUI_t gui, std::string id, std::string name, std::string value) {
+inline ResultCode_t EBMessageOutSetProp(EBGUI_t gui, const std::string id,
+    const std::string name, const std::string value) {
   return EBMessageOutSetProp(gui, id.c_str(), name.c_str(), value.c_str());
 }
+#endif
 
 /**
  * @brief Set a property for the current outgoing message for the GUI
@@ -231,11 +232,24 @@ inline ResultCode_t EBMessageOutSetProp(
  * @param value of the property
  * @return ResultCode_t
  */
-inline ResultCode_t EBMessageOutSetProp(
-    EBGUI_t gui, std::string id, std::string name, uint32_t value) {
-  return EBMessageOutSetProp(
-      gui, id.c_str(), name.c_str(), std::to_string(value).c_str());
+extern "C" EHBANANA_API ResultCode_t EBMessageOutSetPropInt(
+    EBGUI_t gui, const char * id, const char * name, const int64_t value);
+
+#ifdef EB_USE_STD_STRING
+/**
+ * @brief Set a property for the current outgoing message for the GUI
+ *
+ * @param gui to set the property for
+ * @param id of the HTML element
+ * @param name of the property
+ * @param value of the property
+ * @return ResultCode_t
+ */
+inline ResultCode_t EBMessageOutSetPropInt(EBGUI_t gui, const std::string id,
+    const std::string name, const int64_t value) {
+  return EBMessageOutSetPropInt(gui, id.c_str(), name.c_str(), value);
 }
+#endif
 
 /**
  * @brief Set a property for the current outgoing message for the GUI
@@ -246,10 +260,50 @@ inline ResultCode_t EBMessageOutSetProp(
  * @param value of the property
  * @return ResultCode_t
  */
-inline ResultCode_t EBMessageOutSetProp(
-    EBGUI_t gui, std::string id, std::string name, double value) {
-  return EBMessageOutSetProp(
-      gui, id.c_str(), name.c_str(), std::to_string(value).c_str());
+extern "C" EHBANANA_API ResultCode_t EBMessageOutSetPropDouble(
+    EBGUI_t gui, const char * id, const char * name, const double value);
+
+#ifdef EB_USE_STD_STRING
+/**
+ * @brief Set a property for the current outgoing message for the GUI
+ *
+ * @param gui to set the property for
+ * @param id of the HTML element
+ * @param name of the property
+ * @param value of the property
+ * @return ResultCode_t
+ */
+inline ResultCode_t EBMessageOutSetPropDouble(EBGUI_t gui, const std::string id,
+    const std::string name, const double value) {
+  return EBMessageOutSetPropDouble(gui, id.c_str(), name.c_str(), value);
+}
+#endif
+
+/**
+ * @brief Set a property for the current outgoing message for the GUI
+ *
+ * @param gui to set the property for
+ * @param id of the HTML element
+ * @param name of the property
+ * @param value of the property
+ * @return ResultCode_t
+ */
+extern "C" EHBANANA_API ResultCode_t EBMessageOutSetPropBool(
+    EBGUI_t gui, const char * id, const char * name, const bool value);
+
+#ifdef EB_USE_STD_STRING
+/**
+ * @brief Set a property for the current outgoing message for the GUI
+ *
+ * @param gui to set the property for
+ * @param id of the HTML element
+ * @param name of the property
+ * @param value of the property
+ * @return ResultCode_t
+ */
+inline ResultCode_t EBMessageOutSetPropBool(EBGUI_t gui, const std::string id,
+    const std::string name, const bool value) {
+  return EBMessageOutSetPropBool(gui, id.c_str(), name.c_str(), value);
 }
 #endif
 

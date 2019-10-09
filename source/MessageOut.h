@@ -16,6 +16,9 @@ public:
 
   Result setHref(const char * href);
   Result setProperty(const char * id, const char * name, const char * value);
+  Result setProperty(const char * id, const char * name, const int64_t value);
+  Result setProperty(const char * id, const char * name, const double value);
+  Result setProperty(const char * id, const char * name, const bool value);
 
   const std::string & getString(bool updateEnqueued = true);
 

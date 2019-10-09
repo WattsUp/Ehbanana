@@ -230,6 +230,54 @@ ResultCode_t EBMessageOutSetProp(
   return ResultCode_t::SUCCESS;
 }
 
+ResultCode_t EBMessageOutSetPropInt(
+    EBGUI_t gui, const char * id, const char * name, const int64_t value) {
+  if (gui->currentMessageOut == nullptr) {
+    Ehbanana::error(
+        (ResultCode_t::INVALID_DATA + "currentMessageOut is nullptr")
+            .getMessage());
+    return ResultCode_t::INVALID_DATA;
+  }
+  Result result = gui->currentMessageOut->setProperty(id, name, value);
+  if (!result) {
+    Ehbanana::error((result + "Setting message out property").getMessage());
+    return result.getCode();
+  }
+  return ResultCode_t::SUCCESS;
+}
+
+ResultCode_t EBMessageOutSetPropDouble(
+    EBGUI_t gui, const char * id, const char * name, const double value) {
+  if (gui->currentMessageOut == nullptr) {
+    Ehbanana::error(
+        (ResultCode_t::INVALID_DATA + "currentMessageOut is nullptr")
+            .getMessage());
+    return ResultCode_t::INVALID_DATA;
+  }
+  Result result = gui->currentMessageOut->setProperty(id, name, value);
+  if (!result) {
+    Ehbanana::error((result + "Setting message out property").getMessage());
+    return result.getCode();
+  }
+  return ResultCode_t::SUCCESS;
+}
+
+ResultCode_t EBMessageOutSetPropBool(
+    EBGUI_t gui, const char * id, const char * name, const bool value) {
+  if (gui->currentMessageOut == nullptr) {
+    Ehbanana::error(
+        (ResultCode_t::INVALID_DATA + "currentMessageOut is nullptr")
+            .getMessage());
+    return ResultCode_t::INVALID_DATA;
+  }
+  Result result = gui->currentMessageOut->setProperty(id, name, value);
+  if (!result) {
+    Ehbanana::error((result + "Setting message out property").getMessage());
+    return result.getCode();
+  }
+  return ResultCode_t::SUCCESS;
+}
+
 ResultCode_t EBMessageOutEnqueue(EBGUI_t gui) {
   if (gui->currentMessageOut == nullptr) {
     Ehbanana::error(
