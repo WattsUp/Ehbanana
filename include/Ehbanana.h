@@ -183,13 +183,6 @@ extern "C" EHBANANA_API ResultCode_t EBMessageOutSetHref(
     EBGUI_t gui, const char * href);
 
 #ifdef EB_USE_STD_STRING
-/**
- * @brief Set the href for the current outgoing message for the GUI
- *
- * @param gui to set the href for
- * @param href string to set
- * @return ResultCode_t
- */
 inline ResultCode_t EBMessageOutSetHref(EBGUI_t gui, std::string href) {
   return EBMessageOutSetHref(gui, href.c_str());
 }
@@ -208,15 +201,11 @@ extern "C" EHBANANA_API ResultCode_t EBMessageOutSetProp(
     EBGUI_t gui, const char * id, const char * name, const char * value);
 
 #ifdef EB_USE_STD_STRING
-/**
- * @brief Set a property for the current outgoing message for the GUI
- *
- * @param gui to set the property for
- * @param id of the HTML element
- * @param name of the property
- * @param value of the property
- * @return ResultCode_t
- */
+inline ResultCode_t EBMessageOutSetProp(EBGUI_t gui, const std::string id,
+    const std::string name, const char * value) {
+  return EBMessageOutSetProp(gui, id.c_str(), name.c_str(), value);
+}
+
 inline ResultCode_t EBMessageOutSetProp(EBGUI_t gui, const std::string id,
     const std::string name, const std::string value) {
   return EBMessageOutSetProp(gui, id.c_str(), name.c_str(), value.c_str());
@@ -236,16 +225,7 @@ extern "C" EHBANANA_API ResultCode_t EBMessageOutSetPropInt(
     EBGUI_t gui, const char * id, const char * name, const int64_t value);
 
 #ifdef EB_USE_STD_STRING
-/**
- * @brief Set a property for the current outgoing message for the GUI
- *
- * @param gui to set the property for
- * @param id of the HTML element
- * @param name of the property
- * @param value of the property
- * @return ResultCode_t
- */
-inline ResultCode_t EBMessageOutSetPropInt(EBGUI_t gui, const std::string id,
+inline ResultCode_t EBMessageOutSetProp(EBGUI_t gui, const std::string id,
     const std::string name, const int64_t value) {
   return EBMessageOutSetPropInt(gui, id.c_str(), name.c_str(), value);
 }
@@ -264,16 +244,7 @@ extern "C" EHBANANA_API ResultCode_t EBMessageOutSetPropDouble(
     EBGUI_t gui, const char * id, const char * name, const double value);
 
 #ifdef EB_USE_STD_STRING
-/**
- * @brief Set a property for the current outgoing message for the GUI
- *
- * @param gui to set the property for
- * @param id of the HTML element
- * @param name of the property
- * @param value of the property
- * @return ResultCode_t
- */
-inline ResultCode_t EBMessageOutSetPropDouble(EBGUI_t gui, const std::string id,
+inline ResultCode_t EBMessageOutSetProp(EBGUI_t gui, const std::string id,
     const std::string name, const double value) {
   return EBMessageOutSetPropDouble(gui, id.c_str(), name.c_str(), value);
 }
@@ -292,16 +263,7 @@ extern "C" EHBANANA_API ResultCode_t EBMessageOutSetPropBool(
     EBGUI_t gui, const char * id, const char * name, const bool value);
 
 #ifdef EB_USE_STD_STRING
-/**
- * @brief Set a property for the current outgoing message for the GUI
- *
- * @param gui to set the property for
- * @param id of the HTML element
- * @param name of the property
- * @param value of the property
- * @return ResultCode_t
- */
-inline ResultCode_t EBMessageOutSetPropBool(EBGUI_t gui, const std::string id,
+inline ResultCode_t EBMessageOutSetProp(EBGUI_t gui, const std::string id,
     const std::string name, const bool value) {
   return EBMessageOutSetPropBool(gui, id.c_str(), name.c_str(), value);
 }

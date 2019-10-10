@@ -21,9 +21,8 @@ function webSocketMessage(event) {
         func(obj);
     }
   }
-  obj = document.body;
-  if (obj.hasAttribute("ebmsg-callback")) {
-    var func = window[obj.getAttribute("ebmsg-callback")];
+  if (document.body.hasAttribute("ebmsg-callback")) {
+    var func = window[document.body.getAttribute("ebmsg-callback")];
     if (typeof func == "function")
       func();
   }
@@ -34,30 +33,42 @@ function webSocketMessage(event) {
  * Open a websocket to that port
  */
 function startWebsocket() {
-  webSocketStatus = document.getElementById("websocket-status");
-  bodyElement     = document.getElementsByTagName("BODY")[0];
-  bodyElement.classList.add("ehbanana-closed");
-
   webSocket           = new WebSocket(webSocketAddress);
   webSocket.onmessage = webSocketMessage;
   webSocket.onclose   = function(event) {
-    webSocketStatus.innerHTML = "Closed connection to " + webSocketAddress;
-    bodyElement.classList.remove("ehbanana-error");
-    bodyElement.classList.remove("ehbanana-opened");
-    bodyElement.classList.add("ehbanana-closed");
+    var webSocketStatus = document.getElementById("websocket-status");
+    if (webSocketStatus)
+      webSocketStatus.innerHTML = "Closed connection to " + webSocketAddress;
+    if (document.body) {
+      document.body.classList.remove("ehbanana-error");
+      document.body.classList.remove("ehbanana-opened");
+      document.body.classList.add("ehbanana-closed");
+    }
   };
   webSocket.onopen = function(event) {
-    webSocketStatus.innerHTML = "Opened connection to " + webSocketAddress;
-    bodyElement.classList.remove("ehbanana-error");
-    bodyElement.classList.add("ehbanana-opened");
-    bodyElement.classList.remove("ehbanana-closed");
-    attachListeners();
+    var webSocketStatus = document.getElementById("websocket-status");
+    if (webSocketStatus)
+      webSocketStatus.innerHTML = "Opened connection to " + webSocketAddress;
+    if (document.body) {
+      document.body.classList.remove("ehbanana-error");
+      document.body.classList.add("ehbanana-opened");
+      document.body.classList.remove("ehbanana-closed");
+    }
+    if (document.readyState == "loading") {
+      document.addEventListener("load", attachListeners);
+    } else {
+      attachListeners();
+    }
   };
   webSocket.onerror = function(event) {
-    webSocketStatus.innerHTML = "Could not connect to " + webSocketAddress;
-    bodyElement.classList.add("ehbanana-error");
-    bodyElement.classList.remove("ehbanana-opened");
-    bodyElement.classList.remove("ehbanana-closed");
+    var webSocketStatus = document.getElementById("websocket-status");
+    if (webSocketStatus)
+      webSocketStatus.innerHTML = "Could not connect to " + webSocketAddress;
+    if (document.body) {
+      document.body.classList.add("ehbanana-error");
+      document.body.classList.remove("ehbanana-opened");
+      document.body.classList.remove("ehbanana-closed");
+    }
   };
 }
 
@@ -126,7 +137,5 @@ function attachListeners() {
 var webSocket = null;
 var webSocketAddress =
     "ws://" + window.location.hostname + ":" + window.location.port;
-var webSocketStatus = null;
-var bodyElement     = null;
 
 startWebsocket();

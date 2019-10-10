@@ -65,7 +65,7 @@ Result Server::initializeSocket(const std::string & addr, uint16_t port) {
     acceptor.open(endpoint.protocol());
     acceptor.set_option(asio::ip::tcp::acceptor::reuse_address(true));
   } catch (const asio::system_error & e) {
-    return ResultCode_t::EXCEPTION_OCCURED + e.what() + "Creating acceptor";
+    return ResultCode_t::EXCEPTION_OCCURRED + e.what() + "Creating acceptor";
   }
 
   asio::error_code errorCode;
@@ -94,7 +94,7 @@ Result Server::initializeSocket(const std::string & addr, uint16_t port) {
     acceptor.non_blocking(true);
     acceptor.listen(asio::ip::tcp::socket::max_listen_connections);
   } catch (const asio::system_error & e) {
-    return ResultCode_t::EXCEPTION_OCCURED + e.what() +
+    return ResultCode_t::EXCEPTION_OCCURRED + e.what() +
            "Setting acceptor options";
   }
 
