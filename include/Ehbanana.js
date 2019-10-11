@@ -12,6 +12,7 @@ function webSocketMessage(event) {
       console.log("Ehbanana Message #" + id + " not found");
       continue;
     }
+
     for (var key in jsonEvent.elements[id]) {
       obj[key] = jsonEvent.elements[id][key];
     }
@@ -99,38 +100,60 @@ function listenerInput(event) {
 }
 
 /**
+ * Listen to an enter key event and send the results to the WebSocket
+ * @param {KeyupEvent} event
+ */
+function listenerEnter(event) {
+  if (event.keyCode != 13)
+    return;
+  event.target.blur();
+  listenerInput(event);
+}
+
+/**
  * Add a listener to each element with "eb-*" class
  */
 function attachListeners() {
-  var elementsInput = document.getElementsByClassName("eb-input");
-  for (var i = 0; i < elementsInput.length; i++) {
-    if (elementsInput[i].getAttribute("id") == null) {
-      if (elementsInput[i].getAttribute("name") == null) {
-        console.log("No name nor id for eb-input:", elementsInput[i]);
+  var elements = document.getElementsByClassName("eb-input");
+  for (var i = 0; i < elements.length; i++) {
+    if (elements[i].getAttribute("id") == null) {
+      if (elements[i].getAttribute("name") == null) {
+        console.log("No name nor id for eb-input:", elements[i]);
         continue;
       }
-      elementsInput[i].setAttribute("id", elementsInput[i].name);
+      elements[i].setAttribute("id", elements[i].name);
     }
-    if (elementsInput[i].getAttribute("type") == "button")
-      elementsInput[i].addEventListener("click", listenerInput);
+    if (elements[i].getAttribute("type") == "button")
+      elements[i].addEventListener("click", listenerInput);
     else
-      elementsInput[i].addEventListener("input", listenerInput);
+      elements[i].addEventListener("input", listenerInput);
   }
-  var elementsOnload = document.getElementsByClassName("eb-onload");
-  for (var i = 0; i < elementsOnload.length; i++) {
-    if (elementsOnload[i].getAttribute("id") == null) {
-      if (elementsOnload[i].getAttribute("name") == null) {
-        console.log("No name nor id for eb-onload:", elementsOnload[i]);
+  elements = document.getElementsByClassName("eb-onload");
+  for (var i = 0; i < elements.length; i++) {
+    if (elements[i].getAttribute("id") == null) {
+      if (elements[i].getAttribute("name") == null) {
+        console.log("No name nor id for eb-onload:", elements[i]);
         continue;
       }
-      elementsOnload[i].setAttribute("id", elementsOnload[i].name);
+      elements[i].setAttribute("id", elements[i].name);
     }
     var jsonEvent = {
       href: window.location.pathname,
-      id: elementsOnload[i].id,
+      id: elements[i].id,
       value: "on-load-update"
     };
     webSocket.send(JSON.stringify(jsonEvent));
+  }
+  elements = document.getElementsByClassName("eb-onenter");
+  for (var i = 0; i < elements.length; i++) {
+    if (elements[i].getAttribute("id") == null) {
+      if (elements[i].getAttribute("name") == null) {
+        console.log("No name nor id for eb-onload:", elements[i]);
+        continue;
+      }
+      elements[i].setAttribute("id", elements[i].name);
+    }
+    elements[i].addEventListener("keyup", listenerEnter);
   }
 }
 
