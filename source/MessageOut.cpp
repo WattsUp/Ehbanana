@@ -65,6 +65,93 @@ Result MessageOut::setProperty(
 }
 
 /**
+ * @brief Set the property of an HTML element by ID
+ *
+ * @param id of the element
+ * @param name of the property
+ * @param value of the property
+ * @return Result
+ */
+Result MessageOut::setProperty(
+    const char * id, const char * name, const int64_t value) {
+  if (!json["elements"].HasMember(id)) {
+    rapidjson::Value element;
+    element.SetObject();
+    json["elements"].AddMember(rapidjson::Value(id, json.GetAllocator()),
+        element, json.GetAllocator());
+  }
+  if (!json["elements"][id].HasMember(name)) {
+    json["elements"][id].AddMember(rapidjson::Value(name, json.GetAllocator()),
+        rapidjson::Value(value), json.GetAllocator());
+  } else {
+    json["elements"][id][name].SetInt64(value);
+  }
+  rapidjson::StringBuffer                          sb;
+  rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(sb);
+  json.Accept(writer);
+  buf = sb.GetString();
+  return ResultCode_t::SUCCESS;
+}
+
+/**
+ * @brief Set the property of an HTML element by ID
+ *
+ * @param id of the element
+ * @param name of the property
+ * @param value of the property
+ * @return Result
+ */
+Result MessageOut::setProperty(
+    const char * id, const char * name, const double value) {
+  if (!json["elements"].HasMember(id)) {
+    rapidjson::Value element;
+    element.SetObject();
+    json["elements"].AddMember(rapidjson::Value(id, json.GetAllocator()),
+        element, json.GetAllocator());
+  }
+  if (!json["elements"][id].HasMember(name)) {
+    json["elements"][id].AddMember(rapidjson::Value(name, json.GetAllocator()),
+        rapidjson::Value(value), json.GetAllocator());
+  } else {
+    json["elements"][id][name].SetDouble(value);
+  }
+  rapidjson::StringBuffer                          sb;
+  rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(sb);
+  json.Accept(writer);
+  buf = sb.GetString();
+  return ResultCode_t::SUCCESS;
+}
+
+/**
+ * @brief Set the property of an HTML element by ID
+ *
+ * @param id of the element
+ * @param name of the property
+ * @param value of the property
+ * @return Result
+ */
+Result MessageOut::setProperty(
+    const char * id, const char * name, const bool value) {
+  if (!json["elements"].HasMember(id)) {
+    rapidjson::Value element;
+    element.SetObject();
+    json["elements"].AddMember(rapidjson::Value(id, json.GetAllocator()),
+        element, json.GetAllocator());
+  }
+  if (!json["elements"][id].HasMember(name)) {
+    json["elements"][id].AddMember(rapidjson::Value(name, json.GetAllocator()),
+        rapidjson::Value(value), json.GetAllocator());
+  } else {
+    json["elements"][id][name].SetBool(value);
+  }
+  rapidjson::StringBuffer                          sb;
+  rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(sb);
+  json.Accept(writer);
+  buf = sb.GetString();
+  return ResultCode_t::SUCCESS;
+}
+
+/**
  * @brief Get the string representation of the message
  *
  * @param updateEnqueued will set enqueued upon returning

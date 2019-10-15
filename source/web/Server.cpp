@@ -13,8 +13,15 @@ namespace Web {
  * @brief Construct a new Server:: Server object
  *
  * @param gui that owns this server
+ * @param timeoutIdle in seconds to wait before exiting when no connections are
+ * in progress (allows time for browser to load new pages)
+ * @param timeoutFirst in seconds to wait before exiting when the first
+ * connection is in progress (allows time for browser to boot)
  */
-Server::Server(EBGUI_t gui) : ioContext(1), acceptor(ioContext), gui(gui) {}
+Server::Server(EBGUI_t gui, uint8_t timeoutIdle, uint8_t timeoutFirst) :
+  ioContext(1), acceptor(ioContext), gui(gui),
+  TIMEOUT_NO_CONNECTIONS(timeoutIdle), TIMEOUT_FIRST_CONNECTIONS(timeoutFirst) {
+}
 
 /**
  * @brief Destroy the Server:: Server object
@@ -65,7 +72,7 @@ Result Server::initializeSocket(const std::string & addr, uint16_t port) {
     acceptor.open(endpoint.protocol());
     acceptor.set_option(asio::ip::tcp::acceptor::reuse_address(true));
   } catch (const asio::system_error & e) {
-    return ResultCode_t::EXCEPTION_OCCURED + e.what() + "Creating acceptor";
+    return ResultCode_t::EXCEPTION_OCCURRED + e.what() + "Creating acceptor";
   }
 
   asio::error_code errorCode;
@@ -94,7 +101,7 @@ Result Server::initializeSocket(const std::string & addr, uint16_t port) {
     acceptor.non_blocking(true);
     acceptor.listen(asio::ip::tcp::socket::max_listen_connections);
   } catch (const asio::system_error & e) {
-    return ResultCode_t::EXCEPTION_OCCURED + e.what() +
+    return ResultCode_t::EXCEPTION_OCCURRED + e.what() +
            "Setting acceptor options";
   }
 
@@ -143,8 +150,9 @@ void Server::run() {
                                    std::to_string(endpoint.port());
       info("Opening connection to " + endpointString);
       connections.push_back(new Connection(socket, endpointString, now, gui));
-      socket       = nullptr;
-      didSomething = true;
+      socket              = nullptr;
+      didSomething        = true;
+      firstConnectionMade = true;
     } else if (errorCode != asio::error::would_block) {
       running      = false;
       didSomething = true;
@@ -192,7 +200,8 @@ void Server::run() {
     if (connections.empty()) {
       if (timeoutTime ==
           std::chrono::time_point<std::chrono::system_clock>::min()) {
-        timeoutTime = now + TIMEOUT_NO_CONNECTIONS;
+        timeoutTime = now + (firstConnectionMade ? TIMEOUT_NO_CONNECTIONS
+                                                 : TIMEOUT_FIRST_CONNECTIONS);
       }
       if (now > timeoutTime) {
         // Server had no connections for the timeout time

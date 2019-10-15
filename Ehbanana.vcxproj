@@ -21,6 +21,7 @@
       <WarningLevel>Level4</WarningLevel>
       <AdditionalIncludeDirectories>$(SolutionDir)\include;$(SolutionDir)\source;$(SolutionDir)\lib\MemoryMapping;$(SolutionDir)\lib\asio\asio\include;$(SolutionDir)\lib\FruitBowl\include;$(SolutionDir)\lib\digestpp;$(SolutionDir)\lib\cpp-base64;$(SolutionDir)\lib\rapidjson\include;</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>DEBUG;COMPILING_DLL;WIN32_LEAN_AND_MEAN;_WIN32_WINNT=_WIN32_WINNT_WIN10;ASIO_DISABLE_IOCP;_WINSOCK_DEPRECATED_NO_WARNINGS;NOMINMAX;%(PreprocessorDefinitions);</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)\%(RelativeDir)\</ObjectFileName>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
@@ -28,6 +29,7 @@
       <WarningLevel>Level4</WarningLevel>
       <AdditionalIncludeDirectories>$(SolutionDir)\include;$(SolutionDir)\source;$(SolutionDir)\lib\MemoryMapping;$(SolutionDir)\lib\asio\asio\include;$(SolutionDir)\lib\FruitBowl\include;$(SolutionDir)\lib\digestpp;$(SolutionDir)\lib\cpp-base64;$(SolutionDir)\lib\rapidjson\include;</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>COMPILING_DLL;WIN32_LEAN_AND_MEAN;_WIN32_WINNT=_WIN32_WINNT_WIN10;ASIO_DISABLE_IOCP;_WINSOCK_DEPRECATED_NO_WARNINGS;NOMINMAX;%(PreprocessorDefinitions);</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)\%(RelativeDir)\</ObjectFileName>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>

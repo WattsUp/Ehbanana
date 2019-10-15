@@ -65,12 +65,18 @@ typedef ResultCode_t(__stdcall * EBGUIProcess_t)(const EBMessage_t &);
  * @param configRoot directory containing configuration files
  * @param httpRoot directory containing HTTP top level
  * @param httpPort http server will attempt to open to
+ * @param timeoutIdle in seconds to wait before exiting when no connections are
+ * in progress (allows time for browser to load new pages)
+ * @param timeoutFirstConnect in seconds to wait before exiting when the first
+ * connection is in progress (allows time for browser to boot)
  */
 struct EBGUISettings_t {
   EBGUIProcess_t guiProcess = nullptr;
   char *         configRoot;
   char *         httpRoot;
-  uint16_t       httpPort = 0;
+  uint16_t       httpPort            = 0;
+  uint8_t        timeoutIdle         = 2;
+  uint8_t        timeoutFirstConnect = 20;
 };
 
 namespace Ehbanana {
@@ -156,8 +162,7 @@ extern "C" EHBANANA_API ResultCode_t EBEnqueueMessage(const EBMessage_t & msg);
  * @param msg to process
  * @return ResultCode_t error code
  */
-extern "C" EHBANANA_API ResultCode_t EBDefaultGUIProcess(
-    const EBMessage_t & msg);
+extern "C" EHBANANA_API ResultCode_t EBDefaultGUIProcess(const EBMessage_t &);
 
 /**
  * @brief Add a quit message to the queue
@@ -184,13 +189,6 @@ extern "C" EHBANANA_API ResultCode_t EBMessageOutSetHref(
     EBGUI_t gui, const char * href);
 
 #ifdef EB_USE_STD_STRING
-/**
- * @brief Set the href for the current outgoing message for the GUI
- *
- * @param gui to set the href for
- * @param href string to set
- * @return ResultCode_t
- */
 inline ResultCode_t EBMessageOutSetHref(EBGUI_t gui, std::string href) {
   return EBMessageOutSetHref(gui, href.c_str());
 }
@@ -209,6 +207,17 @@ extern "C" EHBANANA_API ResultCode_t EBMessageOutSetProp(
     EBGUI_t gui, const char * id, const char * name, const char * value);
 
 #ifdef EB_USE_STD_STRING
+inline ResultCode_t EBMessageOutSetProp(EBGUI_t gui, const std::string id,
+    const std::string name, const char * value) {
+  return EBMessageOutSetProp(gui, id.c_str(), name.c_str(), value);
+}
+
+inline ResultCode_t EBMessageOutSetProp(EBGUI_t gui, const std::string id,
+    const std::string name, const std::string value) {
+  return EBMessageOutSetProp(gui, id.c_str(), name.c_str(), value.c_str());
+}
+#endif
+
 /**
  * @brief Set a property for the current outgoing message for the GUI
  *
@@ -218,9 +227,51 @@ extern "C" EHBANANA_API ResultCode_t EBMessageOutSetProp(
  * @param value of the property
  * @return ResultCode_t
  */
-inline ResultCode_t EBMessageOutSetProp(
-    EBGUI_t gui, std::string id, std::string name, std::string value) {
-  return EBMessageOutSetProp(gui, id.c_str(), name.c_str(), value.c_str());
+extern "C" EHBANANA_API ResultCode_t EBMessageOutSetPropInt(
+    EBGUI_t gui, const char * id, const char * name, const int64_t value);
+
+#ifdef EB_USE_STD_STRING
+inline ResultCode_t EBMessageOutSetProp(EBGUI_t gui, const std::string id,
+    const std::string name, const int64_t value) {
+  return EBMessageOutSetPropInt(gui, id.c_str(), name.c_str(), value);
+}
+#endif
+
+/**
+ * @brief Set a property for the current outgoing message for the GUI
+ *
+ * @param gui to set the property for
+ * @param id of the HTML element
+ * @param name of the property
+ * @param value of the property
+ * @return ResultCode_t
+ */
+extern "C" EHBANANA_API ResultCode_t EBMessageOutSetPropDouble(
+    EBGUI_t gui, const char * id, const char * name, const double value);
+
+#ifdef EB_USE_STD_STRING
+inline ResultCode_t EBMessageOutSetProp(EBGUI_t gui, const std::string id,
+    const std::string name, const double value) {
+  return EBMessageOutSetPropDouble(gui, id.c_str(), name.c_str(), value);
+}
+#endif
+
+/**
+ * @brief Set a property for the current outgoing message for the GUI
+ *
+ * @param gui to set the property for
+ * @param id of the HTML element
+ * @param name of the property
+ * @param value of the property
+ * @return ResultCode_t
+ */
+extern "C" EHBANANA_API ResultCode_t EBMessageOutSetPropBool(
+    EBGUI_t gui, const char * id, const char * name, const bool value);
+
+#ifdef EB_USE_STD_STRING
+inline ResultCode_t EBMessageOutSetProp(EBGUI_t gui, const std::string id,
+    const std::string name, const bool value) {
+  return EBMessageOutSetPropBool(gui, id.c_str(), name.c_str(), value);
 }
 #endif
 
