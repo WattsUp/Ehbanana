@@ -60,7 +60,8 @@ ResultCode_t EBCreateGUI(EBGUISettings_t guiSettings, EBGUI_t & gui) {
   }
 
   // Construct a new server and attach it to the EBGUI
-  gui->server = new Ehbanana::Web::Server(gui);
+  gui->server = new Ehbanana::Web::Server(
+      gui, guiSettings.timeoutIdle, guiSettings.timeoutFirstConnect);
   result = gui->server->configure(guiSettings.httpRoot, guiSettings.configRoot);
   if (!result) {
     if (result == ResultCode_t::OPEN_FAILED) {

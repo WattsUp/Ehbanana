@@ -65,12 +65,18 @@ typedef ResultCode_t(__stdcall * EBGUIProcess_t)(const EBMessage_t &);
  * @param configRoot directory containing configuration files
  * @param httpRoot directory containing HTTP top level
  * @param httpPort http server will attempt to open to
+ * @param timeoutIdle in seconds to wait before exiting when no connections are
+ * in progress (allows time for browser to load new pages)
+ * @param timeoutFirstConnect in seconds to wait before exiting when the first
+ * connection is in progress (allows time for browser to boot)
  */
 struct EBGUISettings_t {
   EBGUIProcess_t guiProcess = nullptr;
   char *         configRoot;
   char *         httpRoot;
-  uint16_t       httpPort = 0;
+  uint16_t       httpPort            = 0;
+  uint8_t        timeoutIdle         = 2;
+  uint8_t        timeoutFirstConnect = 20;
 };
 
 namespace Ehbanana {

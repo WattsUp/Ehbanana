@@ -22,7 +22,7 @@ public:
   Server(const Server &) = delete;
   Server & operator=(const Server &) = delete;
 
-  Server(EBGUI_t gui);
+  Server(EBGUI_t gui, uint8_t timeoutIdle, uint8_t timeoutFirst);
   ~Server();
 
   Result configure(
@@ -54,7 +54,10 @@ private:
 
   EBGUI_t gui;
 
-  const std::chrono::seconds TIMEOUT_NO_CONNECTIONS {1};
+  const std::chrono::seconds TIMEOUT_NO_CONNECTIONS;
+  const std::chrono::seconds TIMEOUT_FIRST_CONNECTIONS;
+
+  bool firstConnectionMade = false;
 };
 
 } // namespace Web
