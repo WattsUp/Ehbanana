@@ -77,6 +77,11 @@ var ehbanana = {
    * Add a listener to each element with "eb-*" class
    */
   attachListeners: function() {
+    if (ehbanana.webSocket == null ||
+        ehbanana.webSocket.readyState != ehbanana.webSocket.OPEN) {
+      setTimeout(ehbanana.attachListeners, 20);
+      return;
+    }
     var elements = document.getElementsByClassName("eb-input");
     for (var i = 0; i < elements.length; i++) {
       if (elements[i].getAttribute("id") == null) {
@@ -148,11 +153,6 @@ var ehbanana = {
         document.body.classList.add("ehbanana-opened");
         document.body.classList.remove("ehbanana-closed");
       }
-      if (document.readyState == "loading") {
-        document.addEventListener("load", ehbanana.attachListeners);
-      } else {
-        ehbanana.attachListeners();
-      }
     };
     ehbanana.webSocket.onerror = function(event) {
       var webSocketStatus = document.getElementById("websocket-status");
@@ -206,3 +206,4 @@ var ehbanana = {
 };
 
 ehbanana.startWebsocket();
+document.addEventListener("DOMContentLoaded", ehbanana.attachListeners);
