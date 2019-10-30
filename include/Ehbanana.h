@@ -1,67 +1,57 @@
 #ifndef _EHBANANA_H_
 #define _EHBANANA_H_
 
-#include <FruitBowl.h>
-
-#ifdef EB_USE_STD_STRING
-#include <string>
-#endif
+#ifdef COMPILING_DLL
+#define EHBANANA_API __declspec(dllexport)
 
 #ifdef GetObject
 #undef GetObject
 #endif
 
-#ifdef COMPILING_DLL
-#define EHBANANA_API __declspec(dllexport)
 #else
 #define EHBANANA_API __declspec(dllimport)
 #endif
 
-struct EBGUI;
-typedef EBGUI * EBGUI_t;
-
-enum class EBMSGType_t : uint8_t {
-  NONE,     // There is no message
-  STARTUP,  // The web server has started up
-  SHUTDOWN, // The web server is about to shutdown
-  QUIT,     // The web server has quit
-  INPUT,    // An input element has changed
-};
+/**
+ * @brief Process input from the GUI
+ *
+ * @param id of the triggering element
+ * @param value of the triggering element
+ */
+typedef void(__stdcall * EBInputCallback_t)(
+    const char * id, const char * value);
 
 /**
- * @brief Message from front end to back end
+ * @brief Attach a callback to input originating from the uri
  *
- * @param gui object to alert
- * @param type of the message
- * @param href URL of the webpage sender or receiver
- * @param id of the originating html element
- * @param value of the originating html element
- * @param file handle when element is a file
- * @param fileSize if handle is valid
+ * @param uri of the source page to subscribe to
+ * @param inputCallback function
  */
-struct EBMessage_t {
-  EBGUI_t     gui;
-  EBMSGType_t type;
-
-  Hash   href;
-  Hash   id;
-  Hash   value;
-  FILE * file;
-  size_t fileSize;
-};
+extern "C" EHBANANA_API uint8_t EBAttachCallback(
+    const char * uri, const EBInputCallback_t inputCallback);
 
 /**
- * @brief Process incoming message from the GUI
+ * @brief Process input file from the GUI
  *
- * @param msg to process
- * @return ResultCode_t error code
+ * @param id of the triggering element
+ * @param value of the triggering element, usually the filename
+ * @param file transferred from the GUI, file will be closed upon returning
  */
-typedef ResultCode_t(__stdcall * EBGUIProcess_t)(const EBMessage_t &);
+typedef void(__stdcall * EBInputFileCallback_t)(
+    const char * id, const char * value, FILE * file);
+
+/**
+ * @brief Attach a callback to input files originating from the uri
+ *
+ * @param uri of the source page to subscribe to
+ * @param inputFileCallback function
+ */
+extern "C" EHBANANA_API uint8_t EBAttachFileCallback(
+    const char * uri, const EBInputFileCallback_t inputFileCallback);
 
 /**
  * @brief GUI settings
  *
- * @param guiProcess callback for incoming messages
  * @param configRoot directory containing configuration files
  * @param httpRoot directory containing HTTP top level
  * @param httpPort http server will attempt to open to
@@ -71,218 +61,66 @@ typedef ResultCode_t(__stdcall * EBGUIProcess_t)(const EBMessage_t &);
  * connection is in progress (allows time for browser to boot)
  */
 struct EBGUISettings_t {
-  EBGUIProcess_t guiProcess = nullptr;
-  char *         configRoot;
-  char *         httpRoot;
-  uint16_t       httpPort            = 0;
-  uint8_t        timeoutIdle         = 2;
-  uint8_t        timeoutFirstConnect = 20;
-};
-
-namespace Ehbanana {
-
-namespace Web {
-class Server;
-}
-
-class MessageOut;
-
-} // namespace Ehbanana
-
-/**
- * @brief GUI object
- *
- * @param settings
- * @param server that executes the GUI
- */
-struct EBGUI {
-  EBGUISettings_t         settings;
-  Ehbanana::Web::Server * server            = nullptr;
-  Ehbanana::MessageOut *  currentMessageOut = nullptr;
+  char *   configRoot;
+  char *   httpRoot;
+  uint16_t httpPort            = 0;
+  uint8_t  timeoutIdle         = 2;
+  uint8_t  timeoutFirstConnect = 20;
 };
 
 /**
- * @brief Create a GUI using the settings
+ * @brief Create a GUI using the settings then open the preferred then default
+ * browser
  *
  * @param guiSettings to use to create GUI
- * @param gui struct to return new GUI
- * @return ResultCode_t error code
+ * @return uint8_t zero on success, non-zero on failure
  */
-extern "C" EHBANANA_API ResultCode_t EBCreateGUI(
-    EBGUISettings_t guiSettings, EBGUI_t & gui);
+extern "C" EHBANANA_API uint8_t EBLaunch(EBGUISettings_t guiSettings);
 
 /**
- * @brief Show the GUI by opening the preferred then default browser
+ * @brief Destroy the GUI
  *
- * @param gui to open
- * @return ResultCode_t error code
+ * @return uint8_t zero on success, non-zero on failure
  */
-extern "C" EHBANANA_API ResultCode_t EBShowGUI(EBGUI_t gui);
+extern "C" EHBANANA_API uint8_t EBDestroy();
+
+// Type enum for EBElement_t's union
+enum class EBValueType_t : uint8_t { UINT64, INT64, DOUBLE, CSTRING };
 
 /**
- * @brief Destroy a GUI
+ * @brief Encapsulation of an output message which modifies the property of an
+ * element
  *
- * @param gui to destroy
- * @return ResultCode_t error code
+ * Multiple elements can be modified together by linking them together as a
+ * singly linked list
+ *
+ * Type must match value or an error will occur. Using EBAddElement is
+ * recommended to avoid errors.
  */
-extern "C" EHBANANA_API ResultCode_t EBDestroyGUI(EBGUI_t gui);
+struct EBElement_t {
+  const char *  id       = nullptr; // HTML id of the element
+  const char *  property = nullptr; // to set value for
+  EBValueType_t type;               // of encapsulated union
+  union {                           // of the property to set
+    uint64_t     u;
+    int64_t      i;
+    double       d;
+    const char * c = nullptr;
+  } value;
+  const EBElement_t * next = nullptr; // Singly linked list of elements
+};
 
 /**
- * @brief Get the next message in the queue
+ * @brief Enqueue a list of output elements with a desired target page
  *
- * Returns ResultCode_tCode_t::SUCCESS when the message type is QUIT
- * Returns ResultCode_tCode_t::NO_OPERATION when the queue is empty
- * Returns ResultCode_tCode_t::INCOMPLETE when the message type is not quit and
- * no other errors occurred
- *
- * @param msg to write into
- * @return ResultCode_t error code
+ * @param uri of the target page, nullptr will broadcast to all pages
+ * @param elementHead of the outputElement(s). Elements will be deep copied
+ * @return uint8_t zero on success, non-zero on failure
  */
-extern "C" EHBANANA_API ResultCode_t EBGetMessage(EBMessage_t & msg);
+extern "C" EHBANANA_API uint8_t EBEnqueueOutput(
+    const char * uri, const EBElement_t * elementHead);
 
-/**
- * @brief Send the message to the appropriate consumers
- *
- * @param msg to dispatch
- * @return ResultCode_t error code
- */
-extern "C" EHBANANA_API ResultCode_t EBDispatchMessage(const EBMessage_t & msg);
-
-/**
- * @brief Add a message to the queue
- *
- * @param msg to add
- * @param ResultCode_t error code
- */
-extern "C" EHBANANA_API ResultCode_t EBEnqueueMessage(const EBMessage_t & msg);
-
-/**
- * @brief Process incoming message from the GUI in the default method
- *
- * @param msg to process
- * @return ResultCode_t error code
- */
-extern "C" EHBANANA_API ResultCode_t EBDefaultGUIProcess(const EBMessage_t &);
-
-/**
- * @brief Add a quit message to the queue
- *
- */
-#define EBEnqueueQuitMessage(gui) (EBEnqueueMessage({gui, EBMSGType_t::QUIT}))
-
-/**
- * @brief Create an outgoing message for the GUI
- *
- * @param gui to create the message for
- * @return ResultCode_t
- */
-extern "C" EHBANANA_API ResultCode_t EBMessageOutCreate(EBGUI_t gui);
-
-/**
- * @brief Set the href for the current outgoing message for the GUI
- *
- * @param gui to set the href for
- * @param href string to set
- * @return ResultCode_t
- */
-extern "C" EHBANANA_API ResultCode_t EBMessageOutSetHref(
-    EBGUI_t gui, const char * href);
-
-#ifdef EB_USE_STD_STRING
-inline ResultCode_t EBMessageOutSetHref(EBGUI_t gui, std::string href) {
-  return EBMessageOutSetHref(gui, href.c_str());
-}
-#endif
-
-/**
- * @brief Set a property for the current outgoing message for the GUI
- *
- * @param gui to set the property for
- * @param id of the HTML element
- * @param name of the property
- * @param value of the property
- * @return ResultCode_t
- */
-extern "C" EHBANANA_API ResultCode_t EBMessageOutSetProp(
-    EBGUI_t gui, const char * id, const char * name, const char * value);
-
-#ifdef EB_USE_STD_STRING
-inline ResultCode_t EBMessageOutSetProp(EBGUI_t gui, const std::string id,
-    const std::string name, const char * value) {
-  return EBMessageOutSetProp(gui, id.c_str(), name.c_str(), value);
-}
-
-inline ResultCode_t EBMessageOutSetProp(EBGUI_t gui, const std::string id,
-    const std::string name, const std::string value) {
-  return EBMessageOutSetProp(gui, id.c_str(), name.c_str(), value.c_str());
-}
-#endif
-
-/**
- * @brief Set a property for the current outgoing message for the GUI
- *
- * @param gui to set the property for
- * @param id of the HTML element
- * @param name of the property
- * @param value of the property
- * @return ResultCode_t
- */
-extern "C" EHBANANA_API ResultCode_t EBMessageOutSetPropInt(
-    EBGUI_t gui, const char * id, const char * name, const int64_t value);
-
-#ifdef EB_USE_STD_STRING
-inline ResultCode_t EBMessageOutSetProp(EBGUI_t gui, const std::string id,
-    const std::string name, const int64_t value) {
-  return EBMessageOutSetPropInt(gui, id.c_str(), name.c_str(), value);
-}
-#endif
-
-/**
- * @brief Set a property for the current outgoing message for the GUI
- *
- * @param gui to set the property for
- * @param id of the HTML element
- * @param name of the property
- * @param value of the property
- * @return ResultCode_t
- */
-extern "C" EHBANANA_API ResultCode_t EBMessageOutSetPropDouble(
-    EBGUI_t gui, const char * id, const char * name, const double value);
-
-#ifdef EB_USE_STD_STRING
-inline ResultCode_t EBMessageOutSetProp(EBGUI_t gui, const std::string id,
-    const std::string name, const double value) {
-  return EBMessageOutSetPropDouble(gui, id.c_str(), name.c_str(), value);
-}
-#endif
-
-/**
- * @brief Set a property for the current outgoing message for the GUI
- *
- * @param gui to set the property for
- * @param id of the HTML element
- * @param name of the property
- * @param value of the property
- * @return ResultCode_t
- */
-extern "C" EHBANANA_API ResultCode_t EBMessageOutSetPropBool(
-    EBGUI_t gui, const char * id, const char * name, const bool value);
-
-#ifdef EB_USE_STD_STRING
-inline ResultCode_t EBMessageOutSetProp(EBGUI_t gui, const std::string id,
-    const std::string name, const bool value) {
-  return EBMessageOutSetPropBool(gui, id.c_str(), name.c_str(), value);
-}
-#endif
-
-/**
- * @brief Enqueue the current outgoing message for the GUI
- *
- * @param gui to enqueue the message for
- * @return ResultCode_t
- */
-extern "C" EHBANANA_API ResultCode_t EBMessageOutEnqueue(EBGUI_t gui);
-
+// Logging level enum for filtering messages
 enum class EBLogLevel_t : uint8_t {
   EB_DEBUG,
   EB_INFO,
@@ -293,7 +131,7 @@ enum class EBLogLevel_t : uint8_t {
 
 /**
  * @brief Logger callback
- * Prints the message string to the destination stream, default: stdout
+ * Print the message string to the destination stream, default: stdout
  *
  * @param EBLogLevel_t log level
  * @param char * string
