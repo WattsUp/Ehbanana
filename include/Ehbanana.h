@@ -1,6 +1,18 @@
 #ifndef _EHBANANA_H_
 #define _EHBANANA_H_
 
+#include <stdio.h>
+
+/* stdint.h is not available on older MSVC */
+#if defined(_MSC_VER) && (_MSC_VER < 1600) && (!defined(_STDINT)) &&           \
+    (!defined(_STDINT_H))
+typedef unsigned __int8  uint8_t;
+typedef unsigned __int16 uint16_t;
+typedef unsigned __int32 uint32_t;
+#else
+#include <stdint.h>
+#endif
+
 #ifdef COMPILING_DLL
 #define EHBANANA_API __declspec(dllexport)
 
@@ -11,6 +23,20 @@
 #else
 #define EHBANANA_API __declspec(dllimport)
 #endif
+
+// Runtime versioning info
+struct EBVersionInfo_t {
+  uint16_t major;
+  uint16_t minor;
+  uint16_t patch;
+};
+
+/**
+ * @brief Get the version info of Ehbanana
+ *
+ * @return EBVersionInfo_t info struct
+ */
+extern "C" EHBANANA_API const EBVersionInfo_t EBGetVersion();
 
 /**
  * @brief Process input from the GUI
@@ -78,6 +104,14 @@ struct EBGUISettings_t {
 extern "C" EHBANANA_API uint8_t EBLaunch(EBGUISettings_t guiSettings);
 
 /**
+ * @brief Check if the GUI is done operating, i.e. all clients are closed
+ *
+ * @param bool blocking will wait until the GUI is done
+ * @return bool true if GUI is done operating, false otherwise
+ */
+extern "C" EHBANANA_API bool EBIsDone(bool blocking = false);
+
+/**
  * @brief Destroy the GUI
  *
  * @return uint8_t zero on success, non-zero on failure
@@ -143,7 +177,18 @@ typedef void(__stdcall * EBLogger_t)(
  * @brief Set the logger used by Ehbanana
  *
  * If unset: stdout, no filtering
+ *
+ * @param EBLogger_t logger function, setting nullptr will turn off logging
  */
 extern "C" EHBANANA_API void EBSetLogger(const EBLogger_t logger);
+
+/**
+ * @brief Get a string representation of the error suitable to present to the
+ * user
+ *
+ * @param uint8_t errorCode to get the string for
+ * @return const char * constant string
+ */
+extern "C" EHBANANA_API const char * EBErrorName(uint8_t errorCode);
 
 #endif /* _EHBANANA_H_ */

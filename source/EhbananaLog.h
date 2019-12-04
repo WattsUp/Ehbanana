@@ -2,7 +2,8 @@
 #define _EHBANANA_LOG_H_
 
 #include "Ehbanana.h"
-#include "cstdarg"
+
+#include <string>
 
 namespace Ehbanana {
 

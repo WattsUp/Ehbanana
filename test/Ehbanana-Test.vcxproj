@@ -29,7 +29,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
-      <AdditionalIncludeDirectories>$(SolutionDir)\..\include;$(SolutionDir)\..\lib\FruitBowl\include;$(SolutionDir)\..\lib\digestpp;$(SolutionDir)\..\lib\cpp-base64;$(SolutionDir)\source\;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)\..\include;$(SolutionDir)\..\lib\digestpp;$(SolutionDir)\..\lib\cpp-base64;$(SolutionDir)\source\;</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>EB_USE_STD_STRING;%(PreprocessorDefinitions);</PreprocessorDefinitions>
     </ClCompile>
     <Link>
@@ -45,7 +45,6 @@
     <ClInclude Include="source\**\*.h" />
     <ClInclude Include="..\lib\digestpp\**\*.hpp" />
     <ClInclude Include="..\lib\cpp-base64\base64.h" />
-    <ClInclude Include="..\lib\FruitBowl\include\**\*.h" />
   </ItemGroup>
   <Target Name="CopyFiles">
     <Copy SourceFiles="$(OutDir)\Ehbanana-Test.exe" DestinationFiles="$(SolutionDir)\..\bin\Ehbanana-Test.exe"/>
