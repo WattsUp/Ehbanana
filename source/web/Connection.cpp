@@ -11,13 +11,11 @@ namespace Web {
  * @param socket to read from and write to
  * @param endpoint socket is connected to
  * @param now current timestamp
- * @param gui that owns this server
  */
 Connection::Connection(asio::ip::tcp::socket * socket, std::string endpoint,
-    const std::chrono::time_point<std::chrono::system_clock> & now,
-    EBGUI_t                                                    gui) :
+    const std::chrono::time_point<std::chrono::system_clock> & now) :
   socket(socket),
-  endpoint(endpoint), gui(gui) {
+  endpoint(endpoint) {
   this->timeoutTime = now + TIMEOUT;
 
   socket->non_blocking(true);
@@ -49,10 +47,10 @@ Result Connection::update(
   Result           result;
   asio::error_code errorCode;
   size_t           length = socket->available(errorCode);
-  if (errorCode) {
+  if (errorCode)
     return ResultCode_t::READ_FAULT + errorCode.message() +
            ("Checking available bytes for " + endpoint);
-  }
+
   if (length != 0) {
     timeoutTime = now + TIMEOUT;
     // Bytes available to read.
@@ -61,21 +59,24 @@ Result Connection::update(
       result = protocol->processReceiveBuffer(bufferReceive.data(), length);
       if (!result)
         return result;
-    } else
+    } else {
       return ResultCode_t::READ_FAULT + errorCode.message() + endpoint;
+    }
   }
+
   if (protocol->hasTransmitBuffers()) {
     timeoutTime = now + TIMEOUT;
     length      = socket->write_some(protocol->getTransmitBuffers(), errorCode);
     if (errorCode == asio::error::would_block) {
       return ResultCode_t::INCOMPLETE;
     } else if (!errorCode) {
-      if (protocol->updateTransmitBuffers(length)) {
+      if (protocol->updateTransmitBuffers(length))
         return ResultCode_t::INCOMPLETE;
-      }
-    } else
+    } else {
       return ResultCode_t::WRITE_FAULT + errorCode.message() + endpoint;
+    }
   }
+
   if (protocol->isDone()) {
     switch (protocol->getChangeRequest()) {
       case AppProtocol_t::HTTP:
@@ -84,7 +85,7 @@ Result Connection::update(
         return ResultCode_t::INCOMPLETE;
       case AppProtocol_t::WEBSOCKET:
         delete protocol;
-        protocol = new WebSocket::WebSocket(gui);
+        protocol = new WebSocket::WebSocket();
         return ResultCode_t::INCOMPLETE;
       case AppProtocol_t::NONE:
         return ResultCode_t::SUCCESS;
@@ -98,17 +99,6 @@ Result Connection::update(
   if (now > timeoutTime && protocol->sendAliveCheck())
     return ResultCode_t::TIMEOUT;
   return ResultCode_t::NO_OPERATION;
-}
-
-/**
- * @brief Add a message to the protocol to transmit out if available
- * returns ResultCode_t::NOT_SUPPORTED if not compatible with the protocol
- *
- * @param msg to add
- * @return Result
- */
-Result Connection::addMessage(const std::string & msg) {
-  return protocol->addMessage(msg);
 }
 
 /**

@@ -23,12 +23,10 @@ public:
   Connection & operator=(const Connection &) = delete;
 
   Connection(asio::ip::tcp::socket * socket, std::string endpoint,
-      const std::chrono::time_point<std::chrono::system_clock> & now,
-      EBGUI_t                                                    gui);
+      const std::chrono::time_point<std::chrono::system_clock> & now);
   ~Connection();
 
   Result update(const std::chrono::time_point<std::chrono::system_clock> & now);
-  Result addMessage(const std::string & msg);
   void   stop();
 
   const std::string & getEndpoint() const;
@@ -44,8 +42,6 @@ private:
   std::chrono::time_point<std::chrono::system_clock> timeoutTime;
 
   const std::chrono::seconds TIMEOUT {1};
-
-  EBGUI_t gui;
 };
 
 } // namespace Web

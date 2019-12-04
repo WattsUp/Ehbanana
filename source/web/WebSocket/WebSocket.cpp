@@ -11,9 +11,8 @@ namespace WebSocket {
 /**
  * @brief Construct a new WebSocket::WebSocket object
  *
- * @param gui that owns this server
  */
-WebSocket::WebSocket(EBGUI_t gui) : gui(gui) {}
+WebSocket::WebSocket() {}
 
 /**
  * @brief Destroy the WebSocket::WebSocket object
@@ -90,9 +89,6 @@ Result WebSocket::processReceiveBuffer(const uint8_t * begin, size_t length) {
  * @return Result
  */
 Result WebSocket::processFrameText() {
-  EBMessage_t msg;
-  msg.gui  = gui;
-  msg.type = EBMSGType_t::INPUT;
   rapidjson::Document doc;
 
   // Parse JSON
@@ -102,29 +98,29 @@ Result WebSocket::processFrameText() {
   auto i = doc.FindMember("href");
   if (i == doc.MemberEnd() || !i->value.IsString())
     return ResultCode_t::INVALID_DATA + "No 'href'";
-  msg.href.add(i->value.GetString());
+  // msg.href.add(i->value.GetString());
 
-  i = doc.FindMember("id");
-  if (i == doc.MemberEnd() || !i->value.IsString())
-    return ResultCode_t::INVALID_DATA + "No 'id'";
-  msg.id.add(i->value.GetString());
+  // i = doc.FindMember("id");
+  // if (i == doc.MemberEnd() || !i->value.IsString())
+  //   return ResultCode_t::INVALID_DATA + "No 'id'";
+  // msg.id.add(i->value.GetString());
 
-  i = doc.FindMember("value");
-  if (i == doc.MemberEnd() || !i->value.IsString())
-    return ResultCode_t::INVALID_DATA + "No 'value'";
-  msg.value.add(i->value.GetString());
+  // i = doc.FindMember("value");
+  // if (i == doc.MemberEnd() || !i->value.IsString())
+  //   return ResultCode_t::INVALID_DATA + "No 'value'";
+  // msg.value.add(i->value.GetString());
 
-  i = doc.FindMember("fileSize");
-  if (i != doc.MemberEnd()) {
-    if (!i->value.IsInt())
-      return ResultCode_t::INVALID_DATA + frameIn.getData() +
-             "\"fileSize\" is not an int";
-    msg.fileSize    = i->value.GetInt();
-    msgAwaitingFile = msg;
-    return ResultCode_t::SUCCESS;
-  }
+  // i = doc.FindMember("fileSize");
+  // if (i != doc.MemberEnd()) {
+  //   if (!i->value.IsInt())
+  //     return ResultCode_t::INVALID_DATA + frameIn.getData() +
+  //            "\"fileSize\" is not an int";
+  //   msg.fileSize    = i->value.GetInt();
+  //   msgAwaitingFile = msg;
+  //   return ResultCode_t::SUCCESS;
+  // }
 
-  EBEnqueueMessage(msg);
+  // EBEnqueueMessage(msg);
   return ResultCode_t::SUCCESS;
 }
 
@@ -135,14 +131,14 @@ Result WebSocket::processFrameText() {
  * @return Result
  */
 Result WebSocket::processFrameBinary() {
-  fseek(frameIn.getDataFile(), 0L, SEEK_END);
-  if (msgAwaitingFile.fileSize != (size_t)ftell(frameIn.getDataFile())) {
-    return ResultCode_t::INVALID_DATA +
-           "Received file's size does not match preceeding message's";
-  }
-  rewind(frameIn.getDataFile());
-  msgAwaitingFile.file = frameIn.getDataFile(true);
-  EBEnqueueMessage(msgAwaitingFile);
+  // fseek(frameIn.getDataFile(), 0L, SEEK_END);
+  // if (msgAwaitingFile.fileSize != (size_t)ftell(frameIn.getDataFile())) {
+  //   return ResultCode_t::INVALID_DATA +
+  //          "Received file's size does not match preceeding message's";
+  // }
+  // rewind(frameIn.getDataFile());
+  // msgAwaitingFile.file = frameIn.getDataFile(true);
+  // EBEnqueueMessage(msgAwaitingFile);
   return ResultCode_t::SUCCESS;
 }
 

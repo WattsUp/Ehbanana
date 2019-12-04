@@ -17,7 +17,7 @@ public:
   WebSocket(const WebSocket &) = delete;
   WebSocket & operator=(const WebSocket &) = delete;
 
-  WebSocket(EBGUI_t gui);
+  WebSocket();
   ~WebSocket();
 
   Result processReceiveBuffer(const uint8_t * begin, size_t length);
@@ -36,11 +36,7 @@ private:
 
   std::list<Frame *> framesOut;
 
-  EBMessage_t msgAwaitingFile;
-
   bool pingSent = false;
-
-  EBGUI_t gui;
 };
 
 } // namespace WebSocket

@@ -33,7 +33,7 @@ public:
    *
    * @param begin character
    * @param length of buffer
-   * @return Result error code
+   * @return Result
    */
   virtual Result processReceiveBuffer(const uint8_t * begin, size_t length) = 0;
 
@@ -112,17 +112,6 @@ public:
    */
   virtual bool sendAliveCheck() {
     return true;
-  }
-
-  /**
-   * @brief Add a message to transmit out if available
-   * returns ResultCode_t::NOT_SUPPORTED if not compatible
-   *
-   * @param msg to add
-   * @return Result
-   */
-  virtual Result addMessage(const std::string &) {
-    return ResultCode_t::NOT_SUPPORTED;
   }
 
 protected:

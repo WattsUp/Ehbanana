@@ -13,6 +13,7 @@
 #include <stdint.h>
 #include <string>
 #include <thread>
+#include <unordered_map>
 
 namespace Ehbanana {
 namespace Web {
@@ -22,18 +23,21 @@ public:
   Server(const Server &) = delete;
   Server & operator=(const Server &) = delete;
 
-  Server(EBGUI_t gui, uint8_t timeoutIdle, uint8_t timeoutFirst);
+  Server();
   ~Server();
 
-  Result configure(
-      const std::string & httpRoot, const std::string & configRoot);
-  Result initializeSocket(const std::string & addr, uint16_t port = PORT_AUTO);
-  void   start();
+  Result initialize(const EBGUISettings_t settings);
+  Result start();
   void   stop();
 
-  void enqueueOutput(const std::string & msg);
+  bool isDone() const;
 
-  const std::string & getDomainName() const;
+  Result attachCallback(
+      const std::string & uri, const EBInputCallback_t inputCallback);
+  Result attachCallback(
+      const std::string & uri, const EBInputFileCallback_t inputFileCallback);
+
+  const char * getDomainName() const;
 
   static const uint16_t PORT_AUTO    = 0;
   static const uint16_t PORT_DEFAULT = 8080;
@@ -50,14 +54,12 @@ private:
   std::string domainName;
 
   std::list<Connection *> connections;
-  std::list<std::string>  outputMessages;
 
-  EBGUI_t gui;
+  std::unordered_map<std::string, EBInputCallback_t>     inputCallbacks;
+  std::unordered_map<std::string, EBInputFileCallback_t> inputFileCallbacks;
 
-  const std::chrono::seconds TIMEOUT_NO_CONNECTIONS;
-  const std::chrono::seconds TIMEOUT_FIRST_CONNECTIONS;
-
-  bool firstConnectionMade = false;
+  std::chrono::time_point<std::chrono::system_clock> timeoutTime;
+  std::chrono::seconds                               TIMEOUT_NO_CONNECTIONS;
 };
 
 } // namespace Web

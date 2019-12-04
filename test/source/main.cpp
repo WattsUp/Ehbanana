@@ -61,8 +61,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
   uint8_t error = EBAttachCallback("/", callbackRoot);
   if (error) {
+    printf("Failed to attach callback to GUI");
     MessageBoxA(NULL, EBErrorName(error), "Error", MB_OK);
-    printf("Failed to launch GUI");
     return error;
   }
 
@@ -70,8 +70,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
   error = EBLaunch(guiSettings);
   if (error) {
-    MessageBoxA(NULL, EBErrorName(error), "Error", MB_OK);
     printf("Failed to launch GUI");
+    MessageBoxA(NULL, EBErrorName(error), "Error", MB_OK);
     return error;
   }
 
@@ -80,8 +80,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
   error = EBDestroy();
   if (error) {
-    MessageBoxA(NULL, EBErrorName(error), "Error", MB_OK);
     printf("Failed to destroy GUI");
+    MessageBoxA(NULL, EBErrorName(error), "Error", MB_OK);
     return error;
   }
 

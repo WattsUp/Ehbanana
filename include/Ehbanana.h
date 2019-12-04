@@ -52,6 +52,7 @@ typedef void(__stdcall * EBInputCallback_t)(
  *
  * @param uri of the source page to subscribe to
  * @param inputCallback function
+ * @return uint8_t zero on success, non-zero on failure
  */
 extern "C" EHBANANA_API uint8_t EBAttachCallback(
     const char * uri, const EBInputCallback_t inputCallback);
@@ -71,6 +72,7 @@ typedef void(__stdcall * EBInputFileCallback_t)(
  *
  * @param uri of the source page to subscribe to
  * @param inputFileCallback function
+ * @return uint8_t zero on success, non-zero on failure
  */
 extern "C" EHBANANA_API uint8_t EBAttachFileCallback(
     const char * uri, const EBInputFileCallback_t inputFileCallback);
@@ -82,16 +84,13 @@ extern "C" EHBANANA_API uint8_t EBAttachFileCallback(
  * @param httpRoot directory containing HTTP top level
  * @param httpPort http server will attempt to open to
  * @param timeoutIdle in seconds to wait before exiting when no connections are
- * in progress (allows time for browser to load new pages)
- * @param timeoutFirstConnect in seconds to wait before exiting when the first
- * connection is in progress (allows time for browser to boot)
+ * in progress (allow time for browser to load new pages)
  */
 struct EBGUISettings_t {
   char *   configRoot;
   char *   httpRoot;
-  uint16_t httpPort            = 0;
-  uint8_t  timeoutIdle         = 2;
-  uint8_t  timeoutFirstConnect = 20;
+  uint16_t httpPort    = 0;
+  uint8_t  timeoutIdle = 5;
 };
 
 /**
@@ -101,7 +100,7 @@ struct EBGUISettings_t {
  * @param guiSettings to use to create GUI
  * @return uint8_t zero on success, non-zero on failure
  */
-extern "C" EHBANANA_API uint8_t EBLaunch(EBGUISettings_t guiSettings);
+extern "C" EHBANANA_API uint8_t EBLaunch(const EBGUISettings_t guiSettings);
 
 /**
  * @brief Check if the GUI is done operating, i.e. all clients are closed
