@@ -20,6 +20,7 @@ struct CacheFilesMatch_t {
   std::string cacheControlHeader;
 };
 
+// TODO replace with any addition headers regex thingy
 class CacheControl {
 public:
   CacheControl(const CacheControl &) = delete;

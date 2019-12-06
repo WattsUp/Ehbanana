@@ -174,6 +174,7 @@ Result HTTP::handleGET() {
     return ResultCode_t::OPEN_FAILED + (root() + uri);
   }
   reply.addHeader("Content-Length", std::to_string(file->size()));
+  // TODO change cache control to any type of header that match the regex
   reply.addHeader(
       "Cache-Control", CacheControl::Instance()->getCacheControl(uri));
   switch (request.getHeaders().getConnection()) {

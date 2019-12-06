@@ -8,9 +8,7 @@ namespace HTTP {
  * @brief Construct a new Reply:: Reply object
  *
  */
-Reply::Reply() {
-  file = nullptr;
-}
+Reply::Reply() {}
 
 /**
  * @brief Destroy the Reply:: Reply object
@@ -30,7 +28,7 @@ Reply::~Reply() {
  *
  * @param that to copy
  */
-Reply::Reply(const Reply & that) {
+Reply::Reply(Reply & that) {
   *this = that;
 }
 
@@ -40,11 +38,12 @@ Reply::Reply(const Reply & that) {
  * @param that to assign
  * @return Reply&
  */
-Reply & Reply::operator=(const Reply & that) {
+Reply & Reply::operator=(Reply & that) {
   if (this != &that) {
     if (this->file != nullptr)
       this->file->close();
     this->file    = that.file;
+    that.file     = nullptr;
     this->content = that.content;
     this->buffers = that.buffers;
     this->headers = that.headers;
@@ -100,6 +99,10 @@ void Reply::appendContent(std::string string) {
  * @param contentFile to set
  */
 void Reply::setContent(MemoryMapped * contentFile) {
+  if (file != nullptr) {
+    file->close();
+    delete file;
+  }
   file = contentFile;
 }
 
@@ -111,7 +114,6 @@ void Reply::setContent(MemoryMapped * contentFile) {
 const std::vector<asio::const_buffer> & Reply::getBuffers() {
   // If the buffers vector is empty, populate first
   if (buffers.empty()) {
-    buffers.clear();
     buffers.push_back(statusToBuffer());
     buffers.push_back(asio::buffer(STRING_CRLF));
     for (size_t i = 0; i < headers.size(); ++i) {
@@ -191,6 +193,7 @@ Reply Reply::stockReply(Status_t httpStatus) {
       reply.appendContent(StockReply::SERVICE_UNAVAILABLE);
       break;
   }
+  // TODO make length and type be added when getting buffers
   reply.addHeader("Content-Length", std::to_string(reply.content.size()));
   reply.addHeader("Content-Type", "text/html");
   return reply;

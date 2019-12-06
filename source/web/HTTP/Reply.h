@@ -152,8 +152,8 @@ class Reply {
 public:
   Reply();
   ~Reply();
-  Reply(const Reply & that);
-  Reply & operator=(const Reply & that);
+  Reply(Reply & that);
+  Reply & operator=(Reply & that);
 
   void setStatus(Status_t httpStatus);
   void setKeepAlive(bool keepAlive);
@@ -169,7 +169,7 @@ public:
 private:
   asio::const_buffer statusToBuffer();
 
-  MemoryMapped *                  file;
+  MemoryMapped *                  file = nullptr;
   std::string                     content;
   std::vector<asio::const_buffer> buffers;
   std::vector<Header_t>           headers;

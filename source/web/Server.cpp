@@ -127,8 +127,7 @@ void Server::run() {
   asio::ip::tcp::endpoint endpoint;
   asio::error_code        errorCode;
   Result                  result;
-  bool                    didSomething            = false;
-  bool                    outputMessageDispatched = false;
+  bool                    didSomething = false;
 
   auto now    = std::chrono::system_clock::now();
   timeoutTime = now + TIMEOUT_NO_CONNECTIONS;

@@ -19,7 +19,7 @@ struct MIMEType_t {
 };
 
 bool operator>(const MIMEType_t & left, const MIMEType_t & right);
-
+// TODO replace with unordered list hash table
 class MIMETypes {
 public:
   MIMETypes(const MIMETypes &) = delete;
