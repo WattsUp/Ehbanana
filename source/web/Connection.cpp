@@ -132,10 +132,10 @@ void Connection::stop() {
 /**
  * @brief Get the string representation of the connection
  *
- * @return const char* ip address and port
+ * @return const std::string& ip address and port
  */
-const char * Connection::toString() const {
-  return endpointStr(socket->local_endpoint()).c_str();
+const std::string & Connection::toString() const {
+  return endpoint;
 }
 
 /**

@@ -25,12 +25,13 @@ typedef unsigned __int32 uint32_t;
 #endif
 
 enum class EBError_t : uint8_t {
-  SUCCESS               = 0x00,
-  EXCEPTION_OCCURRED    = 0x01,
-  INITIALIZATION_FAILED = 0x02,
-  START_FAILED          = 0x03,
-  PROCESS_START         = 0x04,
-  NOT_SUPPORTED         = 0x05
+  SUCCESS               = 0,
+  EXCEPTION_OCCURRED    = 1,
+  INITIALIZATION_FAILED = 2,
+  START_FAILED          = 3,
+  PROCESS_START         = 4,
+  NOT_SUPPORTED         = 5,
+  NO_SERVER_CREATED     = 6,
 };
 
 #define EB_FAILED(error) (error != EBError_t::SUCCESS)
@@ -161,13 +162,20 @@ struct EBGUISettings_t {
 };
 
 /**
- * @brief Create a GUI using the settings then open the preferred then default
- * browser
+ * @brief Create a GUI using the settings
  *
  * @param guiSettings to use to create GUI
  * @return EBError_t zero on success, non-zero on failure
  */
-extern "C" EHBANANA_API EBError_t EBLaunch(const EBGUISettings_t guiSettings);
+extern "C" EHBANANA_API EBError_t EBCreate(const EBGUISettings_t guiSettings);
+
+/**
+ * @brief Start the webserver and open the preferred default
+ * browser
+ *
+ * @return EBError_t zero on success, non-zero on failure
+ */
+extern "C" EHBANANA_API EBError_t EBLaunch();
 
 /**
  * @brief Check if the GUI is done operating, i.e. all clients are closed

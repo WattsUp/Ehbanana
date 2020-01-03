@@ -4,10 +4,13 @@
 #include "EhbananaLog.h"
 #include "Hash.h"
 #include "MIMETypes.h"
+#include "Utils.h"
 
 #include <algorithm/sha1.hpp>
 #include <base64.h>
 #include <memory>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 namespace Ehbanana {
 namespace Web {
@@ -126,11 +129,9 @@ void HTTP::handleGET() {
     info("GET URI: \"" + uri + "\"");
   else {
     std::string buffer = "";
-    // TODO fix
-    // for (HeaderHash_t query : request.getQueries()) {
-    //   buffer += "\n    \"" + query.name.getString() + "\"=\"" +
-    //             query.value.getString() + "\"";
-    // }
+    for (const Request::Query_t & query : request.getQueries()) {
+      buffer += "\n    \"" + query.name + "\"=\"" + query.value + "\"";
+    }
     info("GET URI: \"" + uri + "\" Queries:" + buffer);
   }
 
@@ -141,20 +142,33 @@ void HTTP::handleGET() {
     return;
   }
 
-  // Add index.html to folders
-  if (uri[uri.size() - 1] == '/')
-    uri += "index.html";
+  uri = root() + uri;
 
-  // Determine the file extension.
-  reply.addHeader("Content-Type", MIMETypes::Instance()->getType(uri));
-  std::shared_ptr<MemoryMapped> file = std::make_shared<MemoryMapped>(
-      root() + uri, 0, MemoryMapped::SequentialScan);
+  // URI ends in forward slash, load its index.html
+  if (uri[uri.size() - 1] == '/') {
+    uri += "index.html";
+  }
+
+  struct stat info;
+  if (stat(uri.c_str(), &info) != 0) {
+    reply = Reply::stockReply(Status_t::NOT_FOUND);
+    return;
+  }
+
+  // URI is directory, load its index.html
+  if (info.st_mode & S_IFDIR)
+    uri += "/index.html";
+
+  std::shared_ptr<MemoryMapped> file =
+      std::make_shared<MemoryMapped>(uri, 0, MemoryMapped::SequentialScan);
   if (!file->isValid()) {
     reply = Reply::stockReply(Status_t::NOT_FOUND);
     return;
   }
+
+  // Determine the file extension.
+  reply.addHeader("Content-Type", MIMETypes::Instance()->getType(uri));
   reply.addHeader("Content-Length", std::to_string(file->size()));
-  // TODO change cache control to any type of header that match the regex
   reply.addHeader(
       "Cache-Control", CacheControl::Instance()->getCacheControl(uri));
   switch (request.getHeaders().getConnection()) {
@@ -180,11 +194,9 @@ void HTTP::handlePOST() {
     info("POST URI: \"" + uri + "\"");
   else {
     std::string buffer = "";
-    // TODO fix
-    // for (HeaderHash_t query : request.getQueries()) {
-    //   buffer += "\n    \"" + query.name.getString() + "\"=\"" +
-    //             query.value.getString() + "\"";
-    // }
+    for (const Request::Query_t & query : request.getQueries()) {
+      buffer += "\n    \"" + query.name + "\"=\"" + query.value + "\"";
+    }
     info("POST URI: \"" + uri + "\" Queries:" + buffer);
   }
 

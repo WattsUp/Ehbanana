@@ -11,31 +11,15 @@ namespace Web {
 
 /**
  * @brief Construct a new Server:: Server object
- *
- */
-Server::Server() : ioContext(1), acceptor(ioContext) {}
-
-/**
- * @brief Destroy the Server:: Server object
- * Safely stop the thread and any open connections
- */
-Server::~Server() {
-  stop();
-}
-
-/**
- * @brief Initialize the server
  * Configure settings of the server, folder directories
  *
  * Opens the acceptor at the desired address and places it into listening mode
  *
  * Passing in PORT_AUTO for port will attempt to use the default port then
  * increment until an available port is open
- *
- * @param EBGUISettings_t settings
- * @throw std::exception Thrown on failure
  */
-void Server::initialize(const EBGUISettings_t settings) {
+Server::Server(const EBGUISettings_t settings) :
+  ioContext(1), acceptor(ioContext) {
   TIMEOUT_NO_CONNECTIONS = seconds_t(settings.timeoutIdle);
 
   HTTP::HTTP::setRoot(settings.httpRoot);
@@ -94,14 +78,19 @@ void Server::initialize(const EBGUISettings_t settings) {
 }
 
 /**
+ * @brief Destroy the Server:: Server object
+ * Safely stop the thread and any open connections
+ */
+Server::~Server() {
+  stop();
+}
+
+/**
  * @brief Start the run thread
  *
  * @throw std::exception Thrown on failure
  */
 void Server::start() {
-  if (domainName.empty())
-    throw std::exception("Server not initialized");
-
   stop();
 
   running = true;
@@ -160,7 +149,7 @@ void Server::run() {
             break;
           case Connection::State_t::DONE:
             log(EBLogLevel_t::EB_INFO, "Connection to %s closing",
-                connection->toString());
+                connection->toString().c_str());
             connection->stop();
             delete connection;
             it = connections.erase(it);
@@ -171,7 +160,7 @@ void Server::run() {
       } catch (const std::exception & e) {
         log(EBLogLevel_t::EB_WARNING,
             "Connection to %s closing due to exception: %s",
-            connection->toString(), e.what());
+            connection->toString().c_str(), e.what());
         connection->stop();
         delete connection;
         it = connections.erase(it);
@@ -229,7 +218,7 @@ void Server::stop() {
  */
 void Server::attachCallback(
     const std::string & uri, const EBInputCallback_t inputCallback) {
-  inputCallbacks[uri] = inputCallback;
+  inputCallbacks.emplace(uri, inputCallback);
 }
 
 /**
@@ -240,16 +229,16 @@ void Server::attachCallback(
  */
 void Server::attachCallback(
     const std::string & uri, const EBInputFileCallback_t inputCallback) {
-  inputFileCallbacks[uri] = inputCallback;
+  inputFileCallbacks.emplace(uri, inputCallback);
 }
 
 /**
  * @brief Get the domain name the server is listening to
  *
- * @return const char * domain name: '127.0.0.1:8080'
+ * @return const std::string& domain name: '127.0.0.1:8080'
  */
-const char * Server::getDomainName() const {
-  return domainName.c_str();
+const std::string & Server::getDomainName() const {
+  return domainName;
 }
 
 /**

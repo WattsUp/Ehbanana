@@ -68,45 +68,53 @@ void CacheControl::parseTag(
     const uint8_t *& data, size_t & fileSize, CacheFilesMatch_t & filesMatch) {
   Hash   tag;
   size_t readCount = tag.add(data, fileSize, '"');
-  data += readCount + 1;
+  data += readCount + 1; // Skip over the double quote
   fileSize -= readCount + 1;
   if (tag.get() != Hash::calculateHash("filesMatch "))
-    throw std::exception("Unknow line in cache.xml");
+    throw std::exception("Unknown line in cache.xml");
+
+  std::string string;
+  while (*data != '"' && fileSize != 0) {
+    string += *data;
+    ++data;
+    --fileSize;
+  }
+  ++data; // Skip over the double quote
+  --fileSize;
+  filesMatch.regex = std::regex(string);
 
   tag       = Hash();
   readCount = tag.add(data, fileSize, '"');
-  data += readCount + 1;
-  fileSize -= readCount + 1;
-  // TODO fix filesMatch.regex = std::regex(tag.getString());
-
-  tag       = Hash();
-  readCount = tag.add(data, fileSize, '"');
-  data += readCount + 1;
+  data += readCount + 1; // Skip over the double quote
   fileSize -= readCount + 1;
   if (tag.get() != Hash::calculateHash(" cache-control="))
-    throw std::exception("Unknow line in cache.xml");
+    throw std::exception("Unknown line in cache.xml");
 
-  tag       = Hash();
-  readCount = tag.add(data, fileSize, '"');
-  data += readCount + 1;
-  fileSize -= readCount + 1;
-  // TODO fix filesMatch.cacheControlHeader = tag.getString();
+  tag = Hash();
+  while (*data != '"' && fileSize != 0) {
+    filesMatch.cacheControlHeader += *data;
+    ++data;
+    --fileSize;
+  }
 
   // Throw away until the end of tag marker
-  tag       = Hash();
-  readCount = tag.add(data, fileSize, '>');
-  data += readCount + 1;
-  fileSize -= readCount + 1;
+  while (*data != '>' && fileSize != 0) {
+    ++data;
+    --fileSize;
+  }
+  ++data; // Skip over the end of tag marker
+  --fileSize;
 }
 
 /**
  * @brief Get the cache control setting of the file extension
  *
  * @param extension to parse
- * @return std::string MIME type
+ * @return const std::string& cache control
  */
-std::string CacheControl::getCacheControl(const std::string & filename) {
-  for (CacheFilesMatch_t filesMatch : cacheFilesMatches) {
+const std::string & CacheControl::getCacheControl(
+    const std::string & filename) const {
+  for (const CacheFilesMatch_t & filesMatch : cacheFilesMatches) {
     if (std::regex_match(filename, filesMatch.regex)) {
       return filesMatch.cacheControlHeader;
     }

@@ -8,7 +8,7 @@
 static const EBVersionInfo_t EB_VERSION_INFO = {
     EHBANANA_MAJOR, EHBANANA_MINOR, EHBANANA_PATCH};
 
-Ehbanana::Web::Server server;
+Ehbanana::Web::Server * server = nullptr;
 
 const EBVersionInfo_t EBGetVersion() {
   return EB_VERSION_INFO;
@@ -16,8 +16,13 @@ const EBVersionInfo_t EBGetVersion() {
 
 EBError_t EBAttachCallback(
     const char * uri, const EBInputCallback_t inputCallback) {
+  if (server == nullptr) {
+    Ehbanana::error("No server created, use EBCreate");
+    return EBError_t::NO_SERVER_CREATED;
+  }
+
   try {
-    server.attachCallback(uri, inputCallback);
+    server->attachCallback(uri, inputCallback);
   } catch (const std::exception & e) {
     Ehbanana::error(e.what());
     return EBError_t::EXCEPTION_OCCURRED;
@@ -27,8 +32,13 @@ EBError_t EBAttachCallback(
 
 EBError_t EBAttachFileCallback(
     const char * uri, const EBInputFileCallback_t inputFileCallback) {
+  if (server == nullptr) {
+    Ehbanana::error("No server created, use EBCreate");
+    return EBError_t::NO_SERVER_CREATED;
+  }
+
   try {
-    server.attachCallback(uri, inputFileCallback);
+    server->attachCallback(uri, inputFileCallback);
   } catch (const std::exception & e) {
     Ehbanana::error(e.what());
     return EBError_t::EXCEPTION_OCCURRED;
@@ -36,23 +46,32 @@ EBError_t EBAttachFileCallback(
   return EBError_t::SUCCESS;
 }
 
-EBError_t EBLaunch(const EBGUISettings_t guiSettings) {
+EBError_t EBCreate(const EBGUISettings_t guiSettings) {
   try {
-    server.initialize(guiSettings);
+    delete server;
+    server = new Ehbanana::Web::Server(guiSettings);
   } catch (const std::exception & e) {
     Ehbanana::error(e.what());
     return EBError_t::INITIALIZATION_FAILED;
   }
+  return EBError_t::SUCCESS;
+}
+
+EBError_t EBLaunch() {
+  if (server == nullptr) {
+    Ehbanana::error("No server created, use EBCreate");
+    return EBError_t::NO_SERVER_CREATED;
+  }
 
   try {
-    server.start();
+    server->start();
   } catch (const std::exception & e) {
     Ehbanana::error(e.what());
     return EBError_t::START_FAILED;
   }
 
   std::string URL = "http://";
-  URL += server.getDomainName();
+  URL += server->getDomainName();
 
 #ifdef _WIN32
   std::string command = "--app=\"" + URL + "\"";
@@ -88,14 +107,26 @@ EBError_t EBLaunch(const EBGUISettings_t guiSettings) {
 }
 
 bool EBIsDone(bool blocking) {
-  while (blocking && !server.isDone())
-    std::this_thread::sleep_for(millis_t(100));
-  return server.isDone();
+  if (server == nullptr) {
+    Ehbanana::error("No server created, use EBCreate");
+    return true;
+  }
+
+  while (blocking && !server->isDone())
+    std::this_thread::sleep_for(Ehbanana::millis_t(100));
+  return server->isDone();
 }
 
 EBError_t EBDestroy() {
+  if (server == nullptr) {
+    Ehbanana::error("No server created, use EBCreate");
+    return EBError_t::NO_SERVER_CREATED;
+  }
+
   try {
-    server.stop();
+    server->stop();
+    delete server;
+    server = nullptr;
   } catch (const std::exception & e) {
     Ehbanana::error(e.what());
     return EBError_t::EXCEPTION_OCCURRED;
@@ -127,6 +158,9 @@ const char * EBErrorName(EBError_t errorCode) {
       return "The operation could not start another process";
     case EBError_t::NOT_SUPPORTED:
       return "The operation is not supported";
+    case EBError_t::NO_SERVER_CREATED:
+      return "The operation requires a server to be created first, see "
+             "EBCreate";
     default:
       return "The error code is not recognized";
   }

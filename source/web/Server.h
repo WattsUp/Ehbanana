@@ -24,10 +24,9 @@ public:
   Server(const Server &) = delete;
   Server & operator=(const Server &) = delete;
 
-  Server();
+  Server(const EBGUISettings_t settings);
   ~Server();
 
-  void initialize(const EBGUISettings_t settings);
   void start();
   void stop();
 
@@ -38,7 +37,7 @@ public:
   void attachCallback(
       const std::string & uri, const EBInputFileCallback_t inputFileCallback);
 
-  const char * getDomainName() const;
+  const std::string & getDomainName() const;
 
   static const uint16_t PORT_AUTO    = 0;
   static const uint16_t PORT_DEFAULT = 8080;

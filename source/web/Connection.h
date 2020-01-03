@@ -29,7 +29,7 @@ public:
   void update(const timepoint_t<sysclk_t> & now);
   void stop();
 
-  const char * toString() const;
+  const std::string & toString() const;
 
   enum class State_t : uint8_t { IDLE, BUSY, DONE };
 

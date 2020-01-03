@@ -63,27 +63,37 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
   }
   errno_t err = fopen_s(&logFile, "log.log", "a");
   if (err)
-    MessageBoxA(NULL, "Log file failed ro open", "Error", MB_OK);
+    MessageBoxA(NULL, "Log file failed to open log", "Error", MB_OK);
 
   printf("Ehbanana test starting\n");
 
   EBSetLogger(logEhbanana);
 
-  EBError_t error = EBAttachCallback("/", callbackRoot);
-  if (EB_FAILED(error)) {
-    printf("Failed to attach callback to GUI");
-    MessageBoxA(NULL, EBErrorName(error), "Error", MB_OK);
-    return static_cast<uint8_t>(error);
-  }
-
   EBGUISettings_t guiSettings;
   guiSettings.configRoot = "test/config";
   guiSettings.httpRoot   = "test/http";
 
-  error = EBLaunch(guiSettings);
+  EBError_t error = EBCreate(guiSettings);
+  if (EB_FAILED(error)) {
+    printf("Failed to create GUI");
+    MessageBoxA(NULL, EBErrorName(error), "Error", MB_OK);
+    _fcloseall();
+    return static_cast<uint8_t>(error);
+  }
+
+  error = EBAttachCallback("/", callbackRoot);
+  if (EB_FAILED(error)) {
+    printf("Failed to attach callback to GUI");
+    MessageBoxA(NULL, EBErrorName(error), "Error", MB_OK);
+    _fcloseall();
+    return static_cast<uint8_t>(error);
+  }
+
+  error = EBLaunch();
   if (EB_FAILED(error)) {
     printf("Failed to launch GUI");
     MessageBoxA(NULL, EBErrorName(error), "Error", MB_OK);
+    _fcloseall();
     return static_cast<uint8_t>(error);
   }
 
@@ -94,10 +104,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
   if (EB_FAILED(error)) {
     printf("Failed to destroy GUI");
     MessageBoxA(NULL, EBErrorName(error), "Error", MB_OK);
+    _fcloseall();
     return static_cast<uint8_t>(error);
   }
 
   printf("Ehbanana test complete");
-  fclose(logFile);
+  _fcloseall();
   return 0;
 }
