@@ -19,7 +19,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
-      <AdditionalIncludeDirectories>$(SolutionDir)\..\include;$(SolutionDir)\..\lib\FruitBowl\include;$(SolutionDir)\..\lib\digestpp;$(SolutionDir)\..\lib\cpp-base64;$(SolutionDir)\source\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)\..\include;$(SolutionDir)\..\lib\digestpp;$(SolutionDir)\..\lib\cpp-base64;$(SolutionDir)\source\</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>DEBUG;EB_USE_STD_STRING;%(PreprocessorDefinitions);</PreprocessorDefinitions>
     </ClCompile>
     <Link>
@@ -38,7 +38,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="source\**\*.cpp" />
-    <ClCompile Include="..\lib\FruitBowl\include\**\*.cpp" />
     <ClCompile Include="..\lib\cpp-base64\base64.cpp" />
   </ItemGroup>
   <ItemGroup>

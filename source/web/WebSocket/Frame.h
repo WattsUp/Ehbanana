@@ -1,7 +1,6 @@
 #ifndef _WEB_WEBSOCKET_FRAME_H_
 #define _WEB_WEBSOCKET_FRAME_H_
 
-#include <FruitBowl.h>
 #include <asio.hpp>
 
 namespace Ehbanana {
@@ -24,7 +23,7 @@ public:
   Frame(const Frame & that);
   Frame & operator=(const Frame & that);
 
-  Result decode(const uint8_t *& begin, size_t & length);
+  bool decode(const uint8_t *& begin, size_t & length);
 
   void setOpcode(Opcode_t code);
 
@@ -36,7 +35,7 @@ public:
   void addData(const std::string & string);
 
 private:
-  Result decode(const uint8_t c);
+  void decode(const uint8_t c);
 
   enum class DecodeState_t : uint8_t {
     HEADER_OP_CODE,

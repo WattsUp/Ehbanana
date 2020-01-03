@@ -20,8 +20,7 @@ public:
   HTTP();
   ~HTTP();
 
-  Result        processReceiveBuffer(const uint8_t * begin, size_t length);
-  bool          updateTransmitBuffers(size_t bytesWritten);
+  void          processReceiveBuffer(const uint8_t * begin, size_t length);
   bool          isDone();
   AppProtocol_t getChangeRequest();
 
@@ -45,10 +44,10 @@ private:
     return httpRoot;
   }
 
-  Result handleRequest();
-  Result handleGET();
-  Result handlePOST();
-  Result handleUpgrade();
+  void handleRequest();
+  void handleGET();
+  void handlePOST();
+  void handleUpgrade();
 
   enum class State_t : uint8_t {
     READING,

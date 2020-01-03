@@ -12,45 +12,9 @@ Reply::Reply() {}
 
 /**
  * @brief Destroy the Reply:: Reply object
- * Delete attached file if present
  *
  */
-Reply::~Reply() {
-  if (file != nullptr) {
-    file->close();
-    delete file;
-    file = nullptr;
-  }
-}
-
-/**
- * @brief Copy constructor
- *
- * @param that to copy
- */
-Reply::Reply(Reply & that) {
-  *this = that;
-}
-
-/**
- * @brief Assignment operator
- *
- * @param that to assign
- * @return Reply&
- */
-Reply & Reply::operator=(Reply & that) {
-  if (this != &that) {
-    if (this->file != nullptr)
-      this->file->close();
-    this->file    = that.file;
-    that.file     = nullptr;
-    this->content = that.content;
-    this->buffers = that.buffers;
-    this->headers = that.headers;
-    this->status  = that.status;
-  }
-  return *this;
-}
+Reply::~Reply() {}
 
 /**
  * @brief Set the HTTP status of the reply
@@ -98,11 +62,7 @@ void Reply::appendContent(std::string string) {
  *
  * @param contentFile to set
  */
-void Reply::setContent(MemoryMapped * contentFile) {
-  if (file != nullptr) {
-    file->close();
-    delete file;
-  }
+void Reply::setContent(std::shared_ptr<MemoryMapped> contentFile) {
   file = contentFile;
 }
 
@@ -197,28 +157,6 @@ Reply Reply::stockReply(Status_t httpStatus) {
   reply.addHeader("Content-Length", std::to_string(reply.content.size()));
   reply.addHeader("Content-Type", "text/html");
   return reply;
-}
-
-/**
- * @brief Generate a stock reply from the result
- *
- * @param result
- * @return reply
- */
-Reply Reply::stockReply(Result result) {
-  if (result)
-    return stockReply(Status_t::OK);
-  else if (result == ResultCode_t::BAD_COMMAND ||
-           result == ResultCode_t::BUFFER_OVERFLOW ||
-           result == ResultCode_t::INVALID_DATA ||
-           result == ResultCode_t::UNKNOWN_HASH)
-    return stockReply(Status_t::BAD_REQUEST);
-  else if (result == ResultCode_t::NOT_SUPPORTED)
-    return stockReply(Status_t::NOT_IMPLEMENTED);
-  else if (result == ResultCode_t::OPEN_FAILED)
-    return stockReply(Status_t::NOT_FOUND);
-  else
-    return stockReply(Status_t::INTERNAL_SERVER_ERROR);
 }
 
 /**

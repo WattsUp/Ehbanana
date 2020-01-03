@@ -13,3 +13,4 @@ test/http/Ehbanana.js
 
 # Log files
 *.log
+*.tmp

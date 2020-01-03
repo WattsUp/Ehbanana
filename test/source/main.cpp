@@ -3,6 +3,8 @@
 
 #include <stdio.h>
 
+FILE * logFile;
+
 /**
  * @brief Logger callback
  * Prints the message string to the destination stream, default: stdout
@@ -14,18 +16,23 @@ void __stdcall logEhbanana(const EBLogLevel_t level, const char * string) {
   switch (level) {
     case EBLogLevel_t::EB_DEBUG:
       printf("[Debug]    %s\n", string);
+      fprintf(logFile, "[Debug]    %s\n", string);
       break;
     case EBLogLevel_t::EB_INFO:
       printf("[Info]     %s\n", string);
+      fprintf(logFile, "[Info]     %s\n", string);
       break;
     case EBLogLevel_t::EB_WARNING:
       printf("[Warn]     %s\n", string);
+      fprintf(logFile, "[Warn]     %s\n", string);
       break;
     case EBLogLevel_t::EB_ERROR:
       printf("[Error]    %s\n", string);
+      fprintf(logFile, "[Error]    %s\n", string);
       break;
     case EBLogLevel_t::EB_CRITICAL:
       printf("[Critical] %s\n", string);
+      fprintf(logFile, "[Critical] %s\n", string);
       break;
   }
 }
@@ -54,37 +61,43 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
     MessageBoxA(NULL, "Log console initialization failed", "Error", MB_OK);
     printf("Failed to AllocConsole with Win32 error: %d\n", GetLastError());
   }
+  errno_t err = fopen_s(&logFile, "log.log", "a");
+  if (err)
+    MessageBoxA(NULL, "Log file failed ro open", "Error", MB_OK);
 
   printf("Ehbanana test starting\n");
 
   EBSetLogger(logEhbanana);
 
-  uint8_t error = EBAttachCallback("/", callbackRoot);
-  if (error) {
+  EBError_t error = EBAttachCallback("/", callbackRoot);
+  if (EB_FAILED(error)) {
     printf("Failed to attach callback to GUI");
     MessageBoxA(NULL, EBErrorName(error), "Error", MB_OK);
-    return error;
+    return static_cast<uint8_t>(error);
   }
 
-  EBGUISettings_t guiSettings {"test/config", "test/http"};
+  EBGUISettings_t guiSettings;
+  guiSettings.configRoot = "test/config";
+  guiSettings.httpRoot   = "test/http";
 
   error = EBLaunch(guiSettings);
-  if (error) {
+  if (EB_FAILED(error)) {
     printf("Failed to launch GUI");
     MessageBoxA(NULL, EBErrorName(error), "Error", MB_OK);
-    return error;
+    return static_cast<uint8_t>(error);
   }
 
   // Block until the GUI is done
   EBIsDone(true);
 
   error = EBDestroy();
-  if (error) {
+  if (EB_FAILED(error)) {
     printf("Failed to destroy GUI");
     MessageBoxA(NULL, EBErrorName(error), "Error", MB_OK);
-    return error;
+    return static_cast<uint8_t>(error);
   }
 
   printf("Ehbanana test complete");
+  fclose(logFile);
   return 0;
 }

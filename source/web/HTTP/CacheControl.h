@@ -3,7 +3,6 @@
 
 #include "Ehbanana.h"
 
-#include <FruitBowl.h>
 #include <MemoryMapped.h>
 
 #include <list>
@@ -36,9 +35,9 @@ public:
     return &instance;
   }
 
-  Result populateList(const std::string & fileName);
+  void populateList(const std::string & filename);
 
-  std::string getCacheControl(const std::string & fileName);
+  std::string getCacheControl(const std::string & uri);
 
 private:
   /**
@@ -47,8 +46,8 @@ private:
    */
   CacheControl() {}
 
-  Result parseTag(const unsigned char *& data, size_t & fileSize,
-      CacheFilesMatch_t & filesMatch);
+  void parseTag(
+      const uint8_t *& data, size_t & fileSize, CacheFilesMatch_t & filesMatch);
 
   const std::string DEFAULT = "no-store";
 

@@ -1,6 +1,8 @@
 #include "Connection.h"
 
-#include <sstream>
+#include "EhbananaLog.h"
+
+#include "stdio.h"
 
 namespace Ehbanana {
 namespace Web {
@@ -12,16 +14,14 @@ namespace Web {
  * @param endpoint socket is connected to
  * @param now current timestamp
  */
-Connection::Connection(asio::ip::tcp::socket * socket, std::string endpoint,
-    const std::chrono::time_point<std::chrono::system_clock> & now) :
+Connection::Connection(Net::socket_t * socket, std::string endpoint,
+    const timepoint_t<sysclk_t> & now) :
   socket(socket),
   endpoint(endpoint) {
   this->timeoutTime = now + TIMEOUT;
 
   socket->non_blocking(true);
-
-  asio::socket_base::keep_alive option(true);
-  socket->set_option(option);
+  socket->set_option(Net::socket_t::keep_alive(true));
 }
 
 /**
@@ -35,45 +35,55 @@ Connection::~Connection() {
 /**
  * @brief Update the current operation based on the protocol
  *
- * Returns ResultCode_t::INCOMPLETE if more operations are required
- * Returns ResultCode_t::NO_OPERATION if nothing happenend this update
- * Returns ResultCode_t::TIMEOUT if the connection was idle for too long
+ * state = BUSY if more operations are required
+ * state = IDLE if nothing happenend this update
+ * state = DONE if the connection was idle for too long or closed
  *
  * @param now current timestamp
- * @return Result error code
+ * @throw std::exception Thrown on failure
  */
-Result Connection::update(
-    const std::chrono::time_point<std::chrono::system_clock> & now) {
-  Result           result;
+void Connection::update(const timepoint_t<sysclk_t> & now) {
+  state = State_t::IDLE;
   asio::error_code errorCode;
   size_t           length = socket->available(errorCode);
   if (errorCode)
-    return ResultCode_t::READ_FAULT + errorCode.message() +
-           ("Checking available bytes for " + endpoint);
+    throw std::exception(
+        ("Checking socket's availability: " + errorCode.message()).c_str());
 
   if (length != 0) {
+    state       = State_t::BUSY;
     timeoutTime = now + TIMEOUT;
     // Bytes available to read.
     length = socket->read_some(asio::buffer(bufferReceive), errorCode);
     if (!errorCode) {
-      result = protocol->processReceiveBuffer(bufferReceive.data(), length);
-      if (!result)
-        return result;
+      try {
+        protocol->processReceiveBuffer(bufferReceive.data(), length);
+      } catch (const std::exception & e) {
+        std::string filename =
+            std::to_string(now.time_since_epoch().count()) + ".tmp";
+        FILE *  file;
+        errno_t err = fopen_s(&file, filename.c_str(), "wb");
+        if (err)
+          throw std::exception("Failed to open RX buffer file");
+        fwrite(bufferReceive.data(), 1, length, file);
+        error("Exception occurred whilst processing RX buffer. Buffer saved "
+              "to: " +
+              filename);
+        throw e;
+      }
     } else {
-      return ResultCode_t::READ_FAULT + errorCode.message() + endpoint;
+      throw std::exception(("Reading socket: " + errorCode.message()).c_str());
     }
   }
 
   if (protocol->hasTransmitBuffers()) {
+    state       = State_t::BUSY;
     timeoutTime = now + TIMEOUT;
     length      = socket->write_some(protocol->getTransmitBuffers(), errorCode);
-    if (errorCode == asio::error::would_block) {
-      return ResultCode_t::INCOMPLETE;
-    } else if (!errorCode) {
-      if (protocol->updateTransmitBuffers(length))
-        return ResultCode_t::INCOMPLETE;
-    } else {
-      return ResultCode_t::WRITE_FAULT + errorCode.message() + endpoint;
+    if (!errorCode) {
+      protocol->updateTransmitBuffers(length);
+    } else if (errorCode != asio::error::would_block) {
+      throw std::exception(("Writing socket: " + errorCode.message()).c_str());
     }
   }
 
@@ -82,34 +92,36 @@ Result Connection::update(
       case AppProtocol_t::HTTP:
         delete protocol;
         protocol = new HTTP::HTTP();
-        return ResultCode_t::INCOMPLETE;
+        state    = State_t::BUSY;
+        break;
       case AppProtocol_t::WEBSOCKET:
         delete protocol;
         protocol = new WebSocket::WebSocket();
-        return ResultCode_t::INCOMPLETE;
+        state    = State_t::BUSY;
+        break;
       case AppProtocol_t::NONE:
-        return ResultCode_t::SUCCESS;
+        state = State_t::DONE;
+        break;
       default:
-        return ResultCode_t::INVALID_STATE +
-               ("Connection AppProtocol change to: " +
-                   std::to_string(
-                       static_cast<uint8_t>(protocol->getChangeRequest())));
+        throw std::exception((
+            "Connection AppProtocol change to: " +
+            std::to_string(static_cast<uint8_t>(protocol->getChangeRequest())))
+                                 .c_str());
     }
   }
   if (now > timeoutTime && protocol->sendAliveCheck())
-    return ResultCode_t::TIMEOUT;
-  return ResultCode_t::NO_OPERATION;
+    state = State_t::DONE;
 }
 
 /**
  * @brief Stop the socket and free its memory
  *
+ * @throw std::exception Thrown on failure
  */
 void Connection::stop() {
   if (socket != nullptr && socket->is_open()) {
-    asio::error_code errorCode;
-    socket->shutdown(asio::ip::tcp::socket::shutdown_both, errorCode);
-    socket->close(errorCode);
+    socket->shutdown(Net::socket_t::shutdown_both);
+    socket->close();
   }
   delete socket;
   socket = nullptr;
@@ -118,12 +130,21 @@ void Connection::stop() {
 }
 
 /**
- * @brief Get the endpoint of the request as a string
+ * @brief Get the string representation of the connection
  *
- * @return const std::string & endpoint string
+ * @return const char* ip address and port
  */
-const std::string & Connection::getEndpoint() const {
-  return endpoint;
+const char * Connection::toString() const {
+  return endpointStr(socket->local_endpoint()).c_str();
+}
+
+/**
+ * @brief Get the state of the connection
+ *
+ * @return State_t
+ */
+Connection::State_t Connection::getState() const {
+  return state;
 }
 
 } // namespace Web

@@ -204,5 +204,3 @@ var ehbanana = {
     element.value     = num + " " + prefix + unit;
   }
 };
-
-ehbanana.startWebsocket();

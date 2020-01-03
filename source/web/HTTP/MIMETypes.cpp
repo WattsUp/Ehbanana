@@ -11,14 +11,14 @@ namespace HTTP {
  * File structure:
  * Each line contains one type: .htm text/html
  *
- * @param fileName to parse
- * @return Result error code
+ * @param filename to parse
+ * @throw std::exception Thrown on failure
  */
-Result MIMETypes::populateList(const std::string & fileName) {
-  MemoryMapped file(fileName, 0, MemoryMapped::SequentialScan);
+void MIMETypes::populateList(const std::string & filename) {
+  MemoryMapped file(filename, 0, MemoryMapped::SequentialScan);
   if (!file.isValid())
-    return ResultCode_t::OPEN_FAILED + ("Opening MIME types from: " + fileName);
-  info("Loading MIME types from \"" + fileName + "\"");
+    throw std::exception(("Failed to open MIME types: " + filename).c_str());
+  info("Loading MIME types from \"" + filename + "\"");
 
   size_t                fileSize = static_cast<size_t>(file.size());
   const unsigned char * data     = file.getData();
@@ -37,29 +37,30 @@ Result MIMETypes::populateList(const std::string & fileName) {
     readCount = extension.add(data, fileSize, ' ');
     data += readCount + 1;
     fileSize -= readCount + 1;
-    Hash mimeType;
-    readCount = mimeType.add(data, fileSize, '\r');
-    data += readCount;
-    fileSize -= readCount;
+    std::string mimeType;
+    while (*data != '\r' && fileSize != 0) {
+      mimeType += *data;
+      ++data;
+      --fileSize;
+    }
     typeBuckets[(extension.get() & 0xF)].push_back(
-        {extension.get(), mimeType.getString(), 0});
+        {extension.get(), mimeType, 0});
   }
   file.close();
   sortList();
-  return ResultCode_t::SUCCESS;
 }
 
 /**
  * @brief Get the MIME type of the file name
  *
- * @param fileName to parse
+ * @param filename to parse
  * @return const std::string& MIME type
  */
-const std::string & MIMETypes::getType(const std::string & fileName) {
+const std::string & MIMETypes::getType(const std::string & filename) {
   // Extract the file extentsion
   std::string fileExtension;
   bool        dotPresent = false;
-  for (char c : fileName) {
+  for (char c : filename) {
     if (c == '/') {
       fileExtension.erase();
       dotPresent = false;

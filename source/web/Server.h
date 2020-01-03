@@ -4,7 +4,8 @@
 #include "Connection.h"
 #include "Ehbanana.h"
 
-#include <FruitBowl.h>
+#include "Utils.h"
+
 #include <asio.hpp>
 
 #include <atomic>
@@ -26,15 +27,15 @@ public:
   Server();
   ~Server();
 
-  Result initialize(const EBGUISettings_t settings);
-  Result start();
-  void   stop();
+  void initialize(const EBGUISettings_t settings);
+  void start();
+  void stop();
 
   bool isDone() const;
 
-  Result attachCallback(
+  void attachCallback(
       const std::string & uri, const EBInputCallback_t inputCallback);
-  Result attachCallback(
+  void attachCallback(
       const std::string & uri, const EBInputFileCallback_t inputFileCallback);
 
   const char * getDomainName() const;
@@ -48,8 +49,8 @@ private:
   std::thread *     thread  = nullptr;
   std::atomic<bool> running = false;
 
-  asio::io_context        ioContext;
-  asio::ip::tcp::acceptor acceptor;
+  asio::io_context ioContext;
+  Net::acceptor_t  acceptor;
 
   std::string domainName;
 
@@ -57,9 +58,10 @@ private:
 
   std::unordered_map<std::string, EBInputCallback_t>     inputCallbacks;
   std::unordered_map<std::string, EBInputFileCallback_t> inputFileCallbacks;
+  EBOutputFileCallback_t outputFileCallback = nullptr;
 
-  std::chrono::time_point<std::chrono::system_clock> timeoutTime;
-  std::chrono::seconds                               TIMEOUT_NO_CONNECTIONS;
+  timepoint_t<sysclk_t> timeoutTime;
+  seconds_t             TIMEOUT_NO_CONNECTIONS;
 };
 
 } // namespace Web

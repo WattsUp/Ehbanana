@@ -2,10 +2,12 @@
 
 #include "CacheControl.h"
 #include "EhbananaLog.h"
+#include "Hash.h"
 #include "MIMETypes.h"
 
 #include <algorithm/sha1.hpp>
 #include <base64.h>
+#include <memory>
 
 namespace Ehbanana {
 namespace Web {
@@ -28,57 +30,35 @@ HTTP::~HTTP() {}
  *
  * @param begin character
  * @param length of buffer
- * @return Result error code
+ * @throw std::exception Thrown on failure
  */
-Result HTTP::processReceiveBuffer(const uint8_t * begin, size_t length) {
-  Result result;
+void HTTP::processReceiveBuffer(const uint8_t * begin, size_t length) {
   switch (state) {
     case State_t::READING:
-      result = request.parse(begin, begin + length);
-      if (!result)
-        return result;
+      if (!request.parse(begin, begin + length))
+        return; // Not done parsing
       state = State_t::READING_DONE;
       // Fall through
     case State_t::READING_DONE:
       // Handle request
-      result = handleRequest();
-      if (!result) {
-        warn((result + "Handling HTTP request").getMessage());
-        reply = Reply::stockReply(result);
+      try {
+        handleRequest();
+      } catch (const std::exception & e) {
+        log(EBLogLevel_t::EB_WARNING,
+            "Exception occurred whilst handling HTTP request: %s", e.what());
+        reply = Reply::stockReply(Status_t::INTERNAL_SERVER_ERROR);
       }
       addTransmitBuffer(reply.getBuffers());
       state = State_t::WRITING;
-      return ResultCode_t::INCOMPLETE;
+      break;
     case State_t::WRITING:
     case State_t::WRITING_DONE:
     case State_t::COMPLETE:
     default:
-      return ResultCode_t::INVALID_STATE +
-             ("HTTP: " + std::to_string(static_cast<uint8_t>(state)));
+      throw std::exception(("Invalid HTTP state during RX: " +
+                            std::to_string(static_cast<uint8_t>(state)))
+                               .c_str());
   }
-}
-
-/**
- * @brief Update the transmit buffers with number of bytes transmitted
- * Removes buffers that have been completely transmitted. Moves the start
- * pointer of the next buffer that has not been transmitted.
- *
- * @param bytesWritten
- * @return true when all transmit buffers have been transmitted
- * @return false when there are more transmit buffers
- */
-bool HTTP::updateTransmitBuffers(size_t bytesWritten) {
-  bool done = AppProtocol::updateTransmitBuffers(bytesWritten);
-  if (done) {
-    if (request.getHeaders().getConnection() ==
-        RequestHeaders::Connection_t::KEEP_ALIVE) {
-      request = Request();
-      reply   = Reply();
-      state   = State_t::READING;
-    } else
-      state = State_t::COMPLETE;
-  }
-  return done;
 }
 
 /**
@@ -88,6 +68,12 @@ bool HTTP::updateTransmitBuffers(size_t bytesWritten) {
  * @return false if all messages have been processed and no more are expected
  */
 bool HTTP::isDone() {
+  if (AppProtocol::isDone() && request.getHeaders().getConnection() ==
+                                   RequestHeaders::Connection_t::KEEP_ALIVE) {
+    request = Request();
+    reply   = Reply();
+    state   = State_t::READING;
+  }
   return state == State_t::COMPLETE;
 }
 
@@ -109,56 +95,51 @@ AppProtocol_t HTTP::getChangeRequest() {
 /**
  * @brief Handle the request and populate the reply
  *
- * @return Result error code
+ * @throw std::exception Thrown on failure
  */
-Result HTTP::handleRequest() {
-  Result result;
-  switch (request.getMethod().get()) {
+void HTTP::handleRequest() {
+  switch (request.getMethodHash()) {
     case Hash::calculateHash("GET"):
       if (request.getHeaders().getConnection() ==
           RequestHeaders::Connection_t::UPGRADE) {
-        result = handleUpgrade();
-        if (!result)
-          return result + "Handling Connection: Upgrade";
+        handleUpgrade();
       } else {
-        result = handleGET();
-        if (!result)
-          return result + "Handling GET";
+        handleGET();
       }
       break;
     case Hash::calculateHash("POST"):
-      result = handlePOST();
-      if (!result)
-        return result + "Handling POST";
+      handlePOST();
       break;
     default:
-      return ResultCode_t::UNKNOWN_HASH +
-             ("Request method: " + request.getMethod().getString());
+      throw std::exception("Unknown HTTP request method");
   }
-  return ResultCode_t::SUCCESS;
 }
 
 /**
  * @brief Handle the GET request and populate the reply
  *
- * @return Result error code
+ * @throw std::exception Thrown on failure
  */
-Result HTTP::handleGET() {
-  std::string uri = request.getURI().getString();
+void HTTP::handleGET() {
+  std::string uri = request.getURI();
   if (request.getQueries().empty())
     info("GET URI: \"" + uri + "\"");
   else {
     std::string buffer = "";
-    for (HeaderHash_t query : request.getQueries()) {
-      buffer += "\n    \"" + query.name.getString() + "\"=\"" +
-                query.value.getString() + "\"";
-    }
+    // TODO fix
+    // for (HeaderHash_t query : request.getQueries()) {
+    //   buffer += "\n    \"" + query.name.getString() + "\"=\"" +
+    //             query.value.getString() + "\"";
+    // }
     info("GET URI: \"" + uri + "\" Queries:" + buffer);
   }
 
   // URI must be absolute
-  if (uri.empty() || uri[0] != '/' || uri.find("..") != std::string::npos)
-    return ResultCode_t::INVALID_DATA + ("URI is not absolute: " + uri);
+  if (uri.empty() || uri[0] != '/' || uri.find("..") != std::string::npos) {
+    warn("URI is not absolute: " + uri);
+    reply = Reply::stockReply(Status_t::BAD_REQUEST);
+    return;
+  }
 
   // Add index.html to folders
   if (uri[uri.size() - 1] == '/')
@@ -166,12 +147,11 @@ Result HTTP::handleGET() {
 
   // Determine the file extension.
   reply.addHeader("Content-Type", MIMETypes::Instance()->getType(uri));
-  MemoryMapped * file =
-      new MemoryMapped(root() + uri, 0, MemoryMapped::SequentialScan);
+  std::shared_ptr<MemoryMapped> file = std::make_shared<MemoryMapped>(
+      root() + uri, 0, MemoryMapped::SequentialScan);
   if (!file->isValid()) {
-    file->close();
-    delete file;
-    return ResultCode_t::OPEN_FAILED + (root() + uri);
+    reply = Reply::stockReply(Status_t::NOT_FOUND);
+    return;
   }
   reply.addHeader("Content-Length", std::to_string(file->size()));
   // TODO change cache control to any type of header that match the regex
@@ -187,31 +167,28 @@ Result HTTP::handleGET() {
       break;
   }
   reply.setContent(file);
-
-  return ResultCode_t::SUCCESS;
 }
 
 /**
  * @brief Handle the POST request and populate the reply
  *
- * @return Result error code
+ * @throw std::exception Thrown on failure
  */
-Result HTTP::handlePOST() {
+void HTTP::handlePOST() {
+  std::string uri = request.getURI();
   if (request.getQueries().empty())
-    info("POST URI: \"" + request.getURI().getString() + "\"");
+    info("POST URI: \"" + uri + "\"");
   else {
     std::string buffer = "";
-    for (HeaderHash_t query : request.getQueries()) {
-      buffer += "\n    \"" + query.name.getString() + "\"=\"" +
-                query.value.getString() + "\"";
-    }
-    info("POST URI: \"" + request.getURI().getString() +
-         "\" Queries: " + buffer);
+    // TODO fix
+    // for (HeaderHash_t query : request.getQueries()) {
+    //   buffer += "\n    \"" + query.name.getString() + "\"=\"" +
+    //             query.value.getString() + "\"";
+    // }
+    info("POST URI: \"" + uri + "\" Queries:" + buffer);
   }
 
   reply.setStatus(Status_t::NOT_IMPLEMENTED);
-
-  return ResultCode_t::NOT_SUPPORTED + "handlePOST";
 }
 
 /**
@@ -219,35 +196,35 @@ Result HTTP::handlePOST() {
  *
  * @param request to handle
  * @param reply to populate
- * @return Result error code
+ * @throw std::exception Thrown on failure
  */
-Result HTTP::handleUpgrade() {
+void HTTP::handleUpgrade() {
   if (request.getHeaders().getUpgrade() !=
-      RequestHeaders::Upgrade_t::WEB_SOCKET)
-    return ResultCode_t::NOT_SUPPORTED +
-           ("HTTP upgrade to: " + std::to_string(static_cast<uint8_t>(
-                                      request.getHeaders().getUpgrade())));
+      RequestHeaders::Upgrade_t::WEB_SOCKET) {
+    warn("Only upgrading to web socket is supported");
+    reply = Reply::stockReply(Status_t::NOT_IMPLEMENTED);
+    return;
+  }
 
   reply.setStatus(Status_t::SWITCHING_PROTOCOLS);
-  if (request.getHeaders().getWebSocketVersion().get() !=
-      Hash::calculateHash("13"))
-    return ResultCode_t::BAD_COMMAND +
-           ("Websocket version" +
-               request.getHeaders().getWebSocketVersion().getString());
+  if (request.getHeaders().getWebSocketVersionHash() !=
+      Hash::calculateHash("13")) {
+    warn("Only upgrading to web socket version 13 is supported");
+    reply = Reply::stockReply(Status_t::NOT_IMPLEMENTED);
+    return;
+  }
 
   reply.addHeader("Upgrade", "websocket");
   reply.addHeader("Connection", "Upgrade");
 
   // Perform SHA 1 with the magic string
   digestpp::sha1 sha;
-  sha.absorb(request.getHeaders().getWebSocketKey().getString());
+  sha.absorb(request.getHeaders().getWebSocketKey());
   sha.absorb("258EAFA5-E914-47DA-95CA-C5AB0DC85B11");
   uint8_t buf[20];
   sha.digest(buf, 20);
   std::string shaBase64 = base64_encode(buf, 20);
   reply.addHeader("Sec-WebSocket-Accept", shaBase64);
-
-  return ResultCode_t::SUCCESS;
 }
 
 } // namespace HTTP

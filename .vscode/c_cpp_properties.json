@@ -6,7 +6,6 @@
       "${workspaceFolder}/source/**",
       "${workspaceFolder}/lib/MemoryMapping/**",
       "${workspaceFolder}/lib/asio/asio/include/**",
-      "${workspaceFolder}/lib/FruitBowl/include/**",
       "${workspaceFolder}/lib/digestpp/**",
       "${workspaceFolder}/lib/cpp-base64/**",
       "${workspaceFolder}/lib/rapidjson/include/**"

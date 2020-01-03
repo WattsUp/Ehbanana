@@ -20,17 +20,17 @@ public:
   WebSocket();
   ~WebSocket();
 
-  Result processReceiveBuffer(const uint8_t * begin, size_t length);
+  void processReceiveBuffer(const uint8_t * begin, size_t length);
 
-  bool   updateTransmitBuffers(size_t bytesWritten);
-  bool   hasTransmitBuffers();
-  bool   isDone();
-  bool   sendAliveCheck();
-  Result addMessage(const std::string & msg);
+  bool updateTransmitBuffers(size_t bytesWritten);
+  bool hasTransmitBuffers();
+  bool isDone();
+  bool sendAliveCheck();
+  void addMessage(const std::string & msg);
 
 private:
-  Result processFrameText();
-  Result processFrameBinary();
+  void processFrameText();
+  void processFrameBinary();
 
   Frame frameIn;
 

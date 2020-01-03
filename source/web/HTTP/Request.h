@@ -1,13 +1,12 @@
 #ifndef _WEB_REQUEST_H_
 #define _WEB_REQUEST_H_
 
+#include "Hash.h"
 #include "RequestHeaders.h"
 
-#include <FruitBowl.h>
-
+#include <list>
 #include <stdint.h>
 #include <string>
-#include <vector>
 
 namespace Ehbanana {
 namespace Web {
@@ -18,23 +17,28 @@ public:
   Request();
   ~Request();
 
-  Result parse(const uint8_t * begin, const uint8_t * end);
+  bool parse(const uint8_t * begin, const uint8_t * end);
 
-  const Hash &                      getMethod() const;
-  const Hash &                      getURI() const;
-  const std::vector<HeaderHash_t> & getQueries() const;
-  const RequestHeaders &            getHeaders() const;
+  struct Query_t {
+    std::string name;
+    std::string value;
+  };
+
+  HashValue_t                getMethodHash() const;
+  const std::string &        getURI() const;
+  const std::list<Query_t> & getQueries() const;
+  const RequestHeaders &     getHeaders() const;
 
   bool isParsing();
 
 private:
-  Result parse(uint8_t c);
+  void parse(uint8_t c);
 
-  Result validateMethod();
-  Result validateHTTPVersion();
+  void validateMethod();
+  void validateHTTPVersion();
 
-  Result decodeURI(Hash & uriHash);
-  Result decodeHex(const std::string & hex, uint32_t & value);
+  std::string decodeURI(const std::string & uri);
+  uint32_t    decodeHex(const std::string & hex);
 
   enum class State_t : uint8_t {
     IDLE,
@@ -52,15 +56,17 @@ private:
   State_t state = State_t::IDLE;
 
   Hash method;
-  Hash uri;
   Hash httpVersion;
+
+  std::string uri;
 
   HeaderHash_t currentHeader;
 
   std::string body;
   std::string endpoint;
 
-  std::vector<HeaderHash_t> queries;
+  Query_t            currentQuery;
+  std::list<Query_t> queries;
 
   RequestHeaders headers;
 };

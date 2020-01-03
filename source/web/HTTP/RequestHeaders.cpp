@@ -15,20 +15,21 @@ RequestHeaders::RequestHeaders() {}
  * fields if appropriate
  *
  * @param header to add
- * @return Result error code
+ * @throw std::exception Thrown on failure
  */
-Result RequestHeaders::addHeader(HeaderHash_t header) {
-  Result result;
+void RequestHeaders::addHeader(HeaderHash_t header) {
   switch (header.name.get()) {
     case Hash::calculateHash("Content-Length"):
       contentLength = static_cast<size_t>(std::stoll(header.value.getString()));
       break;
     case Hash::calculateHash("Connection"):
-      return addConnection(header);
+      addConnection(header);
+      break;
     case Hash::calculateHash("Upgrade"):
-      return addUpgrade(header);
+      addUpgrade(header);
+      break;
     case Hash::calculateHash("Sec-WebSocket-Key"):
-      webSocketKey = header.value;
+      webSocketKey = header.value.getString();
       break;
     case Hash::calculateHash("Sec-WebSocket-Version"):
       webSocketVersion = header.value;
@@ -50,19 +51,17 @@ Result RequestHeaders::addHeader(HeaderHash_t header) {
       // Ignoring
       break;
     default:
-      return ResultCode_t::UNKNOWN_HASH +
-             ("Request header: " + header.name.getString());
+      throw std::exception("The request header is not recognized");
   }
-  return ResultCode_t::SUCCESS;
 }
 
 /**
  * @brief Add connection header
  *
  * @param header to add
- * @return Result error code
+ * @throw std::exception Thrown on failure
  */
-Result RequestHeaders::addConnection(HeaderHash_t header) {
+void RequestHeaders::addConnection(HeaderHash_t header) {
   switch (header.value.get()) {
     case Hash::calculateHash("close"):
       connection = Connection_t::CLOSE;
@@ -75,28 +74,24 @@ Result RequestHeaders::addConnection(HeaderHash_t header) {
       connection = Connection_t::UPGRADE;
       break;
     default:
-      return ResultCode_t::UNKNOWN_HASH +
-             ("Request header Connection: " + header.value.getString());
+      throw std::exception("Unknown connection header value");
   }
-  return ResultCode_t::SUCCESS;
 }
 
 /**
  * @brief Add upgrade header
  *
  * @param header to add
- * @return Result error code
+ * @throw std::exception Thrown on failure
  */
-Result RequestHeaders::addUpgrade(HeaderHash_t header) {
+void RequestHeaders::addUpgrade(HeaderHash_t header) {
   switch (header.value.get()) {
     case Hash::calculateHash("websocket"):
       upgrade = Upgrade_t::WEB_SOCKET;
       break;
     default:
-      return ResultCode_t::UNKNOWN_HASH +
-             ("Request header Upgrade: " + header.value.getString());
+      throw std::exception("Unknown upgrade header value");
   }
-  return ResultCode_t::SUCCESS;
 }
 
 /**
@@ -129,19 +124,19 @@ const RequestHeaders::Upgrade_t RequestHeaders::getUpgrade() const {
 /**
  * @brief Get the web socket key
  *
- * @return const Hash
+ * @return const HashValue_t
  */
-const Hash RequestHeaders::getWebSocketKey() const {
+const std::string & RequestHeaders::getWebSocketKey() const {
   return webSocketKey;
 }
 
 /**
  * @brief Get the web socket version
  *
- * @return const Hash
+ * @return const HashValue_t
  */
-const Hash RequestHeaders::getWebSocketVersion() const {
-  return webSocketVersion;
+const HashValue_t RequestHeaders::getWebSocketVersionHash() const {
+  return webSocketVersion.get();
 }
 
 } // namespace HTTP

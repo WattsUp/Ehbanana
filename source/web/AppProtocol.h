@@ -3,7 +3,6 @@
 
 #include "Ehbanana.h"
 
-#include <FruitBowl.h>
 #include <asio.hpp>
 
 namespace Ehbanana {
@@ -33,9 +32,8 @@ public:
    *
    * @param begin character
    * @param length of buffer
-   * @return Result
    */
-  virtual Result processReceiveBuffer(const uint8_t * begin, size_t length) = 0;
+  virtual void processReceiveBuffer(const uint8_t * begin, size_t length) = 0;
 
   /**
    * @brief Check the completion of the protocol
@@ -73,26 +71,22 @@ public:
    * pointer of the next buffer that has not been transmitted.
    *
    * @param bytesWritten
-   * @return true when all transmit buffers have been transmitted
-   * @return false when there are more transmit buffers
    */
-  virtual bool updateTransmitBuffers(size_t bytesWritten) {
-    std::vector<asio::const_buffer>::iterator i   = buffersTransmit.begin();
-    std::vector<asio::const_buffer>::iterator end = buffersTransmit.end();
-    while (i != end && bytesWritten > 0) {
-      asio::const_buffer & buffer = *i;
+  void updateTransmitBuffers(size_t bytesWritten) {
+    auto it = buffersTransmit.begin();
+    while (it != buffersTransmit.end() && bytesWritten > 0) {
+      asio::const_buffer & buffer = *it;
       if (bytesWritten >= buffer.size()) {
         // This buffer has been written, remove from the queue and decrement
         // bytesWritten
         bytesWritten -= buffer.size();
-        i = buffersTransmit.erase(i);
+        it = buffersTransmit.erase(it);
       } else {
         // This buffer has not been fully written, increment its pointer
         buffer += bytesWritten;
-        return false;
+        return;
       }
     }
-    return true;
   }
 
   /**

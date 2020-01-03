@@ -4,9 +4,9 @@
 #include "AppProtocol.h"
 #include "Ehbanana.h"
 #include "HTTP/HTTP.h"
+#include "Utils.h"
 #include "WebSocket/WebSocket.h"
 
-#include <FruitBowl.h>
 #include <asio.hpp>
 
 #include <array>
@@ -22,26 +22,32 @@ public:
   Connection(const Connection &) = delete;
   Connection & operator=(const Connection &) = delete;
 
-  Connection(asio::ip::tcp::socket * socket, std::string endpoint,
-      const std::chrono::time_point<std::chrono::system_clock> & now);
+  Connection(Net::socket_t * socket, std::string endpoint,
+      const timepoint_t<sysclk_t> & now);
   ~Connection();
 
-  Result update(const std::chrono::time_point<std::chrono::system_clock> & now);
-  void   stop();
+  void update(const timepoint_t<sysclk_t> & now);
+  void stop();
 
-  const std::string & getEndpoint() const;
+  const char * toString() const;
+
+  enum class State_t : uint8_t { IDLE, BUSY, DONE };
+
+  State_t getState() const;
 
 private:
-  asio::ip::tcp::socket * socket;
-  std::string             endpoint;
+  Net::socket_t * socket;
+  std::string     endpoint;
 
   std::array<uint8_t, 8192> bufferReceive;
 
+  State_t state = State_t::IDLE;
+
   AppProtocol * protocol = new HTTP::HTTP();
 
-  std::chrono::time_point<std::chrono::system_clock> timeoutTime;
+  timepoint_t<sysclk_t> timeoutTime;
 
-  const std::chrono::seconds TIMEOUT {1};
+  const seconds_t TIMEOUT {1};
 };
 
 } // namespace Web

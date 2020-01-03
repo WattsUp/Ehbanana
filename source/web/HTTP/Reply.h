@@ -1,10 +1,10 @@
 #ifndef _WEB_REPLY_H_
 #define _WEB_REPLY_H_
 
-#include <FruitBowl.h>
 #include <MemoryMapped.h>
 #include <asio.hpp>
 
+#include <memory>
 #include <stdint.h>
 #include <string>
 #include <vector>
@@ -152,24 +152,21 @@ class Reply {
 public:
   Reply();
   ~Reply();
-  Reply(Reply & that);
-  Reply & operator=(Reply & that);
 
   void setStatus(Status_t httpStatus);
   void setKeepAlive(bool keepAlive);
   void addHeader(const std::string & name, const std::string & value);
   void appendContent(std::string string);
-  void setContent(MemoryMapped * contentFile);
+  void setContent(std::shared_ptr<MemoryMapped> contentFile);
 
   const std::vector<asio::const_buffer> & getBuffers();
 
   static Reply stockReply(Status_t httpStatus);
-  static Reply stockReply(Result result);
 
 private:
   asio::const_buffer statusToBuffer();
 
-  MemoryMapped *                  file = nullptr;
+  std::shared_ptr<MemoryMapped>   file;
   std::string                     content;
   std::vector<asio::const_buffer> buffers;
   std::vector<Header_t>           headers;

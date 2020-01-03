@@ -65,35 +65,31 @@ Frame & Frame::operator=(const Frame & that) {
  *
  * @param begin character
  * @param length of buffer
- * @return Result error code
+ * @return bool true if frame is completely decoded, false otherwise
  */
-Result Frame::decode(const uint8_t *& begin, size_t & length) {
-  Result result;
-
+bool Frame::decode(const uint8_t *& begin, size_t & length) {
   while (length > 0 && state != DecodeState_t::COMPLETE) {
-    result = decode(*begin);
-    if (!result)
-      return result + "WebSocket frame decode";
+    decode(*begin);
     ++begin;
     --length;
   }
 
   if (state != DecodeState_t::COMPLETE)
-    return ResultCode_t::INCOMPLETE;
+    return false;
 
   if (dataFile != nullptr)
     rewind(dataFile);
 
-  return ResultCode_t::SUCCESS;
+  return true;
 }
 
 /**
  * @brief Decode a character into the appropriate fields
  *
  * @param c character
- * @return Result error code
+ * @throw std::exception Thrown on failure
  */
-Result Frame::decode(const uint8_t c) {
+void Frame::decode(const uint8_t c) {
   switch (state) {
     case DecodeState_t::HEADER_OP_CODE:
       fin = (c & 0x80) == 0x80;
@@ -103,14 +99,14 @@ Result Frame::decode(const uint8_t c) {
         if (opcode == Opcode_t::BINARY) {
           // Generate a temporary file name
           if (tmpfile_s(&dataFile) != 0)
-            return ResultCode_t::OPEN_FAILED + "Websocket frame temp file";
+            throw std::exception("Failed to open temporary file");
         }
       }
       state = DecodeState_t::HEADER_PAYLOAD_LEN;
       break;
     case DecodeState_t::HEADER_PAYLOAD_LEN:
       if ((c & 0x80) == 0)
-        return ResultCode_t::INVALID_DATA + "WebSocket Frame was not masked";
+        throw std::exception("WebSocket frame was not masked");
       // Shift until the FF is discard, add the next 4 bytes
       maskingKey = 0x000000FF;
 
@@ -142,7 +138,7 @@ Result Frame::decode(const uint8_t c) {
       uint8_t key = maskingKey >> 24; // MSB
       if (dataFile != nullptr) {
         if (fputc(c ^ key, dataFile) == EOF)
-          return ResultCode_t::WRITE_FAULT + "Websocket temp file";
+          throw std::exception("Failed to write to WebSocket temp file");
       } else
         data.push_back(static_cast<char>(c ^ key));
       maskingKey = (maskingKey << 8) | key; // Circularly shift to the next byte
@@ -157,11 +153,10 @@ Result Frame::decode(const uint8_t c) {
     } break;
     case DecodeState_t::COMPLETE:
     default:
-      return ResultCode_t::INVALID_STATE +
-             ("WebSocket frame decode: " +
-                 std::to_string(static_cast<uint8_t>(state)));
+      throw std::exception(("Invalid WebSocket state during RX: " +
+                            std::to_string(static_cast<uint8_t>(state)))
+                               .c_str());
   }
-  return ResultCode_t::SUCCESS;
 }
 
 /**

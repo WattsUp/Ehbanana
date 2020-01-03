@@ -33,34 +33,29 @@ Server::~Server() {
  * increment until an available port is open
  *
  * @param EBGUISettings_t settings
- * @return Result error code
+ * @throw std::exception Thrown on failure
  */
-Result Server::initialize(const EBGUISettings_t settings) {
-  Result result;
-
-  TIMEOUT_NO_CONNECTIONS = std::chrono::seconds(settings.timeoutIdle);
+void Server::initialize(const EBGUISettings_t settings) {
+  TIMEOUT_NO_CONNECTIONS = seconds_t(settings.timeoutIdle);
 
   HTTP::HTTP::setRoot(settings.httpRoot);
-  result = HTTP::CacheControl::Instance()->populateList(
+  HTTP::CacheControl::Instance()->populateList(
       settings.configRoot + std::string("/cache.xml"));
-  if (!result)
-    return result + "Configuring server's cache control";
 
-  result = HTTP::MIMETypes::Instance()->populateList(
+  HTTP::MIMETypes::Instance()->populateList(
       settings.configRoot + std::string("/mime.types"));
-  if (!result)
-    return result + "Configuring server's mime types";
 
   uint16_t port = settings.httpPort;
 
-  asio::ip::tcp::endpoint endpoint;
+  Net::endpoint_t endpoint;
   try {
-    asio::ip::address address = asio::ip::make_address("127.0.0.1");
-    endpoint                  = asio::ip::tcp::endpoint(address, port);
+    Net::address address = Net::make_address(settings.ipAddress);
+    endpoint             = Net::endpoint_t(address, port);
     acceptor.open(endpoint.protocol());
-    acceptor.set_option(asio::ip::tcp::acceptor::reuse_address(true));
+    acceptor.set_option(Net::acceptor_t::reuse_address(true));
   } catch (const asio::system_error & e) {
-    return ResultCode_t::EXCEPTION_OCCURRED + e.what() + "Creating acceptor";
+    throw std::exception(
+        ("Creating acceptor: " + std::string(e.what())).c_str());
   }
 
   asio::error_code errorCode;
@@ -77,44 +72,40 @@ Result Server::initialize(const EBGUISettings_t settings) {
     if (!errorCode)
       attemptComplete = true;
     else if (errorCode.value() != asio::error::address_in_use &&
-             errorCode.value() != asio::error::access_denied)
-      return ResultCode_t::BIND_FAILED +
-             (errorCode.message() + " #" + std::to_string(errorCode.value())) +
-             ("Server acceptor bind to " + endpoint.address().to_string() +
-                 ":" + std::to_string(port));
+             errorCode.value() != asio::error::access_denied) {
+      std::string message = "Binding acceptor to " + endpointStr(endpoint);
+      message +=
+          "\n#" + std::to_string(errorCode.value()) + " " + errorCode.message();
+      throw std::exception(message.c_str());
+    }
     // else address already in use, try the next one
     ++port;
   } while (!attemptComplete && port < 65535);
 
   try {
     acceptor.non_blocking(true);
-    acceptor.listen(asio::ip::tcp::socket::max_listen_connections);
+    acceptor.listen(Net::socket_t::max_listen_connections);
   } catch (const asio::system_error & e) {
-    return ResultCode_t::EXCEPTION_OCCURRED + e.what() +
-           "Setting acceptor options";
+    throw std::exception(
+        ("Setting acceptor options: " + std::string(e.what())).c_str());
   }
 
-  domainName =
-      endpoint.address().to_string() + ":" + std::to_string(endpoint.port());
-
-  return ResultCode_t::SUCCESS;
+  domainName = endpointStr(endpoint);
 }
 
 /**
  * @brief Start the run thread
  *
- * @return Result
+ * @throw std::exception Thrown on failure
  */
-Result Server::start() {
+void Server::start() {
   if (domainName.empty())
-    return ResultCode_t::INVALID_STATE + "Server not yet initialized";
+    throw std::exception("Server not initialized");
 
   stop();
 
   running = true;
   thread  = new std::thread(&Server::run, this);
-
-  return ResultCode_t::SUCCESS;
 }
 
 /**
@@ -123,27 +114,25 @@ Result Server::start() {
  *
  */
 void Server::run() {
-  asio::ip::tcp::socket * socket = nullptr;
-  asio::ip::tcp::endpoint endpoint;
-  asio::error_code        errorCode;
-  Result                  result;
-  bool                    didSomething = false;
+  Net::socket_t *  socket = nullptr;
+  Net::endpoint_t  endpoint;
+  asio::error_code errorCode;
+  bool             didSomething = false;
 
-  auto now    = std::chrono::system_clock::now();
+  auto now    = sysclk_t::now();
   timeoutTime = now + TIMEOUT_NO_CONNECTIONS;
 
   while (running) {
     didSomething = false;
-    now          = std::chrono::system_clock::now();
+    now          = sysclk_t::now();
 
     // Check for new connections
     if (socket == nullptr)
-      socket = new asio::ip::tcp::socket(ioContext);
+      socket = new Net::socket_t(ioContext);
 
     acceptor.accept(*socket, endpoint, errorCode);
     if (!errorCode) {
-      std::string endpointString = endpoint.address().to_string() + ":" +
-                                   std::to_string(endpoint.port());
+      std::string endpointString = endpointStr(endpoint);
       info("Opening connection to " + endpointString);
       connections.push_back(new Connection(socket, endpointString, now));
       socket       = nullptr;
@@ -155,55 +144,60 @@ void Server::run() {
     // else no waiting connections
 
     // Process current connections
-    std::list<Connection *>::iterator i   = connections.begin();
-    std::list<Connection *>::iterator end = connections.end();
-    while (i != end) {
-      Connection * connection = *i;
+    auto it = connections.begin();
+    while (it != connections.end()) {
+      Connection * connection = *it;
 
       // Remove the connection and delete if update returns the connection is
       // complete
-      result = connection->update(now);
-      if (result == ResultCode_t::INCOMPLETE) {
-        ++i;
-        didSomething = true;
-      } else if (result == ResultCode_t::NO_OPERATION) {
-        ++i;
-      } else {
-        if (result == ResultCode_t::TIMEOUT)
-          info("Closing connection to " + connection->getEndpoint() +
-               " - Timeout");
-        else if (!result)
-          error("Closing connection to " + connection->getEndpoint() + " - " +
-                result.getMessage());
-        else
-          info("Closing connection to " + connection->getEndpoint() +
-               " - Operations completed successfully");
-
+      try {
+        connection->update(now);
+        switch (connection->getState()) {
+          case Connection::State_t::BUSY:
+            didSomething = true;
+          case Connection::State_t::IDLE:
+            ++it;
+            break;
+          case Connection::State_t::DONE:
+            log(EBLogLevel_t::EB_INFO, "Connection to %s closing",
+                connection->toString());
+            connection->stop();
+            delete connection;
+            it = connections.erase(it);
+            break;
+          default:
+            warn("Unknown connection state");
+        }
+      } catch (const std::exception & e) {
+        log(EBLogLevel_t::EB_WARNING,
+            "Connection to %s closing due to exception: %s",
+            connection->toString(), e.what());
         connection->stop();
         delete connection;
-        i = connections.erase(i);
+        it = connections.erase(it);
       }
     }
 
     if (connections.empty()) {
-      if (timeoutTime ==
-          std::chrono::time_point<std::chrono::system_clock>::min()) {
+      if (timeoutTime == timepoint_t<sysclk_t>::min()) {
         timeoutTime = now + TIMEOUT_NO_CONNECTIONS;
       }
     } else {
-      timeoutTime = std::chrono::time_point<std::chrono::system_clock>::min();
+      timeoutTime = timepoint_t<sysclk_t>::min();
     }
 
     // If nothing was processed this loop, sleep until the next to save CPU
     // usage
     if (!didSomething)
-      std::this_thread::sleep_for(std::chrono::milliseconds(1));
+      std::this_thread::sleep_for(millis_t(1));
   }
 
   // Free socket
   if (socket != nullptr) {
-    socket->shutdown(asio::ip::tcp::socket::shutdown_both, errorCode);
-    socket->close(errorCode);
+    if (socket->is_open()) {
+      socket->shutdown(Net::socket_t::shutdown_both);
+      socket->close();
+    }
     delete socket;
   }
 }
@@ -232,12 +226,10 @@ void Server::stop() {
  *
  * @param uri of the source page to subscribe to
  * @param inputCallback function
- * @return Result
  */
-Result Server::attachCallback(
+void Server::attachCallback(
     const std::string & uri, const EBInputCallback_t inputCallback) {
   inputCallbacks[uri] = inputCallback;
-  return ResultCode_t::SUCCESS;
 }
 
 /**
@@ -245,12 +237,10 @@ Result Server::attachCallback(
  *
  * @param uri of the source page to subscribe to
  * @param inputCallback function
- * @return Result
  */
-Result Server::attachCallback(
+void Server::attachCallback(
     const std::string & uri, const EBInputFileCallback_t inputCallback) {
   inputFileCallbacks[uri] = inputCallback;
-  return ResultCode_t::SUCCESS;
 }
 
 /**
@@ -270,9 +260,7 @@ const char * Server::getDomainName() const {
  * @return false otherwise
  */
 bool Server::isDone() const {
-  return (std::chrono::system_clock::now() > timeoutTime &&
-             connections.empty()) ||
-         !running;
+  return (sysclk_t::now() > timeoutTime && connections.empty()) || !running;
 }
 
 } // namespace Web

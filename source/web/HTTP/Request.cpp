@@ -2,8 +2,6 @@
 
 #include "EhbananaLog.h"
 
-#include <sstream>
-
 namespace Ehbanana {
 namespace Web {
 namespace HTTP {
@@ -27,106 +25,88 @@ Request::~Request() {}
  *
  * @param begin character pointer
  * @param end character pointer
- * @return Result error code
+ * @return bool true if complete, false otherwise
+ * @throw std::exception Thrown on failure
  */
-Result Request::parse(const uint8_t * begin, const uint8_t * end) {
-  Result result;
+bool Request::parse(const uint8_t * begin, const uint8_t * end) {
   // For every character in the array, add it to the appropriate field based on
   // the current parsing state
   while (begin != end) {
-    result = parse(*begin);
-    if (!result) {
-      return result + "Parsing request character";
-    }
+    parse(*begin);
     ++begin;
   }
   if (state == State_t::BODY && headers.getContentLength() == body.size())
-    return ResultCode_t::SUCCESS;
+    return true;
   else if (body.size() > headers.getContentLength())
-    return ResultCode_t::BUFFER_OVERFLOW +
-           "Request body size is longer than content length";
-  else
-    return ResultCode_t::INCOMPLETE;
+    throw std::overflow_error("Received body is larger than header states");
+  return false;
 }
 
 /**
  * @brief Parse a single character into the request
  *
  * @param c character to parse
- * @return Result error code
+ * @throw std::exception Thrown on failure
  */
-Result Request::parse(uint8_t c) {
-  Result result;
+void Request::parse(uint8_t c) {
   switch (state) {
     case State_t::IDLE:
       state = State_t::METHOD;
       // Fall through
     case State_t::METHOD:
       if (c == ' ') {
-        state  = State_t::URI;
-        result = validateMethod();
-        if (!result)
-          return result + "Validating request method";
+        state = State_t::URI;
+        validateMethod();
       } else
         method.add(c);
       break;
     case State_t::URI:
       if (c == ' ') {
-        state  = State_t::HTTP_VERSION;
-        result = decodeURI(uri);
-        if (!result)
-          return result + "Decoding request URI";
+        state = State_t::HTTP_VERSION;
+        uri   = decodeURI(uri);
       } else if (c == '?') {
-        state  = State_t::QUERY_NAME;
-        result = decodeURI(uri);
-        if (!result)
-          return result + "Decoding request URI";
+        state = State_t::QUERY_NAME;
+        uri   = decodeURI(uri);
       } else
-        uri.add(c);
+        uri += c;
       break;
-    case State_t::QUERY_NAME: {
-      // If there are no queries or the last query is already complete, add a
-      // new one
-      if (queries.empty() || queries.back().value.isDone())
-        queries.push_back(HeaderHash_t());
-      HeaderHash_t & query = queries.back();
+    case State_t::QUERY_NAME:
       if (c == '=') {
-        state  = State_t::QUERY_VALUE;
-        result = decodeURI(query.name);
-        if (!result)
-          return result + "Decoding request URI of query name";
-      } else if (c == ' ') {
+        state             = State_t::QUERY_VALUE;
+        currentQuery.name = decodeURI(currentQuery.name);
+      } else if (c != '&') {
         // Valueless query
-        state  = State_t::HTTP_VERSION;
-        result = decodeURI(query.name);
-        if (!result)
-          return result + "Decoding request URI of query name";
-      } else
-        query.name.add(c);
-
-    } break;
-    case State_t::QUERY_VALUE: {
-      HeaderHash_t & query = queries.back();
+        state             = State_t::QUERY_NAME;
+        currentQuery.name = decodeURI(currentQuery.name);
+        queries.push_back(currentQuery);
+        currentQuery = Query_t();
+      } else if (c != ' ') {
+        // Valueless query
+        state             = State_t::HTTP_VERSION;
+        currentQuery.name = decodeURI(currentQuery.name);
+        queries.push_back(currentQuery);
+      } else {
+        currentQuery.name += c;
+      }
+      break;
+    case State_t::QUERY_VALUE:
       if (c == ' ') {
-        state  = State_t::HTTP_VERSION;
-        result = decodeURI(query.value);
-        query.value.setDone(true);
-        if (!result)
-          return result + "Decoding request URI of query value";
+        state              = State_t::HTTP_VERSION;
+        currentQuery.value = decodeURI(currentQuery.value);
+        queries.push_back(currentQuery);
       } else if (c == '&') {
-        state  = State_t::QUERY_NAME;
-        result = decodeURI(query.value);
-        if (!result)
-          return result + "Decoding request URI of query value";
-      } else
-        query.value.add(c);
-    } break;
+        state              = State_t::QUERY_NAME;
+        currentQuery.value = decodeURI(currentQuery.value);
+        queries.push_back(currentQuery);
+        currentQuery = Query_t();
+      } else {
+        currentQuery.value += c;
+      }
+      break;
     case State_t::HTTP_VERSION:
       if (c == '\n') {
-        state  = State_t::HEADER_NAME;
-        result = validateHTTPVersion();
-        if (!result)
-          return result + "Validating request HTTP version";
+        state = State_t::HEADER_NAME;
+        validateHTTPVersion();
       } else if (c != '\r')
         httpVersion.add(c);
       break;
@@ -135,8 +115,6 @@ Result Request::parse(uint8_t c) {
         state = State_t::BODY_NEWLINE;
         break;
       }
-      // If there are no headers or the last header is already complete, add a
-      // new one
       if (c == ' ') {
         state = State_t::HEADER_VALUE;
       } else if (c != ':')
@@ -144,12 +122,8 @@ Result Request::parse(uint8_t c) {
     } break;
     case State_t::HEADER_VALUE: {
       if (c == '\n') {
-        state  = State_t::HEADER_NAME;
-        result = headers.addHeader(currentHeader);
-        if (result == ResultCode_t::UNKNOWN_HASH)
-          warn(result.getMessage());
-        else if (!result)
-          return result + "Adding request header";
+        state = State_t::HEADER_NAME;
+        headers.addHeader(currentHeader);
         currentHeader = HeaderHash_t();
       } else if (c != '\r')
         currentHeader.value.add(c);
@@ -158,63 +132,60 @@ Result Request::parse(uint8_t c) {
       if (c == '\n') {
         state = State_t::BODY;
         body.reserve(headers.getContentLength());
-      } else
-        return ResultCode_t::BAD_COMMAND +
-               "Request is missing a blank new line after header";
+      } else {
+        throw std::exception("Request is missing new line after headers");
+      }
       break;
     case State_t::BODY:
       if (headers.getContentLength() == 0) {
         log(EBLogLevel_t::EB_DEBUG, "Tried to add '%c' (0x%02X) to body", c, c);
-        return ResultCode_t::BAD_COMMAND +
-               "Request has body but zero content length";
+        throw std::overflow_error("Request has body but zero content length");
       }
       body += c;
       break;
     default:
-      return ResultCode_t::INVALID_STATE +
-             ("Request parsing is in state #" + static_cast<uint8_t>(state));
+      throw std::exception(("Request parsing is in state #" +
+                            std::to_string(static_cast<uint8_t>(state)))
+                               .c_str());
   }
-  return ResultCode_t::SUCCESS;
 }
 
 /**
  * @brief Checks the method is a valid HTTP request and supported
  *
- * @return Result error code
+ * @throw std::exception Thrown on failure
  */
-Result Request::validateMethod() {
+void Request::validateMethod() {
   switch (method.get()) {
     case Hash::calculateHash("GET"):
     case Hash::calculateHash("POST"):
-      return ResultCode_t::SUCCESS;
+      return;
     case Hash::calculateHash("OPTIONS"):
     case Hash::calculateHash("HEAD"):
     case Hash::calculateHash("PUT"):
     case Hash::calculateHash("DELETE"):
     case Hash::calculateHash("TRACE"):
     case Hash::calculateHash("CONNECT"):
-      return ResultCode_t::NOT_SUPPORTED + "Request method";
+      throw std::exception("HTTP method is not supported");
     default:
-      return ResultCode_t::UNKNOWN_HASH +
-             ("Request method: " + method.getString());
+      throw std::exception("HTTP method is not recognized");
   }
 }
 
 /**
  * @brief Checks the HTTP version is valid and supported
  *
- * @return Result error code
+ * @throw std::exception Thrown on failure
  */
-Result Request::validateHTTPVersion() {
+void Request::validateHTTPVersion() {
   switch (httpVersion.get()) {
     case Hash::calculateHash("HTTP/1.0"):
     case Hash::calculateHash("HTTP/1.1"):
-      return ResultCode_t::SUCCESS;
+      return;
     case Hash::calculateHash("HTTP/2.0"):
-      return ResultCode_t::NOT_SUPPORTED + "Request HTTP/2.0";
+      throw std::exception("HTTP version is not supported");
     default:
-      return ResultCode_t::UNKNOWN_HASH +
-             ("Request HTTP version: " + httpVersion.getString());
+      throw std::exception("HTTP version is not recognized");
   }
 }
 
@@ -241,19 +212,19 @@ bool Request::isParsing() {
 /**
  * @brief Get the method of the request
  *
- * @return const Hash& method
+ * @return HashValue_t
  */
-const Hash & Request::getMethod() const {
-  return method;
+HashValue_t Request::getMethodHash() const {
+  return method.get();
 }
 
 /**
  * @brief Get the URI of the request
  * Uniform resource identifier
  *
- * @return const Hash& uri
+ * @return const std::string& uri
  */
-const Hash & Request::getURI() const {
+const std::string & Request::getURI() const {
   return uri;
 }
 
@@ -261,9 +232,9 @@ const Hash & Request::getURI() const {
  * @brief Get the queries of the request's URI
  * Uniform resource identifier
  *
- * @return const std::vector<HeaderHash_t>& queries
+ * @return const std::list<HeaderHash_t>& queries
  */
-const std::vector<HeaderHash_t> & Request::getQueries() const {
+const std::list<Request::Query_t> & Request::getQueries() const {
   return queries;
 }
 
@@ -271,46 +242,41 @@ const std::vector<HeaderHash_t> & Request::getQueries() const {
  * @brief Decode a URI into a string
  * Turns escape characters into their real characters
  *
- * @param uriString to read and overwrite
- * @return Result error code
+ * @param uriString to read
+ * @return std::string decoded
+ * @throw std::exception Thrown on failure
  */
-Result Request::decodeURI(Hash & uriHash) {
-  Result              result;
-  const std::string & string = uriHash.getString();
-  size_t              i      = 0;
-  Hash                uriDecoded;
-  while (i < string.length()) {
-    switch (string[i]) {
+std::string Request::decodeURI(const std::string & uriString) {
+  size_t      i = 0;
+  std::string uriDecoded;
+  while (i < uriString.length()) {
+    switch (uriString[i]) {
       case '%':
         // Next two letters are hex
-        if (i + 2 >= string.length())
-          return ResultCode_t::INVALID_DATA +
-                 "URI has '%' but not enough characters";
+        if (i + 2 >= uriString.length())
+          throw std::exception("URI has '%' but not enough characters");
         else {
           uint32_t    value = 0;
-          std::string hex   = string.substr(i, 2);
+          std::string hex   = uriString.substr(i, 2);
           i += 2;
 
-          result = decodeHex(hex, value);
-          if (!result)
-            return result + ("Decoding hex: " + hex);
-          uriDecoded.add(static_cast<char>(value));
+          value = decodeHex(hex);
+          uriDecoded += static_cast<char>(value);
         }
         break;
       case '+':
         // plus becomes space
-        uriDecoded.add(' ');
+        uriDecoded += ' ';
         ++i;
         break;
       default:
         // Leave the character alone
-        uriDecoded.add(string[i]);
+        uriDecoded += uriString[i];
         ++i;
         break;
     }
   }
-  uriHash = uriDecoded;
-  return ResultCode_t::SUCCESS;
+  return uriDecoded;
 }
 
 /**
@@ -318,13 +284,13 @@ Result Request::decodeURI(Hash & uriHash) {
  * Up to 32bits or 8 characters
  *
  * @param hex to decode
- * @param value to return
- * @return Result error code
+ * @return uint32_t value
+ * @throw std::exception Thrown on failure
  */
-Result Request::decodeHex(const std::string & hex, uint32_t & value) {
+uint32_t Request::decodeHex(const std::string & hex) {
   if (hex.size() > 8)
-    return ResultCode_t::BUFFER_OVERFLOW + "Too many characters";
-  value = 0;
+    std::exception("Too many characeters to decode hex string");
+  uint32_t value = 0;
   for (char c : hex) {
     value = value << 4;
     if (c >= '0' && c <= '9')
@@ -334,9 +300,9 @@ Result Request::decodeHex(const std::string & hex, uint32_t & value) {
     else if (c >= 'A' && c <= 'F')
       value |= (c - 'A' + 10);
     else
-      return ResultCode_t::INVALID_DATA + ("Character is not hex: " + c);
+      throw std::exception("Character is not hex");
   }
-  return ResultCode_t::SUCCESS;
+  return value;
 }
 
 } // namespace HTTP

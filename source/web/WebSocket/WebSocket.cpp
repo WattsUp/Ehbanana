@@ -28,23 +28,17 @@ WebSocket::~WebSocket() {
  *
  * @param begin character
  * @param length of buffer
- * @return Result error code
+ * @throw std::exception Thrown on failure
  */
-Result WebSocket::processReceiveBuffer(const uint8_t * begin, size_t length) {
-  Result result = frameIn.decode(begin, length);
-  if (!result)
-    return result;
+void WebSocket::processReceiveBuffer(const uint8_t * begin, size_t length) {
+  frameIn.decode(begin, length);
 
   switch (frameIn.getOpcode()) {
     case Opcode_t::TEXT:
-      result = processFrameText();
-      if (!result)
-        return result;
+      processFrameText();
       break;
     case Opcode_t::BINARY:
-      result = processFrameBinary();
-      if (!result)
-        return result;
+      processFrameBinary();
       break;
     case Opcode_t::PING: {
       debug("WebSocket received ping");
@@ -53,7 +47,6 @@ Result WebSocket::processReceiveBuffer(const uint8_t * begin, size_t length) {
       frame->addData(frameIn.getData());
       frame->setOpcode(Opcode_t::PONG);
       framesOut.push_back(frame);
-      return ResultCode_t::INCOMPLETE;
     }
     case Opcode_t::PONG:
       debug("WebSocket received pong");
@@ -67,7 +60,6 @@ Result WebSocket::processReceiveBuffer(const uint8_t * begin, size_t length) {
       frame->setOpcode(Opcode_t::CLOSE);
       framesOut.push_back(frame);
       addTransmitBuffer(frameIn.toBuffer());
-      return ResultCode_t::SUCCESS;
   }
 
   // Frame is done, do something
@@ -76,28 +68,26 @@ Result WebSocket::processReceiveBuffer(const uint8_t * begin, size_t length) {
   // If the receive buffer has more data (multiple frames in the buffer),
   // recursively process them
   if (length != 0) {
-    return processReceiveBuffer(begin, length);
+    processReceiveBuffer(begin, length);
   }
-
-  return ResultCode_t::INCOMPLETE;
 }
 
 /**
  * @brief Process the current frame as text by parsing the JSON and enqueuing a
  * message
  *
- * @return Result
+ * @throw std::exception Thrown on failure
  */
-Result WebSocket::processFrameText() {
+void WebSocket::processFrameText() {
   rapidjson::Document doc;
 
   // Parse JSON
   if (doc.Parse(frameIn.getData().c_str()).HasParseError())
-    return ResultCode_t::READ_FAULT + frameIn.getData() + "Parsing JSON";
+    throw std::exception("Failed to parse JSON");
 
   auto i = doc.FindMember("href");
   if (i == doc.MemberEnd() || !i->value.IsString())
-    return ResultCode_t::INVALID_DATA + "No 'href'";
+    throw std::exception("No href");
   // msg.href.add(i->value.GetString());
 
   // i = doc.FindMember("id");
@@ -121,16 +111,15 @@ Result WebSocket::processFrameText() {
   // }
 
   // EBEnqueueMessage(msg);
-  return ResultCode_t::SUCCESS;
 }
 
 /**
  * @brief Process the current frame as binary by parsing the JSON and enqueuing
  * a message. Adds the received file to the preceeding message and enqueues it
  *
- * @return Result
+ * @throw std::exception Thrown on failure
  */
-Result WebSocket::processFrameBinary() {
+void WebSocket::processFrameBinary() {
   // fseek(frameIn.getDataFile(), 0L, SEEK_END);
   // if (msgAwaitingFile.fileSize != (size_t)ftell(frameIn.getDataFile())) {
   //   return ResultCode_t::INVALID_DATA +
@@ -139,7 +128,6 @@ Result WebSocket::processFrameBinary() {
   // rewind(frameIn.getDataFile());
   // msgAwaitingFile.file = frameIn.getDataFile(true);
   // EBEnqueueMessage(msgAwaitingFile);
-  return ResultCode_t::SUCCESS;
 }
 
 /**
@@ -175,33 +163,13 @@ bool WebSocket::sendAliveCheck() {
  * returns ResultCode_t::NOT_SUPPORTED if not compatible
  *
  * @param msg to add
- * @return Result
+ * @throw std::exception Thrown on failure
  */
-Result WebSocket::addMessage(const std::string & msg) {
+void WebSocket::addMessage(const std::string & msg) {
   Frame * frame = new Frame();
   frame->setOpcode(Opcode_t::TEXT);
   frame->addData(msg);
   framesOut.push_back(frame);
-  return ResultCode_t::SUCCESS;
-}
-
-/**
- * @brief Update the transmit buffers with number of bytes transmitted
- * Removes buffers that have been completely transmitted. Moves the start
- * pointer of the next buffer that has not been transmitted.
- *
- * @param bytesWritten
- * @return true when all transmit buffers have been transmitted
- * @return false when there are more transmit buffers
- */
-bool WebSocket::updateTransmitBuffers(size_t bytesWritten) {
-  bool result = AppProtocol::updateTransmitBuffers(bytesWritten);
-  if (result) {
-    // Remove the current frame;
-    delete framesOut.front();
-    framesOut.pop_front();
-  }
-  return result;
 }
 
 /**
