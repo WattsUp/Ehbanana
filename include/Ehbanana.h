@@ -119,9 +119,10 @@ struct Query_t {
 
 /**
  * @brief Process output file to the GUI
+ * Called first if 404 error occurs
  * Set the complete flag if file was properly handled and done writing
  * Exit the function before setting the complete flag if the file is not to be
- * found
+ * found and to send a 404 error
  *
  * @param uri of the file being downloaded
  * @param queries following the uri

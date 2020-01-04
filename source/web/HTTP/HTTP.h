@@ -49,13 +49,7 @@ private:
   void handlePOST();
   void handleUpgrade();
 
-  enum class State_t : uint8_t {
-    READING,
-    READING_DONE,
-    WRITING,
-    WRITING_DONE,
-    COMPLETE
-  };
+  enum class State_t : uint8_t { READING, READING_DONE, WRITING };
 
   State_t state = State_t::READING;
 

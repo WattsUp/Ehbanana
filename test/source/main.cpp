@@ -2,6 +2,7 @@
 #include <Windows.h>
 
 #include <stdio.h>
+#include <string>
 
 FILE * logFile;
 
@@ -47,6 +48,22 @@ void __stdcall callbackRoot(const char * id, const char * value) {
   printf("Callback from %s with %s\n", id, value);
 }
 
+/**
+ * @brief Process input from the GUI page "/"
+ *
+ * @param id of the triggering element
+ * @param value of the triggering element
+ */
+void __stdcall callbackRootFile(
+    const char * id, const char * value, EBBuffer_t * file) {
+  printf("Callback file from %s with %s\n", id, value);
+}
+
+void __stdcall callbackOutputFile(
+    const char * uri, const Query_t * queries, EBBuffer_t * file) {
+  printf("Callback 404 for: %s", uri);
+}
+
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
   // Create a console for logging errors
   if (AllocConsole()) {
@@ -82,6 +99,22 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
   }
 
   error = EBAttachCallback("/", callbackRoot);
+  if (EB_FAILED(error)) {
+    printf("Failed to attach callback to GUI");
+    MessageBoxA(NULL, EBErrorName(error), "Error", MB_OK);
+    _fcloseall();
+    return static_cast<uint8_t>(error);
+  }
+
+  error = EBAttachInputFileCallback("/", callbackRootFile);
+  if (EB_FAILED(error)) {
+    printf("Failed to attach callback to GUI");
+    MessageBoxA(NULL, EBErrorName(error), "Error", MB_OK);
+    _fcloseall();
+    return static_cast<uint8_t>(error);
+  }
+
+  error = EBSetOutputFileCallback(callbackOutputFile);
   if (EB_FAILED(error)) {
     printf("Failed to attach callback to GUI");
     MessageBoxA(NULL, EBErrorName(error), "Error", MB_OK);

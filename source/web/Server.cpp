@@ -94,7 +94,7 @@ void Server::start() {
   stop();
 
   running = true;
-  thread  = new std::thread(&Server::run, this);
+  thread  = std::make_unique<std::thread>(&Server::run, this);
 }
 
 /**
@@ -103,10 +103,10 @@ void Server::start() {
  *
  */
 void Server::run() {
-  Net::socket_t *  socket = nullptr;
-  Net::endpoint_t  endpoint;
-  asio::error_code errorCode;
-  bool             didSomething = false;
+  std::unique_ptr<Net::socket_t> socket;
+  Net::endpoint_t                endpoint;
+  asio::error_code               errorCode;
+  bool                           didSomething = false;
 
   auto now    = sysclk_t::now();
   timeoutTime = now + TIMEOUT_NO_CONNECTIONS;
@@ -117,13 +117,14 @@ void Server::run() {
 
     // Check for new connections
     if (socket == nullptr)
-      socket = new Net::socket_t(ioContext);
+      socket = std::make_unique<Net::socket_t>(ioContext);
 
     acceptor.accept(*socket, endpoint, errorCode);
     if (!errorCode) {
       std::string endpointString = endpointStr(endpoint);
       info("Opening connection to " + endpointString);
-      connections.push_back(new Connection(socket, endpointString, now));
+      connections.push_back(
+          std::make_unique<Connection>(std::move(socket), endpointString, now));
       socket       = nullptr;
       didSomething = true;
     } else if (errorCode != asio::error::would_block) {
@@ -135,7 +136,7 @@ void Server::run() {
     // Process current connections
     auto it = connections.begin();
     while (it != connections.end()) {
-      Connection * connection = *it;
+      const std::unique_ptr<Connection> & connection = *it;
 
       // Remove the connection and delete if update returns the connection is
       // complete
@@ -148,10 +149,9 @@ void Server::run() {
             ++it;
             break;
           case Connection::State_t::DONE:
-            log(EBLogLevel_t::EB_INFO, "Connection to %s closing",
+            log(EBLogLevel_t::EB_INFO, "%s: Connection closing",
                 connection->toString().c_str());
             connection->stop();
-            delete connection;
             it = connections.erase(it);
             break;
           default:
@@ -159,10 +159,9 @@ void Server::run() {
         }
       } catch (const std::exception & e) {
         log(EBLogLevel_t::EB_WARNING,
-            "Connection to %s closing due to exception: %s",
+            "%s: Connection closing due to exception: %s",
             connection->toString().c_str(), e.what());
         connection->stop();
-        delete connection;
         it = connections.erase(it);
       }
     }
@@ -187,7 +186,6 @@ void Server::run() {
       socket->shutdown(Net::socket_t::shutdown_both);
       socket->close();
     }
-    delete socket;
   }
 }
 
@@ -201,11 +199,8 @@ void Server::stop() {
     return;
   if (thread->joinable())
     thread->join();
-  delete thread;
-  thread = nullptr;
-  for (Connection * connection : connections) {
+  for (const std::unique_ptr<Connection> & connection : connections) {
     connection->stop();
-    delete connection;
   }
   connections.clear();
 }
@@ -214,22 +209,32 @@ void Server::stop() {
  * @brief Attach a callback to input originating from the uri
  *
  * @param uri of the source page to subscribe to
- * @param inputCallback function
+ * @param callback function
  */
 void Server::attachCallback(
-    const std::string & uri, const EBInputCallback_t inputCallback) {
-  inputCallbacks.emplace(uri, inputCallback);
+    const std::string & uri, const EBInputCallback_t callback) {
+  inputCallbacks.emplace(uri, callback);
 }
 
 /**
  * @brief Attach a callback to input files originating from the uri
  *
  * @param uri of the source page to subscribe to
- * @param inputCallback function
+ * @param callback function
  */
 void Server::attachCallback(
-    const std::string & uri, const EBInputFileCallback_t inputCallback) {
-  inputFileCallbacks.emplace(uri, inputCallback);
+    const std::string & uri, const EBInputFileCallback_t callback) {
+  inputFileCallbacks.emplace(uri, callback);
+}
+
+/**
+ * @brief Set the callback for output files not found in the HTTP tree
+ * 404 errors calls this first
+ *
+ * @param callback function
+ */
+void Server::setOutputCallback(const EBOutputFileCallback_t callback) {
+  outputFileCallback = callback;
 }
 
 /**

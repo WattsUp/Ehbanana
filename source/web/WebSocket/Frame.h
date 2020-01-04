@@ -20,8 +20,6 @@ class Frame {
 public:
   Frame();
   ~Frame();
-  Frame(const Frame & that);
-  Frame & operator=(const Frame & that);
 
   bool decode(const uint8_t *& begin, size_t & length);
 
@@ -29,10 +27,9 @@ public:
 
   const Opcode_t      getOpcode() const;
   const std::string & getData() const;
-  FILE *              getDataFile(bool takeOwnership = false);
-  asio::const_buffer  toBuffer();
+  void                addData(const std::string & string);
 
-  void addData(const std::string & string);
+  const std::vector<asio::const_buffer> & getBuffers();
 
 private:
   void decode(const uint8_t c);
@@ -48,14 +45,14 @@ private:
 
   DecodeState_t state = DecodeState_t::HEADER_OP_CODE;
 
-  std::vector<uint8_t> buffer;
+  std::vector<asio::const_buffer> buffers;
+  std::vector<uint8_t>            header;
 
   Opcode_t    opcode        = Opcode_t::CONTINUATION;
   uint64_t    payloadLength = 0;
   uint32_t    maskingKey    = 0;
   bool        fin           = false;
   std::string data;
-  FILE *      dataFile = nullptr;
 };
 
 } // namespace WebSocket

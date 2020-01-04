@@ -8,54 +8,13 @@ namespace WebSocket {
  * @brief Construct a new Frame:: Frame object
  *
  */
-Frame::Frame() {
-  this->dataFile = nullptr;
-}
+Frame::Frame() {}
 
 /**
  * @brief Destroy the Frame:: Frame object
  *
  */
-Frame::~Frame() {
-  if (dataFile != nullptr)
-    fclose(dataFile);
-}
-
-/**
- * @brief Copy constructor
- *
- * @param that to copy
- */
-Frame::Frame(const Frame & that) {
-  *this = that;
-}
-
-/**
- * @brief Assignment operator
- *
- * @param that to assign
- * @return Frame& this
- */
-Frame & Frame::operator=(const Frame & that) {
-  if (this != &that) {
-    this->buffer.clear();
-    this->buffer = that.buffer;
-
-    this->data = that.data;
-    this->data.shrink_to_fit();
-
-    if (this->dataFile != nullptr)
-      fclose(this->dataFile);
-    this->dataFile = that.dataFile;
-
-    this->fin           = that.fin;
-    this->maskingKey    = that.maskingKey;
-    this->opcode        = that.opcode;
-    this->state         = that.state;
-    this->payloadLength = that.payloadLength;
-  }
-  return *this;
-}
+Frame::~Frame() {}
 
 /**
  * @brief Decode a frame from a character string and populate the appropriate
@@ -77,9 +36,6 @@ bool Frame::decode(const uint8_t *& begin, size_t & length) {
   if (state != DecodeState_t::COMPLETE)
     return false;
 
-  if (dataFile != nullptr)
-    rewind(dataFile);
-
   return true;
 }
 
@@ -97,9 +53,7 @@ void Frame::decode(const uint8_t c) {
         // Set the op code if not a continuation
         opcode = static_cast<Opcode_t>(c & 0x0F);
         if (opcode == Opcode_t::BINARY) {
-          // Generate a temporary file name
-          if (tmpfile_s(&dataFile) != 0)
-            throw std::exception("Failed to open temporary file");
+          // TODO fix
         }
       }
       state = DecodeState_t::HEADER_PAYLOAD_LEN;
@@ -136,11 +90,7 @@ void Frame::decode(const uint8_t c) {
     case DecodeState_t::DATA: {
       // TODO, if binary, write to a temporary file instead
       uint8_t key = maskingKey >> 24; // MSB
-      if (dataFile != nullptr) {
-        if (fputc(c ^ key, dataFile) == EOF)
-          throw std::exception("Failed to write to WebSocket temp file");
-      } else
-        data.push_back(static_cast<char>(c ^ key));
+      data.push_back(static_cast<char>(c ^ key));
       maskingKey = (maskingKey << 8) | key; // Circularly shift to the next byte
       --payloadLength;
       if (payloadLength == 0) {
@@ -196,51 +146,38 @@ const std::string & Frame::getData() const {
 }
 
 /**
- * @brief Get the data file of the frame, opcode must be binary
+ * @brief Get the next set of buffers ready to send
  *
- * @param takeOwnership will set dataFile to null afterwards, preventing the
- * file from closing on destruction
- * @return FILE *
+ * @return std::vector<asio::const_buffer> buffers
  */
-FILE * Frame::getDataFile(bool takeOwnership) {
-  FILE * file = dataFile;
-  if (takeOwnership)
-    dataFile = nullptr;
-  return file;
-}
-
-/**
- * @brief Convert the frame into a buffer byte stream
- *
- * @return asio::const_buffer
- */
-asio::const_buffer Frame::toBuffer() {
-  buffer.push_back(0x80 | static_cast<uint8_t>(opcode)); // FIN = 1
-  payloadLength = data.length();
-  // No masking
-  if (payloadLength < 126) {
-    // 7b payloadLength
-    buffer.push_back(static_cast<uint8_t>(payloadLength));
-  } else if (payloadLength <= static_cast<size_t>(1 << 16)) {
-    buffer.push_back(126); // 16b payload length
-    buffer.push_back(static_cast<uint8_t>((payloadLength >> 8) & 0xFF));
-    buffer.push_back(static_cast<uint8_t>((payloadLength >> 0) & 0xFF));
-  } else {
-    buffer.push_back(127); // 64b payload length
-    buffer.push_back(static_cast<uint8_t>((payloadLength >> 56) & 0xFF));
-    buffer.push_back(static_cast<uint8_t>((payloadLength >> 48) & 0xFF));
-    buffer.push_back(static_cast<uint8_t>((payloadLength >> 40) & 0xFF));
-    buffer.push_back(static_cast<uint8_t>((payloadLength >> 32) & 0xFF));
-    buffer.push_back(static_cast<uint8_t>((payloadLength >> 24) & 0xFF));
-    buffer.push_back(static_cast<uint8_t>((payloadLength >> 16) & 0xFF));
-    buffer.push_back(static_cast<uint8_t>((payloadLength >> 8) & 0xFF));
-    buffer.push_back(static_cast<uint8_t>((payloadLength >> 0) & 0xFF));
+const std::vector<asio::const_buffer> & Frame::getBuffers() {
+  // If the buffers vector is empty, populate first
+  if (buffers.empty()) {
+    header.push_back(0x80 | static_cast<uint8_t>(opcode)); // FIN = 1
+    payloadLength = data.length();
+    // No masking
+    if (payloadLength < 126) {
+      // 7b payloadLength
+      header.push_back(static_cast<uint8_t>(payloadLength));
+    } else if (payloadLength <= static_cast<size_t>(1 << 16)) {
+      header.push_back(126); // 16b payload length
+      header.push_back(static_cast<uint8_t>((payloadLength >> 8) & 0xFF));
+      header.push_back(static_cast<uint8_t>((payloadLength >> 0) & 0xFF));
+    } else {
+      header.push_back(127); // 64b payload length
+      header.push_back(static_cast<uint8_t>((payloadLength >> 56) & 0xFF));
+      header.push_back(static_cast<uint8_t>((payloadLength >> 48) & 0xFF));
+      header.push_back(static_cast<uint8_t>((payloadLength >> 40) & 0xFF));
+      header.push_back(static_cast<uint8_t>((payloadLength >> 32) & 0xFF));
+      header.push_back(static_cast<uint8_t>((payloadLength >> 24) & 0xFF));
+      header.push_back(static_cast<uint8_t>((payloadLength >> 16) & 0xFF));
+      header.push_back(static_cast<uint8_t>((payloadLength >> 8) & 0xFF));
+      header.push_back(static_cast<uint8_t>((payloadLength >> 0) & 0xFF));
+    }
+    buffers.push_back(asio::buffer(header));
+    buffers.push_back(asio::buffer(data));
   }
-  for (uint8_t c : data) {
-    buffer.push_back(c);
-  }
-
-  return asio::buffer(buffer);
+  return buffers;
 }
 
 } // namespace WebSocket

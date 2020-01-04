@@ -11,6 +11,7 @@
 
 #include <array>
 #include <chrono>
+#include <memory>
 #include <stdint.h>
 #include <string>
 
@@ -22,7 +23,7 @@ public:
   Connection(const Connection &) = delete;
   Connection & operator=(const Connection &) = delete;
 
-  Connection(Net::socket_t * socket, std::string endpoint,
+  Connection(std::unique_ptr<Net::socket_t> socket, std::string endpoint,
       const timepoint_t<sysclk_t> & now);
   ~Connection();
 
@@ -36,14 +37,14 @@ public:
   State_t getState() const;
 
 private:
-  Net::socket_t * socket;
-  std::string     endpoint;
+  std::unique_ptr<Net::socket_t> socket;
+  std::string                    endpoint;
 
   std::array<uint8_t, 8192> bufferReceive;
 
   State_t state = State_t::IDLE;
 
-  AppProtocol * protocol = new HTTP::HTTP();
+  std::unique_ptr<AppProtocol> protocol = std::make_unique<HTTP::HTTP>();
 
   timepoint_t<sysclk_t> timeoutTime;
 

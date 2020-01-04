@@ -6,6 +6,7 @@
 #include "Frame.h"
 
 #include <list>
+#include <memory>
 #include <string>
 
 namespace Ehbanana {
@@ -30,11 +31,11 @@ public:
 
 private:
   void processFrameText();
-  void processFrameBinary();
 
   Frame frameIn;
 
-  std::list<Frame *> framesOut;
+  std::shared_ptr<Frame>             currentFrameOut;
+  std::list<std::shared_ptr<Frame> > framesOut;
 
   bool pingSent = false;
 };

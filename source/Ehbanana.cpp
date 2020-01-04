@@ -5,10 +5,12 @@
 #include "Version.h"
 #include "web/Server.h"
 
+#include <memory>
+
 static const EBVersionInfo_t EB_VERSION_INFO = {
     EHBANANA_MAJOR, EHBANANA_MINOR, EHBANANA_PATCH};
 
-Ehbanana::Web::Server * server = nullptr;
+std::shared_ptr<Ehbanana::Web::Server> server;
 
 const EBVersionInfo_t EBGetVersion() {
   return EB_VERSION_INFO;
@@ -30,7 +32,7 @@ EBError_t EBAttachCallback(
   return EBError_t::SUCCESS;
 }
 
-EBError_t EBAttachFileCallback(
+EBError_t EBAttachInputFileCallback(
     const char * uri, const EBInputFileCallback_t inputFileCallback) {
   if (server == nullptr) {
     Ehbanana::error("No server created, use EBCreate");
@@ -46,10 +48,25 @@ EBError_t EBAttachFileCallback(
   return EBError_t::SUCCESS;
 }
 
+EBError_t EBSetOutputFileCallback(
+    const EBOutputFileCallback_t outputFileCallback) {
+  if (server == nullptr) {
+    Ehbanana::error("No server created, use EBCreate");
+    return EBError_t::NO_SERVER_CREATED;
+  }
+
+  try {
+    server->setOutputCallback(outputFileCallback);
+  } catch (const std::exception & e) {
+    Ehbanana::error(e.what());
+    return EBError_t::EXCEPTION_OCCURRED;
+  }
+  return EBError_t::SUCCESS;
+}
+
 EBError_t EBCreate(const EBGUISettings_t guiSettings) {
   try {
-    delete server;
-    server = new Ehbanana::Web::Server(guiSettings);
+    server = std::make_shared<Ehbanana::Web::Server>(guiSettings);
   } catch (const std::exception & e) {
     Ehbanana::error(e.what());
     return EBError_t::INITIALIZATION_FAILED;
@@ -125,7 +142,6 @@ EBError_t EBDestroy() {
 
   try {
     server->stop();
-    delete server;
     server = nullptr;
   } catch (const std::exception & e) {
     Ehbanana::error(e.what());
@@ -136,6 +152,7 @@ EBError_t EBDestroy() {
 
 EBError_t EBEnqueueOutput(
     const char * /* uri */, const EBElement_t * /* elementHead */) {
+  // TODO convert list to JSON to string to WebSocket Frame and send
   return EBError_t::NOT_SUPPORTED;
 }
 

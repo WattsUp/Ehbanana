@@ -11,6 +11,7 @@
 #include <atomic>
 #include <chrono>
 #include <list>
+#include <memory>
 #include <stdint.h>
 #include <string>
 #include <thread>
@@ -33,9 +34,10 @@ public:
   bool isDone() const;
 
   void attachCallback(
-      const std::string & uri, const EBInputCallback_t inputCallback);
+      const std::string & uri, const EBInputCallback_t callback);
   void attachCallback(
-      const std::string & uri, const EBInputFileCallback_t inputFileCallback);
+      const std::string & uri, const EBInputFileCallback_t callback);
+  void setOutputCallback(const EBOutputFileCallback_t callback);
 
   const std::string & getDomainName() const;
 
@@ -45,15 +47,15 @@ public:
 private:
   void run();
 
-  std::thread *     thread  = nullptr;
-  std::atomic<bool> running = false;
+  std::unique_ptr<std::thread> thread  = nullptr;
+  std::atomic<bool>            running = false;
 
   asio::io_context ioContext;
   Net::acceptor_t  acceptor;
 
   std::string domainName;
 
-  std::list<Connection *> connections;
+  std::list<std::unique_ptr<Connection> > connections;
 
   std::unordered_map<std::string, EBInputCallback_t>     inputCallbacks;
   std::unordered_map<std::string, EBInputFileCallback_t> inputFileCallbacks;

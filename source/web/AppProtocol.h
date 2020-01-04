@@ -38,8 +38,8 @@ public:
   /**
    * @brief Check the completion of the protocol
    *
-   * @return true if a message is being processed or waiting for a message
-   * @return false if all messages have been processed and no more are expected
+   * @return true if all messages have been processed and no more are expected
+   * @return false if a message is being processed or waiting for a message
    */
   virtual bool isDone() {
     return !hasTransmitBuffers();

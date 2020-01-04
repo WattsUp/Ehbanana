@@ -14,14 +14,14 @@ namespace Web {
  * @param endpoint socket is connected to
  * @param now current timestamp
  */
-Connection::Connection(Net::socket_t * socket, std::string endpoint,
-    const timepoint_t<sysclk_t> & now) :
-  socket(socket),
+Connection::Connection(std::unique_ptr<Net::socket_t> socket,
+    std::string endpoint, const timepoint_t<sysclk_t> & now) :
+  socket(std::move(socket)),
   endpoint(endpoint) {
   this->timeoutTime = now + TIMEOUT;
 
-  socket->non_blocking(true);
-  socket->set_option(Net::socket_t::keep_alive(true));
+  this->socket->non_blocking(true);
+  this->socket->set_option(Net::socket_t::keep_alive(true));
 }
 
 /**
@@ -90,14 +90,14 @@ void Connection::update(const timepoint_t<sysclk_t> & now) {
   if (protocol->isDone()) {
     switch (protocol->getChangeRequest()) {
       case AppProtocol_t::HTTP:
-        delete protocol;
-        protocol = new HTTP::HTTP();
+        protocol = std::make_unique<HTTP::HTTP>();
         state    = State_t::BUSY;
+        info(endpoint + ": Changing to HTTP");
         break;
       case AppProtocol_t::WEBSOCKET:
-        delete protocol;
-        protocol = new WebSocket::WebSocket();
+        protocol = std::make_unique<WebSocket::WebSocket>();
         state    = State_t::BUSY;
+        info(endpoint + ": Changing to WebSocket");
         break;
       case AppProtocol_t::NONE:
         state = State_t::DONE;
@@ -123,10 +123,6 @@ void Connection::stop() {
     socket->shutdown(Net::socket_t::shutdown_both);
     socket->close();
   }
-  delete socket;
-  socket = nullptr;
-  delete protocol;
-  protocol = nullptr;
 }
 
 /**

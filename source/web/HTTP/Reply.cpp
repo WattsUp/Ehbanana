@@ -76,8 +76,14 @@ const std::vector<asio::const_buffer> & Reply::getBuffers() {
   if (buffers.empty()) {
     buffers.push_back(statusToBuffer());
     buffers.push_back(asio::buffer(STRING_CRLF));
-    for (size_t i = 0; i < headers.size(); ++i) {
-      Header_t & header = headers[i];
+
+    // Add content-length
+    if (!content.empty())
+      addHeader("Content-Length", std::to_string(content.size()));
+    else if (file != nullptr)
+      addHeader("Content-Length", std::to_string(file->size()));
+
+    for (const Header_t & header : headers) {
       buffers.push_back(asio::buffer(header.name));
       buffers.push_back(asio::buffer(STRING_NAME_VALUE_SEPARATOR));
       buffers.push_back(asio::buffer(header.value));
@@ -153,8 +159,6 @@ Reply Reply::stockReply(Status_t httpStatus) {
       reply.appendContent(StockReply::SERVICE_UNAVAILABLE);
       break;
   }
-  // TODO make length and type be added when getting buffers
-  reply.addHeader("Content-Length", std::to_string(reply.content.size()));
   reply.addHeader("Content-Type", "text/html");
   return reply;
 }

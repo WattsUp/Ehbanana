@@ -55,8 +55,6 @@ void HTTP::processReceiveBuffer(const uint8_t * begin, size_t length) {
       state = State_t::WRITING;
       break;
     case State_t::WRITING:
-    case State_t::WRITING_DONE:
-    case State_t::COMPLETE:
     default:
       throw std::exception(("Invalid HTTP state during RX: " +
                             std::to_string(static_cast<uint8_t>(state)))
@@ -67,17 +65,32 @@ void HTTP::processReceiveBuffer(const uint8_t * begin, size_t length) {
 /**
  * @brief Check the completion of the protocol
  *
- * @return true if a message is being processed or waiting for a message
- * @return false if all messages have been processed and no more are expected
+ * @return true if all messages have been processed and no more are expected
+ * @return false if a message is being processed or waiting for a message
  */
 bool HTTP::isDone() {
-  if (AppProtocol::isDone() && request.getHeaders().getConnection() ==
-                                   RequestHeaders::Connection_t::KEEP_ALIVE) {
-    request = Request();
-    reply   = Reply();
-    state   = State_t::READING;
-  }
-  return state == State_t::COMPLETE;
+  if (AppProtocol::isDone()) {
+    // No output messages waiting to transmit
+    switch (state) {
+      case State_t::READING:
+      case State_t::READING_DONE:
+        return false;
+      case State_t::WRITING:
+        if (request.getHeaders().getConnection() ==
+            RequestHeaders::Connection_t::KEEP_ALIVE) {
+          request = Request();
+          reply   = Reply();
+          state   = State_t::READING;
+          return false; // Writing completed, keep alive
+        } else
+          return true; // Writing completed, don't keep alive
+      default:
+        throw std::exception(("Invalid HTTP state during isDone: " +
+                              std::to_string(static_cast<uint8_t>(state)))
+                                 .c_str());
+    }
+  } else
+    return false;
 }
 
 /**
@@ -151,6 +164,7 @@ void HTTP::handleGET() {
 
   struct stat info;
   if (stat(uri.c_str(), &info) != 0) {
+    // TODO call outputFileCallback first, if still not found, 404
     reply = Reply::stockReply(Status_t::NOT_FOUND);
     return;
   }
@@ -162,13 +176,12 @@ void HTTP::handleGET() {
   std::shared_ptr<MemoryMapped> file =
       std::make_shared<MemoryMapped>(uri, 0, MemoryMapped::SequentialScan);
   if (!file->isValid()) {
-    reply = Reply::stockReply(Status_t::NOT_FOUND);
+    reply = Reply::stockReply(Status_t::INTERNAL_SERVER_ERROR);
     return;
   }
 
   // Determine the file extension.
   reply.addHeader("Content-Type", MIMETypes::Instance()->getType(uri));
-  reply.addHeader("Content-Length", std::to_string(file->size()));
   reply.addHeader(
       "Cache-Control", CacheControl::Instance()->getCacheControl(uri));
   switch (request.getHeaders().getConnection()) {

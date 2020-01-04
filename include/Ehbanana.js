@@ -1,4 +1,4 @@
-var ehbanana = {
+let ehbanana = {
   webSocket: null,
   webSocketAddress:
       "ws://" + window.location.hostname + ":" + window.location.port,
@@ -8,29 +8,34 @@ var ehbanana = {
    * @param {WebSocket event} event
    */
   webSocketMessage: function(event) {
-    var jsonEvent = JSON.parse(event.data);
+    let jsonEvent;
+    try {
+      jsonEvent = JSON.parse(event.data);
+    } catch (error) {
+      console.log("Failed t parse WebSocket data {}\n{}", error, event);
+    }
     if (jsonEvent.href != window.location.pathname && jsonEvent.href != "")
       return;
-    for (var id in jsonEvent.elements) {
-      var obj = document.getElementById(id);
+    for (let id of jsonEvent.elements) {
+      let obj = document.getElementById(id);
       if (!obj) {
         console.log("Ehbanana Message #" + id + " not found");
         continue;
       }
 
-      for (var key in jsonEvent.elements[id]) {
+      for (let key of jsonEvent.elements[id]) {
         obj[key] = jsonEvent.elements[id][key];
       }
       if (obj.classList.contains("eb-metric-prefix"))
         ehbanana.numToMetricPrefix(obj);
       if (obj.hasAttribute("ebcallback")) {
-        var func = window[obj.getAttribute("ebcallback")];
+        let func = window[obj.getAttribute("ebcallback")];
         if (typeof func == "function")
           func(obj);
       }
     }
     if (document.body.hasAttribute("ebmsg-callback")) {
-      var func = window[document.body.getAttribute("ebmsg-callback")];
+      let func = window[document.body.getAttribute("ebmsg-callback")];
       if (typeof func == "function")
         func();
     }
@@ -41,7 +46,21 @@ var ehbanana = {
    * @param {InputEvent} event
    */
   listenerInput: function(event) {
-    var jsonEvent = {
+    if (event.target.type == "file") {
+      for (let file of event.target.files) {
+        let jsonEvent = {
+          href: window.location.pathname,
+          id: event.target.id,
+          value: file.name,
+          fileSize: file.size
+        };
+        ehbanana.webSocket.send(JSON.stringify(jsonEvent));
+
+        ehbanana.webSocket.send(file);
+      }
+      return;
+    }
+    let jsonEvent = {
       href: window.location.pathname,
       id: event.target.id,
       value: "" + event.target.value
@@ -51,15 +70,7 @@ var ehbanana = {
     if (event.target.type == "checkbox")
       jsonEvent.value = "" + event.target.checked;
 
-    if (event.target.type == "file") {
-      jsonEvent.fileSize = event.target.files[0].size;
-    }
-
     ehbanana.webSocket.send(JSON.stringify(jsonEvent));
-
-    if (event.target.type == "file") {
-      ehbanana.webSocket.send(event.target.files[0]); // Sent as binary
-    }
   },
 
   /**
@@ -77,46 +88,46 @@ var ehbanana = {
    * Add a listener to each element with "eb-*" class
    */
   attachListeners: function() {
-    var elements = document.getElementsByClassName("eb-input");
-    for (var i = 0; i < elements.length; i++) {
-      if (elements[i].getAttribute("id") == null) {
-        if (elements[i].getAttribute("name") == null) {
-          console.log("No name nor id for eb-input:", elements[i]);
+    let elements = document.getElementsByClassName("eb-input");
+    for (let element of elements) {
+      if (element.getAttribute("id") == null) {
+        if (element.getAttribute("name") == null) {
+          console.log("No name nor id for eb-input:", element);
           continue;
         }
-        elements[i].setAttribute("id", elements[i].name);
+        element.setAttribute("id", element.name);
       }
-      if (elements[i].getAttribute("type") == "button")
-        elements[i].addEventListener("click", ehbanana.listenerInput);
+      if (element.getAttribute("type") == "button")
+        element.addEventListener("click", ehbanana.listenerInput);
       else
-        elements[i].addEventListener("input", ehbanana.listenerInput);
+        element.addEventListener("input", ehbanana.listenerInput);
     }
     elements = document.getElementsByClassName("eb-onload");
-    for (var i = 0; i < elements.length; i++) {
-      if (elements[i].getAttribute("id") == null) {
-        if (elements[i].getAttribute("name") == null) {
-          console.log("No name nor id for eb-onload:", elements[i]);
+    for (let element of elements) {
+      if (element.getAttribute("id") == null) {
+        if (element.getAttribute("name") == null) {
+          console.log("No name nor id for eb-onload:", element);
           continue;
         }
-        elements[i].setAttribute("id", elements[i].name);
+        element.setAttribute("id", element.name);
       }
-      var jsonEvent = {
+      let jsonEvent = {
         href: window.location.pathname,
-        id: elements[i].id,
-        value: "on-load-update"
+        id: element.id,
+        value: "on-load"
       };
       ehbanana.webSocket.send(JSON.stringify(jsonEvent));
     }
     elements = document.getElementsByClassName("eb-onenter");
-    for (var i = 0; i < elements.length; i++) {
-      if (elements[i].getAttribute("id") == null) {
-        if (elements[i].getAttribute("name") == null) {
-          console.log("No name nor id for eb-onload:", elements[i]);
+    for (let element of elements) {
+      if (element.getAttribute("id") == null) {
+        if (element.getAttribute("name") == null) {
+          console.log("No name nor id for eb-onload:", element);
           continue;
         }
-        elements[i].setAttribute("id", elements[i].name);
+        element.setAttribute("id", element.name);
       }
-      elements[i].addEventListener("keyup", ehbanana.listenerEnter);
+      element.addEventListener("keyup", ehbanana.listenerEnter);
     }
   },
 
@@ -128,7 +139,8 @@ var ehbanana = {
     ehbanana.webSocket           = new WebSocket(ehbanana.webSocketAddress);
     ehbanana.webSocket.onmessage = ehbanana.webSocketMessage;
     ehbanana.webSocket.onclose   = function(event) {
-      var webSocketStatus = document.getElementById("websocket-status");
+      console.log("Close");
+      let webSocketStatus = document.getElementById("websocket-status");
       if (webSocketStatus)
         webSocketStatus.innerHTML =
             "Closed connection to " + ehbanana.webSocketAddress;
@@ -139,7 +151,8 @@ var ehbanana = {
       }
     };
     ehbanana.webSocket.onopen = function(event) {
-      var webSocketStatus = document.getElementById("websocket-status");
+      console.log("Open");
+      let webSocketStatus = document.getElementById("websocket-status");
       if (webSocketStatus)
         webSocketStatus.innerHTML =
             "Opened connection to " + ehbanana.webSocketAddress;
@@ -149,13 +162,14 @@ var ehbanana = {
         document.body.classList.remove("ehbanana-closed");
       }
       if (document.readyState == "loading") {
-        document.addEventListener("load", ehbanana.attachListeners);
+        document.addEventListener("DOMContentLoaded", ehbanana.attachListeners);
       } else {
         ehbanana.attachListeners();
       }
     };
     ehbanana.webSocket.onerror = function(event) {
-      var webSocketStatus = document.getElementById("websocket-status");
+      console.log("Error");
+      let webSocketStatus = document.getElementById("websocket-status");
       if (webSocketStatus)
         webSocketStatus.innerHTML =
             "Could not connect to " + ehbanana.webSocketAddress;
@@ -169,7 +183,7 @@ var ehbanana = {
 
   /**
    * Set the innerHTML and value of the element to its num with proper metric
-   * prefix and its unit and number of significant figures
+   * prefix, its unit and number of significant figures
    *
    * attributes: unit, sigfig
    * @param {DOMElement} element to process
@@ -178,29 +192,26 @@ var ehbanana = {
     if (element == document.activeElement)
       return; // Don't change the focused element
 
-    var num = element["num"];
-    if (String(num).length == 0) {
-      element.innerHTML = "";
-      element.value     = "";
+    let num = element["num"];
+    if (typeof (num) != "number") {
+      element.innerHTML = num;
+      element.value     = num;
       return;
     }
-    if (num == "infinity") {
-      element.innerHTML = "infinity";
-      element.value     = "infinity";
-      return;
-    }
-    var exp    = Math.floor(Math.log10(Math.abs(num)) / 3);
+    let exp    = Math.floor(Math.log10(Math.abs(num)) / 3);
     exp        = Math.min(4, Math.max(-4, exp));
     num        = (num / Math.pow(1000, exp));
     num        = num.toPrecision(element.getAttribute("sigfig"));
-    var prefix = ["p", "n", "µ", "m", "", "k", "M", "G", "T"][exp + 4];
+    let prefix = ["p", "n", "µ", "m", "", "k", "M", "G", "T"][exp + 4];
     if (num == 0) {
       prefix = "";
     }
-    var unit = element["unit"];
+    let unit = element["unit"];
     if (!unit)
       unit = element.getAttribute("unit");
     element.innerHTML = num + " " + prefix + unit;
     element.value     = num + " " + prefix + unit;
   }
 };
+
+ehbanana.startWebsocket();
