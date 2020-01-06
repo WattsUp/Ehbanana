@@ -1,8 +1,10 @@
 #include <Ehbanana.h>
 #include <Windows.h>
 
+#include <chrono>
 #include <stdio.h>
 #include <string>
+#include <thread>
 
 FILE * logFile;
 

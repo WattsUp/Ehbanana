@@ -18,7 +18,7 @@ public:
   WebSocket(const WebSocket &) = delete;
   WebSocket & operator=(const WebSocket &) = delete;
 
-  WebSocket();
+  WebSocket(Server * server);
   ~WebSocket();
 
   void processReceiveBuffer(const uint8_t * begin, size_t length);

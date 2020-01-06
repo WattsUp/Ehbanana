@@ -24,7 +24,7 @@ public:
   Connection & operator=(const Connection &) = delete;
 
   Connection(std::unique_ptr<Net::socket_t> socket, std::string endpoint,
-      const timepoint_t<sysclk_t> & now);
+      const timepoint_t<sysclk_t> & now, Server * server);
   ~Connection();
 
   void update(const timepoint_t<sysclk_t> & now);
@@ -40,11 +40,13 @@ private:
   std::unique_ptr<Net::socket_t> socket;
   std::string                    endpoint;
 
+  Server * server;
+
   std::array<uint8_t, 8192> bufferReceive;
 
   State_t state = State_t::IDLE;
 
-  std::unique_ptr<AppProtocol> protocol = std::make_unique<HTTP::HTTP>();
+  std::unique_ptr<AppProtocol> protocol;
 
   timepoint_t<sysclk_t> timeoutTime;
 

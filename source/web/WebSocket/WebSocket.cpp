@@ -1,5 +1,6 @@
 #include "WebSocket.h"
 
+#include "../Server.h"
 #include "EhbananaLog.h"
 
 #include <rapidjson/document.h>
@@ -11,8 +12,9 @@ namespace WebSocket {
 /**
  * @brief Construct a new WebSocket::WebSocket object
  *
+ * @param server parent to callback
  */
-WebSocket::WebSocket() {}
+WebSocket::WebSocket(Server * server) : AppProtocol(server) {}
 
 /**
  * @brief Destroy the WebSocket::WebSocket object
@@ -83,15 +85,34 @@ void WebSocket::processFrameText() {
   if (doc.Parse(frameIn.getData().c_str()).HasParseError())
     throw std::exception("Failed to parse JSON");
 
+  if (!doc.HasMember("href") || !doc["href"].IsString())
+    throw std::exception("WebSocket input href is invalid");
+  if (!doc.HasMember("id") || !doc["id"].IsString())
+    throw std::exception("WebSocket input id is invalid");
+  if (!doc.HasMember("value") || !doc["href"].IsString())
+    throw std::exception("WebSocket input value is invalid");
+
   if (doc.HasMember("fileSize")) {
-    doc["fileSize"].GetInt(); // TODO call file callback
+    size_t fileSize;
+    if (doc["fileSize"].IsInt())
+      fileSize = static_cast<size_t>(doc["fileSize"].GetInt());
+    else if (doc["fileSize"].IsInt64())
+      fileSize = static_cast<size_t>(doc["fileSize"].GetInt64());
+    else if (doc["fileSize"].IsUint())
+      fileSize = static_cast<size_t>(doc["fileSize"].GetUint());
+    else if (doc["fileSize"].IsUint64())
+      fileSize = static_cast<size_t>(doc["fileSize"].GetUint64());
+    else
+      throw std::exception("WebSocket input fileSize is invalid");
+
+    // TODO call file callback
     // Create a file buffer
     // Pass it to frames until file is done loading
+    return;
   }
-  doc["href"].GetString();
-  doc["id"].GetString();
-  doc["value"].GetString();
-  // TODO call input callback
+
+  server->enqueueCallback(
+      doc["href"].GetString(), doc["id"].GetString(), doc["value"].GetString());
 }
 
 /**

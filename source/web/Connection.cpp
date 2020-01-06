@@ -13,15 +13,17 @@ namespace Web {
  * @param socket to read from and write to
  * @param endpoint socket is connected to
  * @param now current timestamp
+ * @param server parent to callback
  */
 Connection::Connection(std::unique_ptr<Net::socket_t> socket,
-    std::string endpoint, const timepoint_t<sysclk_t> & now) :
+    std::string endpoint, const timepoint_t<sysclk_t> & now, Server * server) :
   socket(std::move(socket)),
-  endpoint(endpoint) {
+  endpoint(endpoint), server(server) {
   this->timeoutTime = now + TIMEOUT;
 
   this->socket->non_blocking(true);
   this->socket->set_option(Net::socket_t::keep_alive(true));
+  protocol = std::make_unique<HTTP::HTTP>(server);
 }
 
 /**
@@ -90,12 +92,12 @@ void Connection::update(const timepoint_t<sysclk_t> & now) {
   if (protocol->isDone()) {
     switch (protocol->getChangeRequest()) {
       case AppProtocol_t::HTTP:
-        protocol = std::make_unique<HTTP::HTTP>();
+        protocol = std::make_unique<HTTP::HTTP>(server);
         state    = State_t::BUSY;
         info(endpoint + ": Changing to HTTP");
         break;
       case AppProtocol_t::WEBSOCKET:
-        protocol = std::make_unique<WebSocket::WebSocket>();
+        protocol = std::make_unique<WebSocket::WebSocket>(server);
         state    = State_t::BUSY;
         info(endpoint + ": Changing to WebSocket");
         break;

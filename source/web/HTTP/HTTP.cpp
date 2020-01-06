@@ -19,8 +19,9 @@ namespace HTTP {
 /**
  * @brief Construct a new HTTP::HTTP object
  *
+ * @param server parent to callback
  */
-HTTP::HTTP() {}
+HTTP::HTTP(Server * server) : AppProtocol(server) {}
 
 /**
  * @brief Destroy the HTTP::HTTP object

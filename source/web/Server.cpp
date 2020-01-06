@@ -19,7 +19,7 @@ namespace Web {
  * increment until an available port is open
  */
 Server::Server(const EBGUISettings_t settings) :
-  ioContext(1), acceptor(ioContext) {
+  ioContext(1), acceptor(ioContext), pool(settings.callbackThreadPool) {
   TIMEOUT_NO_CONNECTIONS = seconds_t(settings.timeoutIdle);
 
   HTTP::HTTP::setRoot(settings.httpRoot);
@@ -123,8 +123,8 @@ void Server::run() {
     if (!errorCode) {
       std::string endpointString = endpointStr(endpoint);
       info("Opening connection to " + endpointString);
-      connections.push_back(
-          std::make_unique<Connection>(std::move(socket), endpointString, now));
+      connections.push_back(std::make_unique<Connection>(
+          std::move(socket), endpointString, now, this));
       socket       = nullptr;
       didSomething = true;
     } else if (errorCode != asio::error::would_block) {
@@ -235,6 +235,23 @@ void Server::attachCallback(
  */
 void Server::setOutputCallback(const EBOutputFileCallback_t callback) {
   outputFileCallback = callback;
+}
+
+/**
+ * @brief Enqueue a callback routine in the thread pool
+ *
+ * @param uri of the triggering page
+ * @param id of the triggering element
+ * @param value of the triggering element
+ */
+void Server::enqueueCallback(const std::string & uri, const std::string & id,
+    const std::string & value) {
+  if (inputCallbacks.find(uri) != inputCallbacks.end()) {
+    EBInputCallback_t func = inputCallbacks[uri];
+    pool.push(
+        [func, id, value](int threadID) { (func)(id.c_str(), value.c_str()); });
+  } else
+    warn("No input callback found for \"" + uri + "\"");
 }
 
 /**

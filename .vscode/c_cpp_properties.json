@@ -8,6 +8,7 @@
       "${workspaceFolder}/lib/asio/asio/include/**",
       "${workspaceFolder}/lib/digestpp/**",
       "${workspaceFolder}/lib/cpp-base64/**",
+      "${workspaceFolder}/lib/CTPL/**",
       "${workspaceFolder}/lib/rapidjson/include/**"
     ],
     "defines": [

@@ -17,7 +17,7 @@ public:
   HTTP(const HTTP &) = delete;
   HTTP & operator=(const HTTP &) = delete;
 
-  HTTP();
+  HTTP(Server * server);
   ~HTTP();
 
   void          processReceiveBuffer(const uint8_t * begin, size_t length);

@@ -7,10 +7,14 @@
 
 namespace Ehbanana {
 namespace Web {
+class Server;
 
 enum class AppProtocol_t : uint8_t { NONE, HTTP, WEBSOCKET };
 
 class AppProtocol {
+protected:
+  Server * server;
+
 public:
   AppProtocol(const AppProtocol &) = delete;
   AppProtocol & operator=(const AppProtocol &) = delete;
@@ -18,8 +22,9 @@ public:
   /**
    * @brief Construct a new App Protocol object
    *
+   * @param server parent to callback
    */
-  AppProtocol() {}
+  AppProtocol(Server * server) : server(server) {}
 
   /**
    * @brief Destroy the App Protocol object

@@ -7,6 +7,7 @@
 #include "Utils.h"
 
 #include <asio.hpp>
+#include <ctpl_stl.h>
 
 #include <atomic>
 #include <chrono>
@@ -39,6 +40,9 @@ public:
       const std::string & uri, const EBInputFileCallback_t callback);
   void setOutputCallback(const EBOutputFileCallback_t callback);
 
+  void enqueueCallback(const std::string & uri, const std::string & id,
+      const std::string & value);
+
   const std::string & getDomainName() const;
 
   static const uint16_t PORT_AUTO    = 0;
@@ -49,6 +53,7 @@ private:
 
   std::unique_ptr<std::thread> thread  = nullptr;
   std::atomic<bool>            running = false;
+  ctpl::thread_pool            pool;
 
   asio::io_context ioContext;
   Net::acceptor_t  acceptor;

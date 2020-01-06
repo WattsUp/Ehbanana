@@ -13,3 +13,6 @@
 [submodule "lib/rapidjson"]
 	path = lib/rapidjson
 	url = https://github.com/Tencent/rapidjson.git
+[submodule "lib/CTPL"]
+	path = lib/CTPL
+	url = https://github.com/vit-vit/CTPL.git
