@@ -1,5 +1,7 @@
 #include "RequestHeaders.h"
 
+#include "EhbananaLog.h"
+
 namespace Ehbanana {
 namespace Web {
 namespace HTTP {
@@ -48,10 +50,11 @@ void RequestHeaders::addHeader(HeaderHash_t header) {
     case Hash::calculateHash("Sec-Fetch-Mode"):
     case Hash::calculateHash("Sec-Fetch-User"):
     case Hash::calculateHash("Sec-Fetch-Site"):
+    case Hash::calculateHash("Content-Type"):
       // Ignoring
       break;
     default:
-      throw std::exception("The request header is not recognized");
+      warn("The request header is not recognized");
   }
 }
 

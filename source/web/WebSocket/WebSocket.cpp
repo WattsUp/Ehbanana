@@ -30,40 +30,39 @@ WebSocket::~WebSocket() {}
  * @throw std::exception Thrown on failure
  */
 void WebSocket::processReceiveBuffer(const uint8_t * begin, size_t length) {
-  if (!frameIn.decode(begin, length)) // TODO pass in file buffer for if binary
-    return;                           // More data for the frame
+  if (!frameIn.decode(begin, length))
+    return; // More data for the frame
 
   switch (frameIn.getOpcode()) {
     case Opcode_t::TEXT:
       processFrameText();
       break;
     case Opcode_t::BINARY:
-      // TODO close current file buffer as it is done loading transferring
+      throw std::exception("WebSocket binary is not supported");
       break;
     case Opcode_t::PING: {
       debug("WebSocket received ping");
       // Send pong
       std::shared_ptr<Frame> frame = std::make_shared<Frame>();
-      frame->addData(frameIn.getData());
+      frame->addData(frameIn.getString());
       frame->setOpcode(Opcode_t::PONG);
       framesOut.push_front(frame);
     } break;
     case Opcode_t::PONG:
       debug("WebSocket received pong");
       pingSent = false;
+      // Frame is done, clear
+      frameIn = Frame();
       break;
     case Opcode_t::CLOSE:
       debug("WebSocket received close");
       // Echo the close back
       std::shared_ptr<Frame> frame = std::make_shared<Frame>();
-      frame->addData(frameIn.getData());
+      frame->addData(frameIn.getString());
       frame->setOpcode(Opcode_t::CLOSE);
       framesOut.push_front(frame);
       pingSent = true;
   }
-
-  // Frame is done, clear
-  frameIn = Frame();
 
   // If the receive buffer has more data (multiple frames in the buffer),
   // recursively process them
@@ -82,7 +81,7 @@ void WebSocket::processFrameText() {
   rapidjson::Document doc;
 
   // Parse JSON
-  if (doc.Parse(frameIn.getData().c_str()).HasParseError())
+  if (doc.Parse(frameIn.getString().c_str()).HasParseError())
     throw std::exception("Failed to parse JSON");
 
   if (!doc.HasMember("href") || !doc["href"].IsString())
@@ -92,27 +91,11 @@ void WebSocket::processFrameText() {
   if (!doc.HasMember("value") || !doc["href"].IsString())
     throw std::exception("WebSocket input value is invalid");
 
-  if (doc.HasMember("fileSize")) {
-    size_t fileSize;
-    if (doc["fileSize"].IsInt())
-      fileSize = static_cast<size_t>(doc["fileSize"].GetInt());
-    else if (doc["fileSize"].IsInt64())
-      fileSize = static_cast<size_t>(doc["fileSize"].GetInt64());
-    else if (doc["fileSize"].IsUint())
-      fileSize = static_cast<size_t>(doc["fileSize"].GetUint());
-    else if (doc["fileSize"].IsUint64())
-      fileSize = static_cast<size_t>(doc["fileSize"].GetUint64());
-    else
-      throw std::exception("WebSocket input fileSize is invalid");
-
-    // TODO call file callback
-    // Create a file buffer
-    // Pass it to frames until file is done loading
-    return;
-  }
-
   server->enqueueCallback(
       doc["href"].GetString(), doc["id"].GetString(), doc["value"].GetString());
+
+  // Frame is done, clear
+  frameIn = Frame();
 }
 
 /**

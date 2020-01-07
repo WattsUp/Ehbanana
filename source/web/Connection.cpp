@@ -68,6 +68,7 @@ void Connection::update(const timepoint_t<sysclk_t> & now) {
         if (err)
           throw std::exception("Failed to open RX buffer file");
         fwrite(bufferReceive.data(), 1, length, file);
+        fclose(file);
         error("Exception occurred whilst processing RX buffer. Buffer saved "
               "to: " +
               filename);

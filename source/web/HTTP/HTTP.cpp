@@ -214,6 +214,8 @@ void HTTP::handlePOST() {
     info("POST URI: \"" + uri + "\" Queries:" + buffer);
   }
 
+  debug(request.getBody()); // TODO fix
+
   reply.setStatus(Status_t::NOT_IMPLEMENTED);
 }
 

@@ -25,9 +25,10 @@ public:
 
   void setOpcode(Opcode_t code);
 
-  const Opcode_t      getOpcode() const;
-  const std::string & getData() const;
-  void                addData(const std::string & string);
+  const Opcode_t getOpcode() const;
+  void           addData(const std::string & data);
+
+  const std::string & getString() const;
 
   const std::vector<asio::const_buffer> & getBuffers();
 
@@ -52,7 +53,7 @@ private:
   uint64_t    payloadLength = 0;
   uint32_t    maskingKey    = 0;
   bool        fin           = false;
-  std::string data;
+  std::string string;
 };
 
 } // namespace WebSocket

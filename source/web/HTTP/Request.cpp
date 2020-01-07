@@ -74,13 +74,13 @@ void Request::parse(uint8_t c) {
       if (c == '=') {
         state             = State_t::QUERY_VALUE;
         currentQuery.name = decodeURI(currentQuery.name);
-      } else if (c != '&') {
+      } else if (c == '&') {
         // Valueless query
         state             = State_t::QUERY_NAME;
         currentQuery.name = decodeURI(currentQuery.name);
         queries.push_back(currentQuery);
         currentQuery = Query_t();
-      } else if (c != ' ') {
+      } else if (c == ' ') {
         // Valueless query
         state             = State_t::HTTP_VERSION;
         currentQuery.name = decodeURI(currentQuery.name);
@@ -226,6 +226,15 @@ HashValue_t Request::getMethodHash() const {
  */
 const std::string & Request::getURI() const {
   return uri;
+}
+
+/**
+ * @brief Get the body of the request
+ *
+ * @return const std::string&
+ */
+const std::string & Request::getBody() const {
+  return body;
 }
 
 /**

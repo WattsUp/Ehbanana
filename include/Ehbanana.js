@@ -46,20 +46,6 @@ let ehbanana = {
    * @param {InputEvent} event
    */
   listenerInput: function(event) {
-    if (event.target.type == "file") {
-      for (let file of event.target.files) {
-        let jsonEvent = {
-          href: window.location.pathname,
-          id: event.target.id,
-          value: file.name,
-          fileSize: file.size
-        };
-        ehbanana.webSocket.send(JSON.stringify(jsonEvent));
-
-        ehbanana.webSocket.send(file);
-      }
-      return;
-    }
     let jsonEvent = {
       href: window.location.pathname,
       id: event.target.id,
@@ -85,6 +71,22 @@ let ehbanana = {
   },
 
   /**
+   * Listen to a file input event and POST it to the server
+   * @param {FileEvent} event
+   */
+  listenerFile: function(event) {
+    for (let file of event.target.files) {
+      let uri = window.location.pathname + "?";
+      uri += "id=" + event.target.id;
+
+      fetch(uri, {method: "POST", body: file})
+          .then(response => response.json())
+          .then(data => {console.log(data.path)})
+          .catch(error => {console.error(error)})
+    }
+  },
+
+  /**
    * Add a listener to each element with "eb-*" class
    */
   attachListeners: function() {
@@ -99,6 +101,8 @@ let ehbanana = {
       }
       if (element.getAttribute("type") == "button")
         element.addEventListener("click", ehbanana.listenerInput);
+      else if (element.getAttribute("type") == "file")
+        element.addEventListener("input", ehbanana.listenerFile);
       else
         element.addEventListener("input", ehbanana.listenerInput);
     }

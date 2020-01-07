@@ -32,6 +32,9 @@ enum class EBError_t : uint8_t {
   PROCESS_START         = 4,
   NOT_SUPPORTED         = 5,
   NO_SERVER_CREATED     = 6,
+  END_OF_FILE           = 7,
+  BUFFER_EMPTY          = 8,
+  BUFFER_FULL           = 9,
 };
 
 #define EB_FAILED(error) (error != EBError_t::SUCCESS)
@@ -69,18 +72,40 @@ typedef void(__stdcall * EBInputCallback_t)(
 extern "C" EHBANANA_API EBError_t EBAttachCallback(
     const char * uri, const EBInputCallback_t inputCallback);
 
+namespace Ehbanana {
+class Buffer;
+}
+
 /**
  * @brief A buffer to transfer files to/from the GUI
  * Use EBBufferRead and EBBufferWrite to read/write
  *
  */
 struct EBBuffer_t {
-  uint8_t * buf      = nullptr;
-  uint16_t  head     = 0;
-  uint16_t  tail     = 0;
-  uint16_t  size     = 0;
-  bool      complete = false;
+  bool complete = false;
+
+  Ehbanana::Buffer * _internal_buffer = nullptr;
 };
+
+/**
+ * @brief Read from a buffer
+ *
+ * @param buffer to read from
+ * @param buf to return
+ * @return EBError_t zero on success, non-zero on failure
+ */
+extern "C" EHBANANA_API EBError_t EBBufferRead(
+    const EBBuffer_t * buffer, uint8_t * buf);
+
+/**
+ * @brief Write to a buffer
+ *
+ * @param buffer to write to
+ * @param buf to write
+ * @return EBError_t zero on success, non-zero on failure
+ */
+extern "C" EHBANANA_API EBError_t EBBufferWrite(
+    const EBBuffer_t * buffer, const uint8_t buf);
 
 /**
  * @brief Process input file from the GUI

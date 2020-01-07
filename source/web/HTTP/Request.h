@@ -26,6 +26,7 @@ public:
 
   HashValue_t                getMethodHash() const;
   const std::string &        getURI() const;
+  const std::string &        getBody() const;
   const std::list<Query_t> & getQueries() const;
   const RequestHeaders &     getHeaders() const;
 

@@ -248,10 +248,29 @@ void Server::enqueueCallback(const std::string & uri, const std::string & id,
     const std::string & value) {
   if (inputCallbacks.find(uri) != inputCallbacks.end()) {
     EBInputCallback_t func = inputCallbacks[uri];
-    pool.push(
-        [func, id, value](int threadID) { (func)(id.c_str(), value.c_str()); });
+    pool.push([func, id, value](
+                  int /* threadID */) { (func)(id.c_str(), value.c_str()); });
   } else
     warn("No input callback found for \"" + uri + "\"");
+}
+
+/**
+ * @brief Enqueue a callback routine in the thread pool
+ *
+ * @param uri of the triggering page
+ * @param id of the triggering element
+ * @param value of the triggering element
+ * @param buffer of the triggering file
+ */
+void Server::enqueueCallback(const std::string & uri, const std::string & id,
+    const std::string & value, std::shared_ptr<Buffer> buffer) {
+  if (inputFileCallbacks.find(uri) != inputFileCallbacks.end()) {
+    EBInputFileCallback_t func = inputFileCallbacks[uri];
+    pool.push([func, id, value, buffer](int /* threadID */) {
+      (func)(id.c_str(), value.c_str(), buffer->getHandle());
+    });
+  } else
+    warn("No input file callback found for \"" + uri + "\"");
 }
 
 /**
@@ -266,8 +285,8 @@ const std::string & Server::getDomainName() const {
 /**
  * @brief Check if the server is complete
  *
- * @return true when connections have been idle for greater than the timeout or
- * server is not running
+ * @return true when connections have been idle for greater than the timeout
+ * or server is not running
  * @return false otherwise
  */
 bool Server::isDone() const {

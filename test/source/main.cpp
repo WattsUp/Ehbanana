@@ -1,6 +1,8 @@
 #include <Ehbanana.h>
 #include <Windows.h>
 
+#include <algorithm/sha1.hpp>
+#include <base64.h>
 #include <chrono>
 #include <stdio.h>
 #include <string>
@@ -59,6 +61,20 @@ void __stdcall callbackRoot(const char * id, const char * value) {
 void __stdcall callbackRootFile(
     const char * id, const char * value, EBBuffer_t * file) {
   printf("Callback file from %s with %s\n", id, value);
+
+  EBError_t      error;
+  uint8_t        buf;
+  digestpp::sha1 sha;
+  while ((error = EBBufferRead(file, &buf)) != EBError_t::END_OF_FILE) {
+    if (error == EBError_t::BUFFER_EMPTY)
+      printf("Main wait");
+    // std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    else
+      sha.absorb(&buf, 1);
+  }
+  uint8_t str[20];
+  sha.digest(str, 20);
+  printf("File downloaded %s\n", base64_encode(str, 20).c_str());
 }
 
 void __stdcall callbackOutputFile(

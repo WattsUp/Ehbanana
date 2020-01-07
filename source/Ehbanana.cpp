@@ -32,6 +32,35 @@ EBError_t EBAttachCallback(
   return EBError_t::SUCCESS;
 }
 
+EBError_t EBBufferRead(const EBBuffer_t * buffer, uint8_t * buf) {
+  if (buffer == nullptr || buffer->_internal_buffer == nullptr ||
+      buf == nullptr) {
+    Ehbanana::error("Buffer is invalid");
+    return EBError_t::EXCEPTION_OCCURRED;
+  }
+  try {
+    *buf = buffer->_internal_buffer->read();
+  } catch (const std::exception & e) {
+    if (buffer->complete)
+      return EBError_t::END_OF_FILE; // TODO add block read/writes
+    return EBError_t::BUFFER_EMPTY;
+  }
+  return EBError_t::SUCCESS;
+}
+
+EBError_t EBBufferWrite(const EBBuffer_t * buffer, const uint8_t buf) {
+  if (buffer == nullptr || buffer->_internal_buffer == nullptr) {
+    Ehbanana::error("Buffer is invalid");
+    return EBError_t::EXCEPTION_OCCURRED;
+  }
+  try {
+    buffer->_internal_buffer->write(buf);
+  } catch (const std::exception & e) {
+    return EBError_t::BUFFER_FULL;
+  }
+  return EBError_t::SUCCESS;
+}
+
 EBError_t EBAttachInputFileCallback(
     const char * uri, const EBInputFileCallback_t inputFileCallback) {
   if (server == nullptr) {
@@ -178,6 +207,14 @@ const char * EBErrorName(EBError_t errorCode) {
     case EBError_t::NO_SERVER_CREATED:
       return "The operation requires a server to be created first, see "
              "EBCreate";
+    case EBError_t::END_OF_FILE:
+      return "The stream has reached the end of the file, no more data to read";
+    case EBError_t::BUFFER_EMPTY:
+      return "The stream has reached the end of its internal buffer, wait for "
+             "more data";
+    case EBError_t::BUFFER_FULL:
+      return "The stream has filled its internal buffer, wait for data to be "
+             "consumed";
     default:
       return "The error code is not recognized";
   }
