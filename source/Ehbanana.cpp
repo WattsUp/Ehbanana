@@ -1,10 +1,12 @@
 #include "Ehbanana.h"
 
 #include "EhbananaLog.h"
+#include "MessageOut.h"
 #include "Utils.h"
 #include "Version.h"
 #include "web/Server.h"
 
+#include <algorithm>
 #include <memory>
 
 static const EBVersionInfo_t EB_VERSION_INFO = {
@@ -179,10 +181,92 @@ EBError_t EBDestroy() {
   return EBError_t::SUCCESS;
 }
 
-EBError_t EBEnqueueOutput(
-    const char * /* uri */, const EBElement_t * /* elementHead */) {
-  // TODO convert list to JSON to string to WebSocket Frame and send
-  return EBError_t::NOT_SUPPORTED;
+EBError_t EBCreateOutput(const char * uri, EBOutput_t * output) {
+  try {
+    *output = new Ehbanana::MessageOut(uri);
+  } catch (const std::exception & e) {
+    Ehbanana::error(e.what());
+    return EBError_t::EXCEPTION_OCCURRED;
+  }
+  return EBError_t::SUCCESS;
+}
+
+EBError_t EBAddOutput(const EBOutput_t output, const char * id,
+    const char * property, const EBValueType_t type, const void * value) {
+  if (output == nullptr || id == nullptr || property == nullptr ||
+      value == nullptr) {
+    Ehbanana::error("One or more arguments are null");
+    return EBError_t::NULL_ARGUMENT;
+  }
+
+  try {
+    Ehbanana::MessageOut * messageOut =
+        reinterpret_cast<Ehbanana::MessageOut *>(output);
+    switch (type) {
+      case EBValueType_t::UINT8:
+        messageOut->add(id, property, *(const uint8_t *)value);
+        break;
+      case EBValueType_t::INT8:
+        messageOut->add(id, property, *(const int8_t *)value);
+        break;
+      case EBValueType_t::UINT16:
+        messageOut->add(id, property, *(const uint16_t *)value);
+        break;
+      case EBValueType_t::INT16:
+        messageOut->add(id, property, *(const int16_t *)value);
+        break;
+      case EBValueType_t::UINT32:
+        messageOut->add(id, property, *(const uint32_t *)value);
+        break;
+      case EBValueType_t::INT32:
+        messageOut->add(id, property, *(const int32_t *)value);
+        break;
+      case EBValueType_t::UINT64:
+        messageOut->add(id, property, *(const uint64_t *)value);
+        break;
+      case EBValueType_t::INT64:
+        messageOut->add(id, property, *(const int64_t *)value);
+        break;
+      case EBValueType_t::FLOAT:
+        messageOut->add(id, property, *(const float *)value);
+        break;
+      case EBValueType_t::DOUBLE:
+        messageOut->add(id, property, *(const double *)value);
+        break;
+      case EBValueType_t::CSTRING:
+        messageOut->add(id, property, (const char *)value);
+        break;
+      default:
+        throw std::exception("Value type is not recognized");
+        break;
+    }
+  } catch (const std::exception & e) {
+    Ehbanana::error(e.what());
+    return EBError_t::EXCEPTION_OCCURRED;
+  }
+  return EBError_t::SUCCESS;
+}
+
+EBError_t EBEnqueueOutput(const EBOutput_t output) {
+  if (server == nullptr) {
+    Ehbanana::error("No server created, use EBCreate");
+    return EBError_t::NO_SERVER_CREATED;
+  }
+
+  if (output == nullptr) {
+    Ehbanana::error("One or more arguments are null");
+    return EBError_t::NULL_ARGUMENT;
+  }
+
+  try {
+    std::shared_ptr<Ehbanana::MessageOut> messageOut(
+        (Ehbanana::MessageOut *)output);
+    server->enqueueOutput(messageOut);
+  } catch (const std::exception & e) {
+    Ehbanana::error(e.what());
+    return EBError_t::EXCEPTION_OCCURRED;
+  }
+  return EBError_t::SUCCESS;
 }
 
 void EBSetLogger(const EBLogger_t logger) {
@@ -215,6 +299,8 @@ const char * EBErrorName(EBError_t errorCode) {
     case EBError_t::BUFFER_FULL:
       return "The stream has filled its internal buffer, wait for data to be "
              "consumed";
+    case EBError_t::NULL_ARGUMENT:
+      return "One or more arguments is null and not allowed";
     default:
       return "The error code is not recognized";
   }

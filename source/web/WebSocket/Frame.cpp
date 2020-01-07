@@ -8,7 +8,8 @@ namespace WebSocket {
  * @brief Construct a new Frame:: Frame object
  *
  */
-Frame::Frame() {}
+Frame::Frame(std::shared_ptr<Ehbanana::MessageOut> message) :
+  messageOut(message) {}
 
 /**
  * @brief Destroy the Frame:: Frame object
@@ -152,7 +153,10 @@ const std::vector<asio::const_buffer> & Frame::getBuffers() {
   // If the buffers vector is empty, populate first
   if (buffers.empty()) {
     header.push_back(0x80 | static_cast<uint8_t>(opcode)); // FIN = 1
-    payloadLength = string.size();
+    if (!string.empty())
+      payloadLength = string.size();
+    else if (messageOut != nullptr)
+      payloadLength = messageOut->size();
     // No masking
     if (payloadLength < 126) {
       // 7b payloadLength
@@ -173,7 +177,10 @@ const std::vector<asio::const_buffer> & Frame::getBuffers() {
       header.push_back(static_cast<uint8_t>((payloadLength >> 0) & 0xFF));
     }
     buffers.push_back(asio::buffer(header));
-    buffers.push_back(asio::buffer(string));
+    if (!string.empty())
+      buffers.push_back(asio::buffer(string));
+    else if (messageOut != nullptr)
+      buffers.push_back(asio::buffer(messageOut->getString(), payloadLength));
   }
   return buffers;
 }

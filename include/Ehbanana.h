@@ -35,6 +35,7 @@ enum class EBError_t : uint8_t {
   END_OF_FILE           = 7,
   BUFFER_EMPTY          = 8,
   BUFFER_FULL           = 9,
+  NULL_ARGUMENT         = 10,
 };
 
 #define EB_FAILED(error) (error != EBError_t::SUCCESS)
@@ -84,7 +85,8 @@ class Buffer;
 struct EBBuffer_t {
   bool complete = false;
 
-  Ehbanana::Buffer * _internal_buffer = nullptr;
+  Ehbanana::Buffer * _internal_buffer =
+      nullptr; // TODO change to just a void * and add a complete flag to write
 };
 
 /**
@@ -218,41 +220,59 @@ extern "C" EHBANANA_API bool EBIsDone(bool blocking = false);
  */
 extern "C" EHBANANA_API EBError_t EBDestroy();
 
-// Type enum for EBElement_t's union
-enum class EBValueType_t : uint8_t { UINT64, INT64, DOUBLE, CSTRING };
+typedef void * EBOutput_t;
 
 /**
- * @brief Encapsulation of an output message which modifies the property of an
- * element
+ * @brief Create an output object, server owns its memory and will automatically
+ * dispose of it
  *
- * Multiple elements can be modified together by linking them together as a
- * singly linked list
- *
- * Type must match value or an error will occur. Using EBAddElement is
- * recommended to avoid errors.
+ * @param uri of the target page, nullptr will broadcast to all pages
+ * @param output object, nullptr if failed
+ * @return EBError_t zero on success, non-zero on failure
  */
-struct EBElement_t {
-  const char *  id       = nullptr; // HTML id of the element
-  const char *  property = nullptr; // to set value for
-  EBValueType_t type;               // of encapsulated union
-  union {                           // of the property to set
-    uint64_t     u;
-    int64_t      i;
-    double       d;
-    const char * c = nullptr;
-  } value;
-  const EBElement_t * next = nullptr; // Singly linked list of elements
+extern "C" EHBANANA_API EBError_t EBCreateOutput(
+    const char * uri, EBOutput_t * output);
+
+// Enum of output types
+enum class EBValueType_t : uint8_t {
+  UINT8,
+  INT8,
+  UINT16,
+  INT16,
+  UINT32,
+  INT32,
+  UINT64,
+  INT64,
+  FLOAT,
+  DOUBLE,
+  CSTRING
 };
 
 /**
- * @brief Enqueue a list of output elements with a desired target page
+ * @brief Add a property/value pair to an output object, value will be deep
+ * copied
  *
- * @param uri of the target page, nullptr will broadcast to all pages
- * @param elementHead of the outputElement(s). Elements will be deep copied
+ * @param output object
+ * @param id of the target element
+ * @param property of element
+ * @param type of value
+ * @param value of property
  * @return EBError_t zero on success, non-zero on failure
  */
-extern "C" EHBANANA_API EBError_t EBEnqueueOutput(
-    const char * uri, const EBElement_t * elementHead);
+extern "C" EHBANANA_API EBError_t EBAddOutput(const EBOutput_t output,
+    const char * id, const char * property, const EBValueType_t type,
+    const void * value);
+
+#include "ehbanana/AddOutput.h" // Type overrides
+
+/**
+ * @brief Enqueue an output object
+ * Do not access the output object once enqueued, it is deleted
+ *
+ * @param output element to enqueue, server will delete memory once sent out
+ * @return EBError_t zero on success, non-zero on failure
+ */
+extern "C" EHBANANA_API EBError_t EBEnqueueOutput(const EBOutput_t output);
 
 // Logging level enum for filtering messages
 enum class EBLogLevel_t : uint8_t {

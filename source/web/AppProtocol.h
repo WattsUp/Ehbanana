@@ -2,6 +2,7 @@
 #define _WEB_APP_PROTOCOL_H_
 
 #include "Ehbanana.h"
+#include "MessageOut.h"
 
 #include <asio.hpp>
 
@@ -112,6 +113,14 @@ public:
   virtual bool sendAliveCheck() {
     return true;
   }
+
+  /**
+   * @brief Enqueue an output message
+   *
+   * @param message default is unused
+   */
+  virtual void enqueueOutput(
+      std::shared_ptr<Ehbanana::MessageOut> /* message */) {}
 
 protected:
   /**

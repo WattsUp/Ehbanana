@@ -50,6 +50,30 @@ void __stdcall logEhbanana(const EBLogLevel_t level, const char * string) {
  */
 void __stdcall callbackRoot(const char * id, const char * value) {
   printf("Callback from %s with %s\n", id, value);
+  EBError_t error;
+
+  EBOutput_t output;
+
+  error = EBCreateOutput(nullptr, &output);
+  if (EB_FAILED(error)) {
+    printf("Failed to create output\n");
+    MessageBoxA(NULL, EBErrorName(error), "Error", MB_OK);
+    return;
+  }
+
+  try {
+    EBAddOutputEx(output, "text-out", "innerHTML", 42);
+  } catch (const std::exception & e) {
+    printf("Failed to add output\n");
+    MessageBoxA(NULL, e.what(), "Error", MB_OK);
+  }
+
+  error = EBEnqueueOutput(output);
+  if (EB_FAILED(error)) {
+    printf("Failed to enqueue output\n");
+    MessageBoxA(NULL, EBErrorName(error), "Error", MB_OK);
+    return;
+  }
 }
 
 /**

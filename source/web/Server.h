@@ -4,7 +4,7 @@
 #include "Buffer.h"
 #include "Connection.h"
 #include "Ehbanana.h"
-
+#include "MessageOut.h"
 #include "Utils.h"
 
 #include <asio.hpp>
@@ -46,6 +46,8 @@ public:
   void enqueueCallback(const std::string & uri, const std::string & id,
       const std::string & value, std::shared_ptr<Buffer> buffer);
 
+  void enqueueOutput(std::shared_ptr<Ehbanana::MessageOut> message);
+
   const std::string & getDomainName() const;
 
   static const uint16_t PORT_AUTO    = 0;
@@ -63,7 +65,8 @@ private:
 
   std::string domainName;
 
-  std::list<std::unique_ptr<Connection> > connections;
+  std::list<std::unique_ptr<Connection> >           connections;
+  std::list<std::shared_ptr<Ehbanana::MessageOut> > messagesOut;
 
   std::unordered_map<std::string, EBInputCallback_t>     inputCallbacks;
   std::unordered_map<std::string, EBInputFileCallback_t> inputFileCallbacks;

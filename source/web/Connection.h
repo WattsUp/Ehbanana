@@ -4,6 +4,7 @@
 #include "AppProtocol.h"
 #include "Ehbanana.h"
 #include "HTTP/HTTP.h"
+#include "MessageOut.h"
 #include "Utils.h"
 #include "WebSocket/WebSocket.h"
 
@@ -29,6 +30,8 @@ public:
 
   void update(const timepoint_t<sysclk_t> & now);
   void stop();
+
+  void enqueueOutput(std::shared_ptr<Ehbanana::MessageOut> message);
 
   const std::string & toString() const;
 

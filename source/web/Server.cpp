@@ -133,10 +133,19 @@ void Server::run() {
     }
     // else no waiting connections
 
+    std::shared_ptr<Ehbanana::MessageOut> messageOut = nullptr;
+    if (!messagesOut.empty()) {
+      messageOut = messagesOut.front();
+      messagesOut.pop_front();
+    }
+
     // Process current connections
     auto it = connections.begin();
     while (it != connections.end()) {
       const std::unique_ptr<Connection> & connection = *it;
+
+      if (messageOut != nullptr)
+        connection->enqueueOutput(messageOut);
 
       // Remove the connection and delete if update returns the connection is
       // complete
@@ -199,10 +208,8 @@ void Server::stop() {
     return;
   if (thread->joinable())
     thread->join();
-  for (const std::unique_ptr<Connection> & connection : connections) {
-    connection->stop();
-  }
   connections.clear();
+  messagesOut.clear();
 }
 
 /**
@@ -271,6 +278,15 @@ void Server::enqueueCallback(const std::string & uri, const std::string & id,
     });
   } else
     warn("No input file callback found for \"" + uri + "\"");
+}
+
+/**
+ * @brief Enqueue an output message
+ *
+ * @param message
+ */
+void Server::enqueueOutput(std::shared_ptr<Ehbanana::MessageOut> message) {
+  messagesOut.emplace_back(message);
 }
 
 /**

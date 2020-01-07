@@ -1,6 +1,8 @@
 #ifndef _WEB_WEBSOCKET_FRAME_H_
 #define _WEB_WEBSOCKET_FRAME_H_
 
+#include "MessageOut.h"
+
 #include <asio.hpp>
 
 namespace Ehbanana {
@@ -18,7 +20,7 @@ enum class Opcode_t : uint8_t {
 
 class Frame {
 public:
-  Frame();
+  Frame(std::shared_ptr<Ehbanana::MessageOut> message = nullptr);
   ~Frame();
 
   bool decode(const uint8_t *& begin, size_t & length);
@@ -49,11 +51,12 @@ private:
   std::vector<asio::const_buffer> buffers;
   std::vector<uint8_t>            header;
 
-  Opcode_t    opcode        = Opcode_t::CONTINUATION;
-  uint64_t    payloadLength = 0;
-  uint32_t    maskingKey    = 0;
-  bool        fin           = false;
-  std::string string;
+  Opcode_t                              opcode        = Opcode_t::CONTINUATION;
+  uint64_t                              payloadLength = 0;
+  uint32_t                              maskingKey    = 0;
+  bool                                  fin           = false;
+  std::string                           string;
+  std::shared_ptr<Ehbanana::MessageOut> messageOut;
 };
 
 } // namespace WebSocket

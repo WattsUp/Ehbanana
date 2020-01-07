@@ -127,6 +127,17 @@ bool WebSocket::sendAliveCheck() {
 }
 
 /**
+ * @brief Enqueue an output message
+ *
+ * @param message
+ */
+void WebSocket::enqueueOutput(std::shared_ptr<Ehbanana::MessageOut> message) {
+  std::shared_ptr<Frame> frame = std::make_shared<Frame>(message);
+  frame->setOpcode(Opcode_t::TEXT);
+  framesOut.push_back(frame);
+}
+
+/**
  * @brief Check if there are buffers in the transmit queue that have not been
  * transmitted
  *

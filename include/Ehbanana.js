@@ -16,14 +16,14 @@ let ehbanana = {
     }
     if (jsonEvent.href != window.location.pathname && jsonEvent.href != "")
       return;
-    for (let id of jsonEvent.elements) {
+    for (let id in jsonEvent.elements) {
       let obj = document.getElementById(id);
       if (!obj) {
         console.log("Ehbanana Message #" + id + " not found");
         continue;
       }
 
-      for (let key of jsonEvent.elements[id]) {
+      for (let key in jsonEvent.elements[id]) {
         obj[key] = jsonEvent.elements[id][key];
       }
       if (obj.classList.contains("eb-metric-prefix"))

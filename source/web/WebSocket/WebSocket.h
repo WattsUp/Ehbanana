@@ -27,7 +27,8 @@ public:
   bool hasTransmitBuffers();
   bool isDone();
   bool sendAliveCheck();
-  void addMessage(const std::string & msg);
+
+  void enqueueOutput(std::shared_ptr<Ehbanana::MessageOut> message);
 
 private:
   void processFrameText();

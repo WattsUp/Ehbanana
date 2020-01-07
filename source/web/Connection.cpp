@@ -129,6 +129,15 @@ void Connection::stop() {
 }
 
 /**
+ * @brief Enqueue an output message
+ *
+ * @param message
+ */
+void Connection::enqueueOutput(std::shared_ptr<Ehbanana::MessageOut> message) {
+  protocol->enqueueOutput(message);
+}
+
+/**
  * @brief Get the string representation of the connection
  *
  * @return const std::string& ip address and port
