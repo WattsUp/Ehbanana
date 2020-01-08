@@ -73,52 +73,37 @@ typedef void(__stdcall * EBInputCallback_t)(
 extern "C" EHBANANA_API EBError_t EBAttachCallback(
     const char * uri, const EBInputCallback_t inputCallback);
 
-namespace Ehbanana {
-class Buffer;
-}
+typedef void * EBStream_t;
 
 /**
- * @brief A buffer to transfer files to/from the GUI
- * Use EBBufferRead and EBBufferWrite to read/write
+ * @brief Read from a stream
  *
- */
-struct EBBuffer_t {
-  bool complete = false;
-
-  Ehbanana::Buffer * _internal_buffer =
-      nullptr; // TODO change to just a void * and add a complete flag to write
-};
-
-/**
- * @brief Read from a buffer
- *
- * @param buffer to read from
+ * @param stream to read from
  * @param buf to return
  * @return EBError_t zero on success, non-zero on failure
  */
-extern "C" EHBANANA_API EBError_t EBBufferRead(
-    const EBBuffer_t * buffer, uint8_t * buf);
+extern "C" EHBANANA_API EBError_t EBStreamRead(
+    EBStream_t stream, uint8_t * buf);
 
 /**
- * @brief Write to a buffer
+ * @brief Write to a stream
  *
- * @param buffer to write to
+ * @param stream to write to
  * @param buf to write
  * @return EBError_t zero on success, non-zero on failure
  */
-extern "C" EHBANANA_API EBError_t EBBufferWrite(
-    const EBBuffer_t * buffer, const uint8_t buf);
+extern "C" EHBANANA_API EBError_t EBStreamWrite(
+    EBStream_t stream, const uint8_t buf);
 
 /**
  * @brief Process input file from the GUI
  *
  * @param id of the triggering element
  * @param value of the triggering element, usually the filename
- * @param file transferred from the GUI, complete flag is set once done
- * receiving
+ * @param file transferred from the GUI
  */
 typedef void(__stdcall * EBInputFileCallback_t)(
-    const char * id, const char * value, EBBuffer_t * file);
+    const char * id, const char * value, EBStream_t file);
 
 /**
  * @brief Attach a callback to input files originating from the uri
@@ -156,7 +141,7 @@ struct Query_t {
  * @param file to send to the GUI, set the complete flag once done writing
  */
 typedef void(__stdcall * EBOutputFileCallback_t)(
-    const char * uri, const Query_t * queries, EBBuffer_t * file);
+    const char * uri, const Query_t * queries, EBStream_t file);
 
 /**
  * @brief Set the callback to output files not found in the HTTP directory

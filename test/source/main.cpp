@@ -83,18 +83,22 @@ void __stdcall callbackRoot(const char * id, const char * value) {
  * @param value of the triggering element
  */
 void __stdcall callbackRootFile(
-    const char * id, const char * value, EBBuffer_t * file) {
+    const char * id, const char * value, EBStream_t file) {
   printf("Callback file from %s with %s\n", id, value);
 
   EBError_t      error;
   uint8_t        buf;
   digestpp::sha1 sha;
-  while ((error = EBBufferRead(file, &buf)) != EBError_t::END_OF_FILE) {
+  while ((error = EBStreamRead(file, &buf)) != EBError_t::END_OF_FILE) {
     if (error == EBError_t::BUFFER_EMPTY)
-      printf("Main wait");
-    // std::this_thread::sleep_for(std::chrono::milliseconds(1));
-    else
+      std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    else if (EB_FAILED(error)) {
+      printf("Failed to read stream\n");
+      MessageBoxA(NULL, EBErrorName(error), "Error", MB_OK);
+      return;
+    } else {
       sha.absorb(&buf, 1);
+    }
   }
   uint8_t str[20];
   sha.digest(str, 20);
@@ -102,7 +106,7 @@ void __stdcall callbackRootFile(
 }
 
 void __stdcall callbackOutputFile(
-    const char * uri, const Query_t * queries, EBBuffer_t * file) {
+    const char * uri, const Query_t * queries, EBStream_t file) {
   printf("Callback 404 for: %s", uri);
 }
 

@@ -1,10 +1,10 @@
 #ifndef _WEB_SERVER_H_
 #define _WEB_SERVER_H_
 
-#include "Buffer.h"
 #include "Connection.h"
 #include "Ehbanana.h"
 #include "MessageOut.h"
+#include "Stream.h"
 #include "Utils.h"
 
 #include <asio.hpp>
@@ -44,7 +44,7 @@ public:
   void enqueueCallback(const std::string & uri, const std::string & id,
       const std::string & value);
   void enqueueCallback(const std::string & uri, const std::string & id,
-      const std::string & value, std::shared_ptr<Buffer> buffer);
+      const std::string & value, std::shared_ptr<Stream> stream);
 
   void enqueueOutput(std::shared_ptr<Ehbanana::MessageOut> message);
 

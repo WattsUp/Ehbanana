@@ -25,21 +25,25 @@ Request::~Request() {}
  *
  * @param begin character pointer
  * @param end character pointer
- * @return bool true if complete, false otherwise
  * @throw std::exception Thrown on failure
  */
-bool Request::parse(const uint8_t * begin, const uint8_t * end) {
-  // For every character in the array, add it to the appropriate field based on
-  // the current parsing state
-  while (begin != end) {
-    parse(*begin);
-    ++begin;
+void Request::parse(const uint8_t * begin, const uint8_t * end) {
+  if (isHeaderParsed())
+    // Block write to the stream, no processing needed
+    body->write(begin, end - begin);
+  else {
+    // For every character in the array, add it to the appropriate field based
+    // on the current parsing state
+    while (begin != end) {
+      parse(*begin);
+      ++begin;
+    }
   }
-  if (state == State_t::BODY && headers.getContentLength() == body.size())
-    return true;
-  else if (body.size() > headers.getContentLength())
+
+  if (isBodyParsed())
+    body->setEOF(true);
+  else if (body->size() > headers.getContentLength())
     throw std::overflow_error("Received body is larger than header states");
-  return false;
 }
 
 /**
@@ -131,7 +135,6 @@ void Request::parse(uint8_t c) {
     case State_t::BODY_NEWLINE:
       if (c == '\n') {
         state = State_t::BODY;
-        body.reserve(headers.getContentLength());
       } else {
         throw std::exception("Request is missing new line after headers");
       }
@@ -141,7 +144,7 @@ void Request::parse(uint8_t c) {
         log(EBLogLevel_t::EB_DEBUG, "Tried to add '%c' (0x%02X) to body", c, c);
         throw std::overflow_error("Request has body but zero content length");
       }
-      body += c;
+      body->write(c);
       break;
     default:
       throw std::exception(("Request parsing is in state #" +
@@ -199,14 +202,25 @@ const RequestHeaders & Request::getHeaders() const {
 }
 
 /**
- * @brief Get the state of parsing
+ * @brief Check if the headers have been parsed
+ * If current state is in the body
  *
- * @return true if a request is partially parsed
+ * @return true if the request headers have been parsed
  * @return false otherwise
  */
-bool Request::isParsing() {
-  return state != State_t::IDLE &&
-         (state != State_t::BODY || headers.getContentLength() != body.size());
+bool Request::isHeaderParsed() {
+  return state == State_t::BODY;
+}
+
+/**
+ * @brief Check if the body has been parsed
+ * If current state is at the end of the body
+ *
+ * @return true if the body has been parsed
+ * @return false otherwise
+ */
+bool Request::isBodyParsed() {
+  return state == State_t::BODY && (headers.getContentLength() == body->size());
 }
 
 /**
@@ -231,9 +245,9 @@ const std::string & Request::getURI() const {
 /**
  * @brief Get the body of the request
  *
- * @return const std::string&
+ * @return std::shared_ptr<Stream>
  */
-const std::string & Request::getBody() const {
+std::shared_ptr<Stream> Request::getBody() const {
   return body;
 }
 
@@ -266,7 +280,7 @@ std::string Request::decodeURI(const std::string & uriString) {
           throw std::exception("URI has '%' but not enough characters");
         else {
           uint32_t    value = 0;
-          std::string hex   = uriString.substr(i, 2);
+          std::string hex   = uriString.substr(i + 1, 2);
           i += 2;
 
           value = decodeHex(hex);

@@ -77,12 +77,16 @@ let ehbanana = {
   listenerFile: function(event) {
     for (let file of event.target.files) {
       let uri = window.location.pathname + "?";
-      uri += "id=" + event.target.id;
+      uri += "eb-file-id=" + event.target.id;
+      uri += "&eb-file-value=" + file.name;
 
       fetch(uri, {method: "POST", body: file})
-          .then(response => response.json())
-          .then(data => {console.log(data.path)})
-          .catch(error => {console.error(error)})
+          .then(response => {return response.text()})
+          .then((data) => {
+            if (data)
+              console.log(data)
+          })
+          .catch((error) => {console.log(error)})
     }
   },
 

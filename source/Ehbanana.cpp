@@ -2,6 +2,7 @@
 
 #include "EhbananaLog.h"
 #include "MessageOut.h"
+#include "Stream.h"
 #include "Utils.h"
 #include "Version.h"
 #include "web/Server.h"
@@ -34,31 +35,35 @@ EBError_t EBAttachCallback(
   return EBError_t::SUCCESS;
 }
 
-EBError_t EBBufferRead(const EBBuffer_t * buffer, uint8_t * buf) {
-  if (buffer == nullptr || buffer->_internal_buffer == nullptr ||
-      buf == nullptr) {
+EBError_t EBStreamRead(EBStream_t stream, uint8_t * buf) {
+  if (stream == nullptr || buf == nullptr) {
     Ehbanana::error("Buffer is invalid");
     return EBError_t::EXCEPTION_OCCURRED;
   }
+  Ehbanana::Stream * obj = (Ehbanana::Stream *)stream;
   try {
-    *buf = buffer->_internal_buffer->read();
-  } catch (const std::exception & e) {
-    if (buffer->complete)
+    *buf = obj->read();
+  } catch (const std::underflow_error & /* e */) {
+    if (obj->eof())
       return EBError_t::END_OF_FILE; // TODO add block read/writes
     return EBError_t::BUFFER_EMPTY;
+  } catch (const std::exception & e) {
+    Ehbanana::error(e.what());
+    return EBError_t::EXCEPTION_OCCURRED;
   }
   return EBError_t::SUCCESS;
 }
 
-EBError_t EBBufferWrite(const EBBuffer_t * buffer, const uint8_t buf) {
-  if (buffer == nullptr || buffer->_internal_buffer == nullptr) {
+EBError_t EBStreamWrite(EBStream_t stream, const uint8_t buf) {
+  if (stream == nullptr) {
     Ehbanana::error("Buffer is invalid");
     return EBError_t::EXCEPTION_OCCURRED;
   }
   try {
-    buffer->_internal_buffer->write(buf);
+    ((Ehbanana::Stream *)stream)->write(buf);
   } catch (const std::exception & e) {
-    return EBError_t::BUFFER_FULL;
+    Ehbanana::debug(e.what());
+    return EBError_t::EXCEPTION_OCCURRED;
   }
   return EBError_t::SUCCESS;
 }

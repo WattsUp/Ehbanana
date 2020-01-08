@@ -161,11 +161,11 @@ const std::vector<asio::const_buffer> & Frame::getBuffers() {
     if (payloadLength < 126) {
       // 7b payloadLength
       header.push_back(static_cast<uint8_t>(payloadLength));
-    } else if (payloadLength <= static_cast<size_t>(1 << 16)) {
+    } else if (payloadLength <= 0x10000) {
       header.push_back(126); // 16b payload length
       header.push_back(static_cast<uint8_t>((payloadLength >> 8) & 0xFF));
       header.push_back(static_cast<uint8_t>((payloadLength >> 0) & 0xFF));
-    } else {
+    } else if (payloadLength <= 0x100000000) {
       header.push_back(127); // 64b payload length
       header.push_back(static_cast<uint8_t>((payloadLength >> 56) & 0xFF));
       header.push_back(static_cast<uint8_t>((payloadLength >> 48) & 0xFF));
@@ -175,12 +175,14 @@ const std::vector<asio::const_buffer> & Frame::getBuffers() {
       header.push_back(static_cast<uint8_t>((payloadLength >> 16) & 0xFF));
       header.push_back(static_cast<uint8_t>((payloadLength >> 8) & 0xFF));
       header.push_back(static_cast<uint8_t>((payloadLength >> 0) & 0xFF));
-    }
+    } else
+      throw std::exception("WebSocket payload larger than 4GB not supported");
     buffers.push_back(asio::buffer(header));
     if (!string.empty())
       buffers.push_back(asio::buffer(string));
     else if (messageOut != nullptr)
-      buffers.push_back(asio::buffer(messageOut->getString(), payloadLength));
+      buffers.push_back(asio::buffer(
+          messageOut->getString(), static_cast<size_t>(payloadLength)));
   }
   return buffers;
 }

@@ -3,6 +3,7 @@
 
 #include "Hash.h"
 #include "RequestHeaders.h"
+#include "Stream.h"
 
 #include <list>
 #include <stdint.h>
@@ -17,7 +18,7 @@ public:
   Request();
   ~Request();
 
-  bool parse(const uint8_t * begin, const uint8_t * end);
+  void parse(const uint8_t * begin, const uint8_t * end);
 
   struct Query_t {
     std::string name;
@@ -26,11 +27,12 @@ public:
 
   HashValue_t                getMethodHash() const;
   const std::string &        getURI() const;
-  const std::string &        getBody() const;
+  std::shared_ptr<Stream>    getBody() const;
   const std::list<Query_t> & getQueries() const;
   const RequestHeaders &     getHeaders() const;
 
-  bool isParsing();
+  bool isHeaderParsed();
+  bool isBodyParsed();
 
 private:
   void parse(uint8_t c);
@@ -63,8 +65,8 @@ private:
 
   HeaderHash_t currentHeader;
 
-  std::string body;
-  std::string endpoint;
+  std::shared_ptr<Stream> body = std::make_shared<Stream>();
+  std::string             endpoint;
 
   Query_t            currentQuery;
   std::list<Query_t> queries;

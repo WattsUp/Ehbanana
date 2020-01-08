@@ -266,15 +266,15 @@ void Server::enqueueCallback(const std::string & uri, const std::string & id,
  *
  * @param uri of the triggering page
  * @param id of the triggering element
- * @param value of the triggering element
- * @param buffer of the triggering file
+ * @param value of the element
+ * @param stream of the triggering file
  */
 void Server::enqueueCallback(const std::string & uri, const std::string & id,
-    const std::string & value, std::shared_ptr<Buffer> buffer) {
+    const std::string & value, std::shared_ptr<Stream> stream) {
   if (inputFileCallbacks.find(uri) != inputFileCallbacks.end()) {
     EBInputFileCallback_t func = inputFileCallbacks[uri];
-    pool.push([func, id, value, buffer](int /* threadID */) {
-      (func)(id.c_str(), value.c_str(), buffer->getHandle());
+    pool.push([func, id, value, stream](int /* threadID */) {
+      (func)(id.c_str(), value.c_str(), (EBStream_t)stream.get());
     });
   } else
     warn("No input file callback found for \"" + uri + "\"");

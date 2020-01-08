@@ -1,5 +1,6 @@
 #include "HTTP.h"
 
+#include "../Server.h"
 #include "CacheControl.h"
 #include "EhbananaLog.h"
 #include "Hash.h"
@@ -38,13 +39,11 @@ HTTP::~HTTP() {}
  */
 void HTTP::processReceiveBuffer(const uint8_t * begin, size_t length) {
   switch (state) {
-    case State_t::READING:
-      if (!request.parse(begin, begin + length))
-        return; // Not done parsing
-      state = State_t::READING_DONE;
-      // Fall through
-    case State_t::READING_DONE:
-      // Handle request
+    case State_t::READING_HEADER:
+      request.parse(begin, begin + length);
+      if (!request.isHeaderParsed())
+        break; // Get more data
+      // Header is parsed, process request, body may not be done
       try {
         handleRequest();
       } catch (const std::exception & e) {
@@ -52,6 +51,23 @@ void HTTP::processReceiveBuffer(const uint8_t * begin, size_t length) {
             "Exception occurred whilst handling HTTP request: %s", e.what());
         reply = Reply::stockReply(Status_t::INTERNAL_SERVER_ERROR);
       }
+
+      if (!request.isBodyParsed()) {
+        state = State_t::READING_BODY;
+        break;
+      } else {
+        state = State_t::READING_DONE;
+        processReceiveBuffer(begin, 0); // jump to reading done
+      }
+      break;
+    case State_t::READING_BODY:
+      request.parse(begin, begin + length);
+      if (!request.isBodyParsed())
+        break; // Get more data
+
+      state = State_t::READING_DONE;
+      // Fall through
+    case State_t::READING_DONE:
       addTransmitBuffer(reply.getBuffers());
       state = State_t::WRITING;
       break;
@@ -73,7 +89,8 @@ bool HTTP::isDone() {
   if (AppProtocol::isDone()) {
     // No output messages waiting to transmit
     switch (state) {
-      case State_t::READING:
+      case State_t::READING_HEADER:
+      case State_t::READING_BODY:
       case State_t::READING_DONE:
         return false;
       case State_t::WRITING:
@@ -81,7 +98,7 @@ bool HTTP::isDone() {
             RequestHeaders::Connection_t::KEEP_ALIVE) {
           request = Request();
           reply   = Reply();
-          state   = State_t::READING;
+          state   = State_t::READING_HEADER;
           return false; // Writing completed, keep alive
         } else
           return true; // Writing completed, don't keep alive
@@ -208,13 +225,26 @@ void HTTP::handlePOST() {
     info("POST URI: \"" + uri + "\"");
   else {
     std::string buffer = "";
+
+    std::string id;
+    std::string value;
     for (const Request::Query_t & query : request.getQueries()) {
+      if (query.name.compare("eb-file-id") == 0)
+        id = query.value;
+      if (query.name.compare("eb-file-value") == 0)
+        value = query.value;
       buffer += "\n    \"" + query.name + "\"=\"" + query.value + "\"";
     }
     info("POST URI: \"" + uri + "\" Queries:" + buffer);
-  }
 
-  debug(request.getBody()); // TODO fix
+    if (!id.empty() && !value.empty()) {
+      // File upload
+      server->enqueueCallback(uri, id, value, request.getBody());
+      reply.setStatus(Status_t::OK);
+      return;
+    }
+    // else POST not from ehbanana
+  }
 
   reply.setStatus(Status_t::NOT_IMPLEMENTED);
 }

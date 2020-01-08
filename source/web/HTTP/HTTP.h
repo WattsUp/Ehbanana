@@ -49,9 +49,14 @@ private:
   void handlePOST();
   void handleUpgrade();
 
-  enum class State_t : uint8_t { READING, READING_DONE, WRITING };
+  enum class State_t : uint8_t {
+    READING_HEADER,
+    READING_BODY,
+    READING_DONE,
+    WRITING
+  };
 
-  State_t state = State_t::READING;
+  State_t state = State_t::READING_HEADER;
 
   Request request;
   Reply   reply;
