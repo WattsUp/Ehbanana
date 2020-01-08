@@ -26,10 +26,6 @@ Stream::Stream() {
  */
 Stream::~Stream() {
   fclose(overflowFile);
-  if (size() != 0)
-    debug("Non-zero stream destroyed");
-  if (available() != 0)
-    debug("Non-zero available stream destroyed");
 }
 
 /**
@@ -69,21 +65,8 @@ void Stream::write(uint8_t c) {
   writeRegion->data[(cursorWrite & CURSOR_MASK)] = c;
   ++cursorWrite;
 
-  if ((cursorWrite & CURSOR_MASK) == 0) {
-    mutex.lock();
-    // Write cursor is at end of region
-    if (writeRegion.use_count() == 1) {
-      // Read cursor is at a different region, write this one to the file
-      fseek(overflowFile, 0, SEEK_END);
-      // debug("Write file cursor: " + std::to_string(ftell(overflowFile)));
-      if (fwrite(writeRegion->data, 1, REGION_SIZE, overflowFile) !=
-          REGION_SIZE)
-        throw std::exception("fwrite did not write the entire region");
-    }
-    writeRegion             = std::make_shared<Region_t>();
-    writeRegion->fileOffset = cursorWrite;
-    mutex.unlock();
-  }
+  if ((cursorWrite & CURSOR_MASK) == 0)
+    pushRegion();
 }
 
 /**
@@ -94,29 +77,16 @@ void Stream::write(uint8_t c) {
  */
 void Stream::write(const uint8_t * buffer, size_t length) {
   size_t  regionCursor = cursorWrite & CURSOR_MASK;
-  size_t  regionLeft   = REGION_SIZE - regionCursor;
-  size_t  wrote        = std::min(regionLeft, length);
+  size_t  wrote        = std::min(REGION_SIZE - regionCursor, length);
   errno_t err =
-      memcpy_s(writeRegion->data + regionCursor, regionLeft, buffer, wrote);
+      memcpy_s(writeRegion->data + regionCursor, wrote, buffer, wrote);
   if (err)
     throw std::exception("Failed to copy memory into stream");
   length -= wrote;
   cursorWrite += wrote;
   while (length != 0) {
     // Write to more regions, make a new one
-    mutex.lock();
-    // Write cursor is at end of region
-    if (writeRegion.use_count() == 1) {
-      // Read cursor is at a different region, write this one to the file
-      fseek(overflowFile, 0, SEEK_END);
-      // debug("Write file cursor: " + std::to_string(ftell(overflowFile)));
-      if (fwrite(writeRegion->data, 1, REGION_SIZE, overflowFile) !=
-          REGION_SIZE)
-        throw std::exception("fwrite did not write the entire region");
-    }
-    writeRegion             = std::make_shared<Region_t>();
-    writeRegion->fileOffset = cursorWrite;
-    mutex.unlock();
+    pushRegion();
 
     // memcpy buffer into region
     buffer += wrote;
@@ -127,21 +97,8 @@ void Stream::write(const uint8_t * buffer, size_t length) {
     length -= wrote;
     cursorWrite += wrote;
   }
-  if ((cursorWrite & CURSOR_MASK) == 0) {
-    mutex.lock();
-    // Write cursor is at end of region
-    if (writeRegion.use_count() == 1) {
-      // Read cursor is at a different region, write this one to the file
-      fseek(overflowFile, 0, SEEK_END);
-      // debug("Write file cursor: " + std::to_string(ftell(overflowFile)));
-      if (fwrite(writeRegion->data, 1, REGION_SIZE, overflowFile) !=
-          REGION_SIZE)
-        throw std::exception("fwrite did not write the entire region");
-    }
-    writeRegion             = std::make_shared<Region_t>();
-    writeRegion->fileOffset = cursorWrite;
-    mutex.unlock();
-  }
+  if ((cursorWrite & CURSOR_MASK) == 0)
+    pushRegion();
 }
 
 /**
@@ -155,28 +112,95 @@ uint8_t Stream::read() {
 
   uint8_t c = readRegion->data[(cursorRead & CURSOR_MASK)];
   ++cursorRead;
-  if ((cursorRead & CURSOR_MASK) == 0) {
-    mutex.lock();
-    // Read cursor is at end of region
-    if ((readRegion->fileOffset + REGION_SIZE) == writeRegion->fileOffset)
-      readRegion = writeRegion; // Write region is the next region
-    else {
-      // Read region from file
-      fseek(overflowFile, cursorFileRead, SEEK_SET); // Go to last read region
-      // debug("Read file cursor: " + std::to_string(ftell(overflowFile)));
-      size_t read =
-          fread_s(readRegion->data, REGION_SIZE, 1, REGION_SIZE, overflowFile);
-      if (read != REGION_SIZE) {
-        if (feof(overflowFile))
-          throw std::exception("overflowFile is eof");
-        throw std::exception("fread did not read an entire region");
-      }
-      readRegion->fileOffset += REGION_SIZE;
-      cursorFileRead += REGION_SIZE;
-    }
-    mutex.unlock();
-  }
+  if ((cursorRead & CURSOR_MASK) == 0)
+    popRegion();
   return c;
+}
+
+/**
+ * @brief Read a block from the stream
+ *
+ * @param buffer to read into
+ * @param length of the buffer
+ * @return size_t number of bytes read
+ */
+size_t Stream::read(uint8_t * buffer, size_t length) {
+  size_t bufferIndex  = 0;
+  size_t regionCursor = cursorRead & CURSOR_MASK;
+  size_t read =
+      std::min(available(), std::min(REGION_SIZE - regionCursor, length));
+  errno_t err = memcpy_s(buffer, read, readRegion->data + regionCursor, read);
+  if (err)
+    throw std::exception("Failed to copy memory from stream");
+  length -= read;
+  cursorRead += read;
+  bufferIndex += read;
+  while (length != 0 && available() != 0) {
+    // Read from more regions, get a new one
+    popRegion();
+
+    // memcpy region into buffer
+    read = std::min(available(), std::min(REGION_SIZE, length));
+    err  = memcpy_s(buffer + bufferIndex, read, readRegion->data, read);
+    if (err)
+      throw std::exception("Failed to copy memory into stream");
+    length -= read;
+    cursorRead += read;
+    bufferIndex += read;
+  }
+  if (available() == 0)
+    return bufferIndex;
+  if ((cursorRead & CURSOR_MASK) == 0)
+    popRegion();
+  return bufferIndex;
+}
+
+/**
+ * @brief Write the writeRegion to the end of the overflow file
+ *
+ */
+void Stream::pushRegion() {
+  mutex.lock();
+  // Write cursor is at end of region
+  if (writeRegion.use_count() == 1) {
+    // If Read cursor is at a different region, write this one to the file
+    fseek(overflowFile, 0, SEEK_END);
+    // debug("Write file cursor: " + std::to_string(ftell(overflowFile)));
+    if (fwrite(writeRegion->data, 1, REGION_SIZE, overflowFile) !=
+        REGION_SIZE) {
+      mutex.unlock();
+      throw std::exception("fwrite did not write the entire region");
+    }
+  } else
+    // Else readRegion and writeRegion are the same, make a new one
+    writeRegion = std::make_shared<Region_t>();
+  writeRegion->fileOffset = cursorWrite;
+  mutex.unlock();
+}
+
+/**
+ * @brief Read the readRegion from the overflow file
+ *
+ */
+void Stream::popRegion() {
+  mutex.lock();
+  if ((readRegion->fileOffset + REGION_SIZE) == writeRegion->fileOffset)
+    readRegion = writeRegion; // Write region is the next region
+  else {
+    // Read region from file
+    fseek(overflowFile, cursorFileRead, SEEK_SET); // Go to last read region
+    // debug("Read file cursor: " + std::to_string(ftell(overflowFile)));
+    if (fread_s(readRegion->data, REGION_SIZE, 1, REGION_SIZE, overflowFile) !=
+        REGION_SIZE) {
+      mutex.unlock();
+      if (feof(overflowFile))
+        throw std::exception("overflowFile is eof");
+      throw std::exception("fread did not read an entire region");
+    }
+    readRegion->fileOffset += REGION_SIZE;
+    cursorFileRead += REGION_SIZE;
+  }
+  mutex.unlock();
 }
 
 } // namespace Ehbanana

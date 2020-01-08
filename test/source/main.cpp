@@ -87,9 +87,11 @@ void __stdcall callbackRootFile(
   printf("Callback file from %s with %s\n", id, value);
 
   EBError_t      error;
-  uint8_t        buf;
+  uint8_t        buf[8192];
+  size_t         length = 8192;
   digestpp::sha1 sha;
-  while ((error = EBStreamRead(file, &buf)) != EBError_t::END_OF_FILE) {
+  while ((error = EBStreamReadBlock(file, buf, &length)) !=
+         EBError_t::END_OF_FILE) {
     if (error == EBError_t::BUFFER_EMPTY)
       std::this_thread::sleep_for(std::chrono::milliseconds(1));
     else if (EB_FAILED(error)) {
@@ -97,8 +99,9 @@ void __stdcall callbackRootFile(
       MessageBoxA(NULL, EBErrorName(error), "Error", MB_OK);
       return;
     } else {
-      sha.absorb(&buf, 1);
+      sha.absorb(buf, length);
     }
+    length = 8192;
   }
   uint8_t str[20];
   sha.digest(str, 20);

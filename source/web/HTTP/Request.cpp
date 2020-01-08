@@ -281,7 +281,7 @@ std::string Request::decodeURI(const std::string & uriString) {
         else {
           uint32_t    value = 0;
           std::string hex   = uriString.substr(i + 1, 2);
-          i += 2;
+          i += 3;
 
           value = decodeHex(hex);
           uriDecoded += static_cast<char>(value);

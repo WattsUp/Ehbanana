@@ -33,8 +33,12 @@ public:
   void    write(uint8_t c);
   void    write(const uint8_t * buffer, size_t length);
   uint8_t read();
+  size_t  read(uint8_t * buffer, size_t length);
 
 private:
+  void pushRegion();
+  void popRegion();
+
   bool endOfFile = false;
 
   static const size_t REGION_SIZE = 0x10000; // Power of 2

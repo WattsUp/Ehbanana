@@ -45,7 +45,7 @@ private:
 
   Server * server;
 
-  std::array<uint8_t, 8192> bufferReceive;
+  std::array<uint8_t, 0x4000> bufferReceive;
 
   State_t state = State_t::IDLE;
 

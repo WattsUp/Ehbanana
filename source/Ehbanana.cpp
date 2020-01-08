@@ -45,8 +45,28 @@ EBError_t EBStreamRead(EBStream_t stream, uint8_t * buf) {
     *buf = obj->read();
   } catch (const std::underflow_error & /* e */) {
     if (obj->eof())
-      return EBError_t::END_OF_FILE; // TODO add block read/writes
+      return EBError_t::END_OF_FILE;
     return EBError_t::BUFFER_EMPTY;
+  } catch (const std::exception & e) {
+    Ehbanana::error(e.what());
+    return EBError_t::EXCEPTION_OCCURRED;
+  }
+  return EBError_t::SUCCESS;
+}
+
+EBError_t EBStreamReadBlock(EBStream_t stream, uint8_t * buf, size_t * length) {
+  if (stream == nullptr || buf == nullptr) {
+    Ehbanana::error("Buffer is invalid");
+    return EBError_t::EXCEPTION_OCCURRED;
+  }
+  Ehbanana::Stream * obj = (Ehbanana::Stream *)stream;
+  try {
+    *length = obj->read(buf, *length);
+    if (*length == 0) {
+      if (obj->eof())
+        return EBError_t::END_OF_FILE;
+      return EBError_t::BUFFER_EMPTY;
+    }
   } catch (const std::exception & e) {
     Ehbanana::error(e.what());
     return EBError_t::EXCEPTION_OCCURRED;
@@ -61,6 +81,21 @@ EBError_t EBStreamWrite(EBStream_t stream, const uint8_t buf) {
   }
   try {
     ((Ehbanana::Stream *)stream)->write(buf);
+  } catch (const std::exception & e) {
+    Ehbanana::debug(e.what());
+    return EBError_t::EXCEPTION_OCCURRED;
+  }
+  return EBError_t::SUCCESS;
+}
+
+EBError_t EBStreamWriteBlock(
+    EBStream_t stream, const uint8_t * buf, size_t length) {
+  if (stream == nullptr) {
+    Ehbanana::error("Buffer is invalid");
+    return EBError_t::EXCEPTION_OCCURRED;
+  }
+  try {
+    ((Ehbanana::Stream *)stream)->write(buf, length);
   } catch (const std::exception & e) {
     Ehbanana::debug(e.what());
     return EBError_t::EXCEPTION_OCCURRED;

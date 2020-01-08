@@ -76,7 +76,7 @@ extern "C" EHBANANA_API EBError_t EBAttachCallback(
 typedef void * EBStream_t;
 
 /**
- * @brief Read from a stream
+ * @brief Read a byte from a stream
  *
  * @param stream to read from
  * @param buf to return
@@ -86,7 +86,18 @@ extern "C" EHBANANA_API EBError_t EBStreamRead(
     EBStream_t stream, uint8_t * buf);
 
 /**
- * @brief Write to a stream
+ * @brief Read a block from a stream
+ *
+ * @param stream to read from
+ * @param buf to copy into
+ * @param length of the buffer, and number of bytes actually read upon return
+ * @return EBError_t zero on success, non-zero on failure
+ */
+extern "C" EHBANANA_API EBError_t EBStreamReadBlock(
+    EBStream_t stream, uint8_t * buf, size_t * length);
+
+/**
+ * @brief Write a byte to a stream
  *
  * @param stream to write to
  * @param buf to write
@@ -94,6 +105,17 @@ extern "C" EHBANANA_API EBError_t EBStreamRead(
  */
 extern "C" EHBANANA_API EBError_t EBStreamWrite(
     EBStream_t stream, const uint8_t buf);
+
+/**
+ * @brief Write a block to a stream
+ *
+ * @param stream to write to
+ * @param buf to write
+ * @param length of the buffer
+ * @return EBError_t zero on success, non-zero on failure
+ */
+extern "C" EHBANANA_API EBError_t EBStreamWriteBlock(
+    EBStream_t stream, const uint8_t * buf, size_t length);
 
 /**
  * @brief Process input file from the GUI
