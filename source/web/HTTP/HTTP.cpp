@@ -66,7 +66,8 @@ void HTTP::processReceiveBuffer(const uint8_t * begin, size_t length) {
         break; // Get more data
 
       state = State_t::READING_DONE;
-      // Fall through
+      processReceiveBuffer(begin, 0); // jump to reading done
+      break;
     case State_t::READING_DONE:
       addTransmitBuffer(reply.getBuffers());
       state = State_t::WRITING;
@@ -173,6 +174,18 @@ void HTTP::handleGET() {
     return;
   }
 
+  reply.addHeader(
+      "Cache-Control", CacheControl::Instance()->getCacheControl(uri));
+  switch (request.getHeaders().getConnection()) {
+    default:
+    case RequestHeaders::Connection_t::CLOSE:
+      reply.addHeader("Connection", "close");
+      break;
+    case RequestHeaders::Connection_t::KEEP_ALIVE:
+      reply.addHeader("Connection", "keep-alive");
+      break;
+  }
+
   uri = root() + uri;
 
   // URI ends in forward slash, load its index.html
@@ -191,6 +204,12 @@ void HTTP::handleGET() {
   if (info.st_mode & S_IFDIR)
     uri += "/index.html";
 
+  if (stat(uri.c_str(), &info) != 0) {
+    // TODO call outputFileCallback first, if still not found, 404
+    reply = Reply::stockReply(Status_t::NOT_FOUND);
+    return;
+  }
+
   std::shared_ptr<MemoryMapped> file =
       std::make_shared<MemoryMapped>(uri, 0, MemoryMapped::SequentialScan);
   if (!file->isValid()) {
@@ -200,17 +219,6 @@ void HTTP::handleGET() {
 
   // Determine the file extension.
   reply.addHeader("Content-Type", MIMETypes::Instance()->getType(uri));
-  reply.addHeader(
-      "Cache-Control", CacheControl::Instance()->getCacheControl(uri));
-  switch (request.getHeaders().getConnection()) {
-    default:
-    case RequestHeaders::Connection_t::CLOSE:
-      reply.addHeader("Connection", "close");
-      break;
-    case RequestHeaders::Connection_t::KEEP_ALIVE:
-      reply.addHeader("Connection", "keep-alive");
-      break;
-  }
   reply.setContent(file);
 }
 

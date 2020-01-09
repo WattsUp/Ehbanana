@@ -108,11 +108,6 @@ void __stdcall callbackRootFile(
   printf("File downloaded %s\n", base64_encode(str, 20).c_str());
 }
 
-void __stdcall callbackOutputFile(
-    const char * uri, const Query_t * queries, EBStream_t file) {
-  printf("Callback 404 for: %s", uri);
-}
-
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
   // Create a console for logging errors
   if (AllocConsole()) {
@@ -156,14 +151,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
   }
 
   error = EBAttachInputFileCallback("/", callbackRootFile);
-  if (EB_FAILED(error)) {
-    printf("Failed to attach callback to GUI");
-    MessageBoxA(NULL, EBErrorName(error), "Error", MB_OK);
-    _fcloseall();
-    return static_cast<uint8_t>(error);
-  }
-
-  error = EBSetOutputFileCallback(callbackOutputFile);
   if (EB_FAILED(error)) {
     printf("Failed to attach callback to GUI");
     MessageBoxA(NULL, EBErrorName(error), "Error", MB_OK);

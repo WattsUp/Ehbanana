@@ -1,10 +1,9 @@
 #ifndef _EHBANANA_STREAM_H_
 #define _EHBANANA_STREAM_H_
 
-#include <stdint.h>
-
 #include <memory>
 #include <mutex>
+#include <stdint.h>
 
 namespace Ehbanana {
 

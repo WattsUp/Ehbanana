@@ -39,7 +39,7 @@ public:
       const std::string & uri, const EBInputCallback_t callback);
   void attachCallback(
       const std::string & uri, const EBInputFileCallback_t callback);
-  void setOutputCallback(const EBOutputFileCallback_t callback);
+  void set404Callback(const EB404Callback_t callback);
 
   void enqueueCallback(const std::string & uri, const std::string & id,
       const std::string & value);
@@ -70,7 +70,7 @@ private:
 
   std::unordered_map<std::string, EBInputCallback_t>     inputCallbacks;
   std::unordered_map<std::string, EBInputFileCallback_t> inputFileCallbacks;
-  EBOutputFileCallback_t outputFileCallback = nullptr;
+  EB404Callback_t                                        callback404 = nullptr;
 
   timepoint_t<sysclk_t> timeoutTime;
   seconds_t             TIMEOUT_NO_CONNECTIONS;

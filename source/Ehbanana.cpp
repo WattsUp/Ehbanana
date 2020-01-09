@@ -103,6 +103,15 @@ EBError_t EBStreamWriteBlock(
   return EBError_t::SUCCESS;
 }
 
+EBError_t EBStreamFinish(EBStream_t stream) {
+  if (stream == nullptr) {
+    Ehbanana::error("Buffer is invalid");
+    return EBError_t::EXCEPTION_OCCURRED;
+  }
+  ((Ehbanana::Stream *)stream)->setEOF(true);
+  return EBError_t::SUCCESS;
+}
+
 EBError_t EBAttachInputFileCallback(
     const char * uri, const EBInputFileCallback_t inputFileCallback) {
   if (server == nullptr) {
@@ -119,20 +128,20 @@ EBError_t EBAttachInputFileCallback(
   return EBError_t::SUCCESS;
 }
 
-EBError_t EBSetOutputFileCallback(
-    const EBOutputFileCallback_t outputFileCallback) {
-  if (server == nullptr) {
-    Ehbanana::error("No server created, use EBCreate");
-    return EBError_t::NO_SERVER_CREATED;
-  }
+EBError_t EBSet404Callback(const EB404Callback_t callback404) {
+  return EBError_t::NOT_SUPPORTED;
+  // if (server == nullptr) {
+  //   Ehbanana::error("No server created, use EBCreate");
+  //   return EBError_t::NO_SERVER_CREATED;
+  // }
 
-  try {
-    server->setOutputCallback(outputFileCallback);
-  } catch (const std::exception & e) {
-    Ehbanana::error(e.what());
-    return EBError_t::EXCEPTION_OCCURRED;
-  }
-  return EBError_t::SUCCESS;
+  // try {
+  //   server->set404Callback(callback404);
+  // } catch (const std::exception & e) {
+  //   Ehbanana::error(e.what());
+  //   return EBError_t::EXCEPTION_OCCURRED;
+  // }
+  // return EBError_t::SUCCESS;
 }
 
 EBError_t EBCreate(const EBGUISettings_t guiSettings) {

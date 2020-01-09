@@ -240,8 +240,8 @@ void Server::attachCallback(
  *
  * @param callback function
  */
-void Server::setOutputCallback(const EBOutputFileCallback_t callback) {
-  outputFileCallback = callback;
+void Server::set404Callback(const EB404Callback_t callback) {
+  callback404 = callback;
 }
 
 /**

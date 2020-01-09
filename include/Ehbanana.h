@@ -118,6 +118,13 @@ extern "C" EHBANANA_API EBError_t EBStreamWriteBlock(
     EBStream_t stream, const uint8_t * buf, size_t length);
 
 /**
+ * @brief Set the complete state of the stream to true
+ * Called once the file has been fully written to the stream
+ *
+ */
+extern "C" EHBANANA_API EBError_t EBStreamFinish(EBStream_t stream);
+
+/**
  * @brief Process input file from the GUI
  *
  * @param id of the triggering element
@@ -145,34 +152,34 @@ extern "C" EHBANANA_API EBError_t EBAttachInputFileCallback(
  * @param value of the query
  * @param next query in the linked list, nullptr if last
  */
-struct Query_t {
-  const char *    name;
-  const char *    value;
-  const Query_t * next = nullptr;
+struct EBQuery_t {
+  const char *      name  = nullptr;
+  const char *      value = nullptr;
+  const EBQuery_t * next  = nullptr;
 };
 
 /**
- * @brief Process output file to the GUI
+ * @brief Process not found URI from the GUI
  * Called first if 404 error occurs
- * Set the complete flag if file was properly handled and done writing
- * Exit the function before setting the complete flag if the file is not to be
- * found and to send a 404 error
+ * Return file extension if URI was properly handled and done writing
+ * Return nullptr if the file is not to be found and to send a 404 error
  *
  * @param uri of the file being downloaded
  * @param queries following the uri
  * @param file to send to the GUI, set the complete flag once done writing
+ * @return const char * file extension to look up mime type
  */
-typedef void(__stdcall * EBOutputFileCallback_t)(
-    const char * uri, const Query_t * queries, EBStream_t file);
+typedef const char *(__stdcall * EB404Callback_t)(
+    const char * uri, const EBQuery_t * queries, EBStream_t file);
 
 /**
  * @brief Set the callback to output files not found in the HTTP directory
  *
- * @param outputFileCallback function
+ * @param callback404 function
  * @return EBError_t zero on success, non-zero on failure
  */
-extern "C" EHBANANA_API EBError_t EBSetOutputFileCallback(
-    const EBOutputFileCallback_t outputFileCallback);
+extern "C" EHBANANA_API EBError_t EBSet404Callback(
+    const EB404Callback_t callback404);
 
 /**
  * @brief GUI settings
