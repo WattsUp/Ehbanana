@@ -10,6 +10,10 @@
 #include <algorithm>
 #include <memory>
 
+#ifdef _WIN32
+#include <Windows.h>
+#endif /* _WIN32 */
+
 static const EBVersionInfo_t EB_VERSION_INFO = {
     EHBANANA_MAJOR, EHBANANA_MINOR, EHBANANA_PATCH};
 
@@ -154,6 +158,66 @@ EBError_t EBCreate(const EBGUISettings_t guiSettings) {
   return EBError_t::SUCCESS;
 }
 
+/**
+ * @brief Spawn a process with the application and arguments
+ * Call will not block
+ *
+ * @param envVar environment variable to prepend to application, null to ignore
+ * @param application
+ * @param arguments
+ * @return bool true if process has been spawned, false otherwise
+ */
+bool spawnProcess(
+    const char * envVar, const char * application, const char * arguments) {
+#ifdef _WIN32
+  STARTUPINFO         si;
+  PROCESS_INFORMATION pi;
+
+  ZeroMemory(&si, sizeof(si));
+  si.cb = sizeof(si);
+  ZeroMemory(&pi, sizeof(pi));
+
+  std::string command = "\"";
+
+  if (envVar != nullptr) {
+    char buf[64];
+    if (GetEnvironmentVariableA(envVar, buf, 128) == 0) {
+      Ehbanana::error("Environment variable not found");
+      return false;
+    }
+    command += buf;
+    command += "\\";
+  }
+  command += application;
+  command += "\" ";
+  command += arguments;
+
+  // Start the child process
+  // Arguments is casted to non-const but only unicode version may modify it
+  if (!CreateProcessA(NULL, const_cast<char *>(command.c_str()),
+          NULL,  // Process handle not inheritable
+          NULL,  // Thread handle not inheritable
+          FALSE, // Set handle inheritance to FALSE
+          0,     // No creation flags
+          NULL,  // Use parent's environment block
+          NULL,  // Use parent's starting directory
+          &si,   // Pointer to STARTUPINFO structure
+          &pi)   // Pointer to PROCESS_INFORMATION structure
+  ) {
+    Ehbanana::error("CreateProcess failed: " + std::to_string(GetLastError()));
+    CloseHandle(pi.hProcess);
+    CloseHandle(pi.hThread);
+    return false;
+  }
+  CloseHandle(pi.hProcess);
+  CloseHandle(pi.hThread);
+
+#else  /* _WIN32 */
+  return false; // TODO open process on not Windows
+#endif /* _WIN32 */
+  return true;
+}
+
 EBError_t EBLaunch() {
   if (server == nullptr) {
     Ehbanana::error("No server created, use EBCreate");
@@ -167,36 +231,29 @@ EBError_t EBLaunch() {
     return EBError_t::START_FAILED;
   }
 
-  std::string URL = "http://";
-  URL += server->getDomainName();
+  std::string URL = "http://" + server->getDomainName();
 
 #ifdef _WIN32
   std::string command = "--app=\"" + URL + "\"";
 
-  // Try Chrome default install location first
-  command =
-      "\"\"C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe\"";
-  command += " --app=\"" + URL + "\"\"";
-  if (std::system(command.c_str())) {
+  if (!spawnProcess("ProgramFiles(x86)",
+          "Google\\Chrome\\Application\\chrome.exe", command.c_str())) {
     Ehbanana::warn("Chrome not found at default installation");
-    // Try app data next
-    command = "\"\"%LocalAppData%\\Google\\Chrome\\Application\\chrome.exe\"";
-    command += " --app=\"" + URL + "\"\"";
-    if (std::system(command.c_str())) {
+    if (!spawnProcess("LocalAppData", "Google\\Chrome\\Application\\chrome.exe",
+            command.c_str())) {
       Ehbanana::warn("Chrome not found in app data");
-      // Use default browser last
-      if (std::system(("cmd /c start " + URL).c_str())) {
+      if (!spawnProcess(nullptr, "cmd", ("/c start " + URL).c_str())) {
         Ehbanana::error("Failed to start a web browser");
         return EBError_t::PROCESS_START;
       }
     }
   }
-#else
-  if (std::system(("open " + URL).c_str())) {
+#else  /* _WIN32 */
+  if (!spawnProcess("open", URL)) {
     Ehbanana::error("Failed to start a web browser");
     return EBError_t::PROCESS_START;
   }
-#endif
+#endif /* _WIN32 */
 
   Ehbanana::info("Web browser opened to " + URL);
 

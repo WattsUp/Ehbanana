@@ -43,6 +43,7 @@ void error(const char * string);
 void crit(const char * string);
 
 void log(EBLogLevel_t level, const char * format, ...);
+// TODO make debug, info, etc take in format strings like this
 
 /**
  * @brief Log a message with debug level
